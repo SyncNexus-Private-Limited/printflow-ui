@@ -2,9 +2,148 @@
 
 :root {
   color-scheme: light;
+  --font-manrope: "Manrope", sans-serif;
+  --background: 246 248 255;
+  --surface: 250 251 255;
+  --foreground: 23 28 47;
+  --card: 255 255 255;
+  --card-foreground: 23 28 47;
+  --muted: 236 239 252;
+  --muted-foreground: 99 108 138;
+  --border: 220 225 245;
+  --primary: 124 134 255;
+  --primary-strong: 104 114 242;
+  --primary-foreground: 255 255 255;
+  --primary-soft: 236 239 255;
+  --primary-soft-foreground: 76 84 188;
+  --shadow: 64 76 188;
+  --danger: 225 29 72;
+  --metric-blue: 124 134 255;
+  --metric-blue-soft: 237 239 255;
+  --metric-blue-ink: 76 84 188;
+  --metric-emerald: 16 185 129;
+  --metric-emerald-soft: 230 247 239;
+  --metric-emerald-ink: 6 95 70;
+  --metric-amber: 245 158 11;
+  --metric-amber-soft: 255 247 217;
+  --metric-amber-ink: 146 64 14;
+  --metric-violet: 139 92 246;
+  --metric-violet-soft: 241 235 255;
+  --metric-violet-ink: 107 33 168;
+  --metric-rose: 244 63 94;
+  --metric-rose-soft: 255 237 242;
+  --metric-rose-ink: 159 18 57;
+  --metric-orange: 249 115 22;
+  --metric-orange-soft: 255 237 220;
+  --metric-orange-ink: 154 52 18;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: 9 13 25;
+  --surface: 13 18 33;
+  --foreground: 236 239 255;
+  --card: 18 24 43;
+  --card-foreground: 236 239 255;
+  --muted: 29 36 60;
+  --muted-foreground: 155 165 201;
+  --border: 43 52 84;
+  --primary: 140 149 255;
+  --primary-strong: 163 170 255;
+  --primary-foreground: 15 19 34;
+  --primary-soft: 33 41 74;
+  --primary-soft-foreground: 198 204 255;
+  --shadow: 5 9 21;
+  --danger: 251 113 133;
+  --metric-blue: 140 149 255;
+  --metric-blue-soft: 31 40 73;
+  --metric-blue-ink: 203 208 255;
+  --metric-emerald: 52 211 153;
+  --metric-emerald-soft: 17 48 42;
+  --metric-emerald-ink: 183 255 227;
+  --metric-amber: 251 191 36;
+  --metric-amber-soft: 61 45 17;
+  --metric-amber-ink: 254 227 154;
+  --metric-violet: 167 139 250;
+  --metric-violet-soft: 43 31 77;
+  --metric-violet-ink: 228 216 255;
+  --metric-rose: 251 113 133;
+  --metric-rose-soft: 65 28 41;
+  --metric-rose-ink: 255 214 224;
+  --metric-orange: 251 146 60;
+  --metric-orange-soft: 69 39 18;
+  --metric-orange-ink: 255 223 191;
+}
+
+html,
+body {
+  min-height: 100%;
 }
 
 body {
-  @apply bg-slate-100 text-slate-950 antialiased;
+  background:
+    radial-gradient(circle at top center, rgb(var(--primary) / 0.18), transparent 28%),
+    linear-gradient(180deg, rgb(var(--background)) 0%, rgb(var(--surface)) 100%);
+  color: rgb(var(--foreground));
+  font-family: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease,
+    background 160ms ease;
 }
 
+::selection {
+  background: rgb(var(--primary) / 0.24);
+  color: rgb(var(--foreground));
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.bg-white {
+  background-color: rgb(var(--card)) !important;
+}
+
+.bg-slate-100 {
+  background-color: rgb(var(--background)) !important;
+}
+
+.bg-slate-50 {
+  background-color: rgb(var(--muted)) !important;
+}
+
+.bg-amber-50 {
+  background-color: rgb(var(--metric-amber-soft)) !important;
+}
+
+.border-slate-200,
+.border-slate-300 {
+  border-color: rgb(var(--border)) !important;
+}
+
+.text-slate-500,
+.text-slate-600 {
+  color: rgb(var(--muted-foreground)) !important;
+}
+
+.text-slate-700 {
+  color: rgb(var(--foreground) / 0.85) !important;
+}
+
+.text-slate-900,
+.text-slate-950 {
+  color: rgb(var(--card-foreground)) !important;
+}
+
+.text-amber-700 {
+  color: rgb(var(--metric-amber-ink)) !important;
+}
+
+.divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: rgb(var(--border)) !important;
+}

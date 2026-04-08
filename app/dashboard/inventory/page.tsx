@@ -34,7 +34,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
             title="Inventory"
-            subtitle={`Inventory health • ${context.selectedBranchName}`}
+            subtitle={`Inventory health / ${context.selectedBranchName}`}
             branchOptions={branchOptions}
             selectedBranchValue={context.selectedBranchValue}
             branchFilterDisabled={!context.canSelectAll}
@@ -42,19 +42,19 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
           />
 
           <section className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <div className="rounded-[22px] border border-[rgb(var(--border))] bg-[rgb(var(--card)/0.92)] p-5 shadow-[0_18px_48px_-38px_rgb(var(--shadow)/0.28)]">
               <p className="text-sm text-slate-500">Inventory items</p>
               <p className="mt-2 text-2xl font-semibold text-slate-950">
                 {formatCompactNumber(summary.inventory.totalInventoryItems)}
               </p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <div className="rounded-[22px] border border-[rgb(var(--border))] bg-[rgb(var(--card)/0.92)] p-5 shadow-[0_18px_48px_-38px_rgb(var(--shadow)/0.28)]">
               <p className="text-sm text-slate-500">Low stock items</p>
               <p className="mt-2 text-2xl font-semibold text-slate-950">
                 {formatCompactNumber(summary.inventory.lowStockItems)}
               </p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <div className="rounded-[22px] border border-[rgb(var(--border))] bg-[rgb(var(--card)/0.92)] p-5 shadow-[0_18px_48px_-38px_rgb(var(--shadow)/0.28)]">
               <p className="text-sm text-slate-500">Total stock quantity</p>
               <p className="mt-2 text-2xl font-semibold text-slate-950">
                 {formatCompactNumber(summary.inventory.totalStockQuantity)}
@@ -119,4 +119,3 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
     );
   }
 }
-

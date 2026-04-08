@@ -34,7 +34,7 @@ export default async function BusinessExpensesPage({ searchParams }: BusinessExp
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
             title="Business Expenses"
-            subtitle={`Branch expense overview • ${context.selectedBranchName}`}
+            subtitle={`Branch expense overview / ${context.selectedBranchName}`}
             branchOptions={branchOptions}
             selectedBranchValue={context.selectedBranchValue}
             branchFilterDisabled={!context.canSelectAll}
@@ -42,13 +42,13 @@ export default async function BusinessExpensesPage({ searchParams }: BusinessExp
           />
 
           <section className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <div className="rounded-[22px] border border-[rgb(var(--border))] bg-[rgb(var(--card)/0.92)] p-5 shadow-[0_18px_48px_-38px_rgb(var(--shadow)/0.28)]">
               <p className="text-sm text-slate-500">Total this month</p>
               <p className="mt-2 text-2xl font-semibold text-slate-950">
                 {formatCurrency(summary.businessExpenses.totalAmountThisMonth)}
               </p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <div className="rounded-[22px] border border-[rgb(var(--border))] bg-[rgb(var(--card)/0.92)] p-5 shadow-[0_18px_48px_-38px_rgb(var(--shadow)/0.28)]">
               <p className="text-sm text-slate-500">Entries this month</p>
               <p className="mt-2 text-2xl font-semibold text-slate-950">
                 {formatCompactNumber(summary.businessExpenses.entryCountThisMonth)}

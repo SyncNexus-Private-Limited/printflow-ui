@@ -34,7 +34,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
             title="Orders"
-            subtitle={`Order performance • ${context.selectedBranchName}`}
+            subtitle={`Order performance / ${context.selectedBranchName}`}
             branchOptions={branchOptions}
             selectedBranchValue={context.selectedBranchValue}
             branchFilterDisabled={!context.canSelectAll}
@@ -42,17 +42,17 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
           />
 
           <section className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <div className="rounded-[22px] border border-[rgb(var(--border))] bg-[rgb(var(--card)/0.92)] p-5 shadow-[0_18px_48px_-38px_rgb(var(--shadow)/0.28)]">
               <p className="text-sm text-slate-500">Total orders</p>
               <p className="mt-2 text-2xl font-semibold text-slate-950">{formatCompactNumber(summary.orders.totalOrders)}</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <div className="rounded-[22px] border border-[rgb(var(--border))] bg-[rgb(var(--card)/0.92)] p-5 shadow-[0_18px_48px_-38px_rgb(var(--shadow)/0.28)]">
               <p className="text-sm text-slate-500">Pending vs completed</p>
               <p className="mt-2 text-2xl font-semibold text-slate-950">
                 {formatCompactNumber(summary.orders.pendingOrders)} / {formatCompactNumber(summary.orders.completedOrders)}
               </p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-5">
+            <div className="rounded-[22px] border border-[rgb(var(--border))] bg-[rgb(var(--card)/0.92)] p-5 shadow-[0_18px_48px_-38px_rgb(var(--shadow)/0.28)]">
               <p className="text-sm text-slate-500">Total payable amount</p>
               <p className="mt-2 text-2xl font-semibold text-slate-950">
                 {formatCurrency(summary.orders.totalPayableAmount)}
@@ -119,4 +119,3 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
     );
   }
 }
-

@@ -22,11 +22,12 @@ export function BranchFilter({ options, value, disabled = false }: BranchFilterP
   const [isPending, startTransition] = useTransition();
 
   return (
-    <div className="w-full sm:w-64">
-      <label className="mb-2 block text-sm font-medium text-slate-700" htmlFor="branch-filter">
+    <div className="w-full sm:w-72">
+      <label className="mb-2 block text-sm font-medium text-[rgb(var(--foreground))]" htmlFor="branch-filter">
         Branch
       </label>
       <Select
+        className="bg-[rgb(var(--card)/0.92)]"
         id="branch-filter"
         value={value}
         disabled={disabled || isPending}
@@ -48,4 +49,3 @@ export function BranchFilter({ options, value, disabled = false }: BranchFilterP
     </div>
   );
 }
-

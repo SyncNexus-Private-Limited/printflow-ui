@@ -23,9 +23,12 @@ export function LogoutButton() {
   };
 
   return (
-    <Button className="w-auto px-3" onClick={handleLogout} disabled={isPending}>
+    <Button
+      className="w-auto border border-slate-200 bg-white px-3 text-slate-700 hover:bg-slate-100"
+      onClick={handleLogout}
+      disabled={isPending}
+    >
       {isPending ? "Signing out..." : "Sign out"}
     </Button>
   );
 }
-

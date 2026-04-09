@@ -17,7 +17,7 @@ export function LogoutButton() {
       });
     } finally {
       router.replace("/login");
-      router.refresh();
+      // router.refresh();
       setIsPending(false);
     }
   };

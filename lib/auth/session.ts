@@ -4,8 +4,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 const sessionPayloadSchema = z.object({
-  userId: z.string().min(1),
-  role: z.string().nullable(),
+  sessionId: z.string().uuid(),
+  userId: z.string().uuid(),
+  role: z.string().min(1),
   branchId: z.string().nullable(),
   username: z.string().min(1),
 });
@@ -13,6 +14,18 @@ const sessionPayloadSchema = z.object({
 export type SessionPayload = z.infer<typeof sessionPayloadSchema>;
 
 export const SESSION_COOKIE_NAME = process.env.SESSION_COOKIE_NAME ?? "dlms_session";
+
+export function getSessionMaxAge() {
+  const value = Number.parseInt(process.env.SESSION_MAX_AGE ?? "604800", 10);
+
+  return Number.isFinite(value) && value > 0 ? value : 604800;
+}
+
+export function getActiveUserWindowMinutes() {
+  const value = Number.parseInt(process.env.ACTIVE_USER_WINDOW_MINUTES ?? "15", 10);
+
+  return Number.isFinite(value) && value > 0 ? value : 15;
+}
 
 function getSessionSecret() {
   const secret = process.env.APP_SECRET;
@@ -22,12 +35,6 @@ function getSessionSecret() {
   }
 
   return new TextEncoder().encode(secret);
-}
-
-function getSessionMaxAge() {
-  const value = Number.parseInt(process.env.SESSION_MAX_AGE ?? "604800", 10);
-
-  return Number.isFinite(value) && value > 0 ? value : 604800;
 }
 
 function getCookieOptions() {
@@ -40,15 +47,28 @@ function getCookieOptions() {
   };
 }
 
-export async function createSession(response: NextResponse, payload: SessionPayload) {
-  const expiresAt = Math.floor(Date.now() / 1000) + getSessionMaxAge();
-  const token = await new SignJWT(payload)
+export function getSessionExpiresAt() {
+  return new Date(Date.now() + getSessionMaxAge() * 1000);
+}
+
+async function signSessionToken(payload: SessionPayload) {
+  return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime(expiresAt)
+    .setExpirationTime(Math.floor(getSessionExpiresAt().getTime() / 1000))
     .sign(getSessionSecret());
+}
+
+export async function createSession(response: NextResponse, payload: SessionPayload) {
+  const token = await signSessionToken(payload);
+  const expiresAt = getSessionExpiresAt();
 
   response.cookies.set(SESSION_COOKIE_NAME, token, getCookieOptions());
+
+  return {
+    token,
+    expiresAt,
+  };
 }
 
 export async function verifySession(token: string | undefined) {
@@ -69,4 +89,11 @@ export function clearSession(response: NextResponse) {
     ...getCookieOptions(),
     maxAge: 0,
   });
+}
+
+export async function hashSessionToken(token: string) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+  const bytes = Array.from(new Uint8Array(digest));
+
+  return bytes.map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }

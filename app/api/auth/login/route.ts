@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getPool } from "@/lib/db/postgres";
-import { createSession } from "@/lib/auth/session";
+import { createSession, hashSessionToken } from "@/lib/auth/session";
 import { loginSchema } from "@/lib/validations/auth";
 
 export const runtime = "nodejs";
@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 type UserRow = {
   id: string;
   username: string;
-  role: string | null;
+  role: string;
   branchId: string | null;
   isActive: boolean;
 };
@@ -157,12 +157,29 @@ export async function POST(request: Request) {
       },
     });
 
-    await createSession(response, {
+    const sessionId = crypto.randomUUID();
+    const sessionResult = await createSession(response, {
+      sessionId,
       userId: user.id,
       username: user.username,
       role: user.role,
       branchId: user.branchId,
     });
+    const sessionTokenHash = await hashSessionToken(sessionResult.token);
+
+    await db.query(
+      `
+        INSERT INTO app_sessions (
+          id,
+          user_id,
+          session_token_hash,
+          branch_id,
+          expires_at
+        )
+        VALUES ($1::uuid, $2::uuid, $3, $4::uuid, $5::timestamptz)
+      `,
+      [sessionId, user.id, sessionTokenHash, user.branchId, sessionResult.expiresAt.toISOString()],
+    );
 
     return response;
   } catch (error) {

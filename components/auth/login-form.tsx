@@ -73,13 +73,13 @@ export function LoginForm() {
     }
 
     router.push("/dashboard");
-    router.refresh();
+    // router.refresh();
   });
 
   return (
     <form className="space-y-4" onSubmit={onSubmit} noValidate>
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-slate-700" htmlFor="username">
+        <label className="block text-sm font-medium text-[rgb(var(--foreground))]" htmlFor="username">
           Username
         </label>
         <Input
@@ -88,11 +88,11 @@ export function LoginForm() {
           placeholder="Enter your username"
           {...register("username")}
         />
-        {errors.username ? <p className="text-sm text-red-600">{errors.username.message}</p> : null}
+        {errors.username ? <p className="text-sm text-[rgb(var(--danger))]">{errors.username.message}</p> : null}
       </div>
 
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-slate-700" htmlFor="password">
+        <label className="block text-sm font-medium text-[rgb(var(--foreground))]" htmlFor="password">
           Password
         </label>
         <Input
@@ -102,10 +102,10 @@ export function LoginForm() {
           placeholder="Enter your password"
           {...register("password")}
         />
-        {errors.password ? <p className="text-sm text-red-600">{errors.password.message}</p> : null}
+        {errors.password ? <p className="text-sm text-[rgb(var(--danger))]">{errors.password.message}</p> : null}
       </div>
 
-      {serverError ? <p className="text-sm text-red-600">{serverError}</p> : null}
+      {serverError ? <p className="text-sm text-[rgb(var(--danger))]">{serverError}</p> : null}
 
       <Button type="submit" disabled={isSubmitting}>
         {isSubmitting ? "Signing in..." : "Sign in"}

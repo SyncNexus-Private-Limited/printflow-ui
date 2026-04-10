@@ -17,15 +17,14 @@ export function LogoutButton() {
       });
     } finally {
       router.replace("/login");
-      router.refresh();
+      // router.refresh();
       setIsPending(false);
     }
   };
 
   return (
-    <Button className="w-auto px-3" onClick={handleLogout} disabled={isPending}>
+    <Button className="w-auto px-4" variant="secondary" onClick={handleLogout} disabled={isPending}>
       {isPending ? "Signing out..." : "Sign out"}
     </Button>
   );
 }
-

@@ -4,20 +4,15 @@ import type { AuthenticatedUser } from "@/lib/auth/current-user";
 import { getPool } from "@/lib/db/postgres";
 import {
   type ActiveUserRow,
-  type ActiveUsersSummary,
   type BranchFilterState,
   type BranchOption,
   type BusinessExpenseDetailRow,
   type CustomerDetailRow,
-  type CustomersSummary,
   type DashboardSummary,
   type EmployeeExpenseDetailRow,
-  type ExpenseSummary,
   type InventoryDetailRow,
-  type InventorySummary,
   type LowStockRow,
   type OrderDetailRow,
-  type OrdersSummary,
   type RecentExpenseRow,
   type RecentOrderRow,
 } from "@/lib/dashboard/types";
@@ -97,144 +92,166 @@ export async function getDashboardContext(
   };
 }
 
-async function getOrdersSummary(branchId: string | null) {
-  const db = getPool();
-  const { rows } = await db.query<OrdersSummary>(
-    `
-      SELECT
-        COUNT(*)::int AS "totalOrders",
-        COUNT(*) FILTER (WHERE status = 'pending')::int AS "pendingOrders",
-        COUNT(*) FILTER (WHERE status = 'completed')::int AS "completedOrders",
-        COALESCE(SUM(payable_amount), 0)::double precision AS "totalPayableAmount"
-      FROM orders
-      WHERE ($1::uuid IS NULL OR branch_id = $1::uuid)
-    `,
-    [branchId],
-  );
+type DashboardSummaryRow = {
+  ordersTotalOrders: number;
+  ordersPendingOrders: number;
+  ordersCompletedOrders: number;
+  ordersTotalPayableAmount: number;
+  customersTotalCustomers: number;
+  customersNewCustomersThisMonth: number;
+  inventoryTotalInventoryItems: number;
+  inventoryLowStockItems: number;
+  inventoryTotalStockQuantity: number;
+  activeUsersCurrentActiveUsers: number;
+  activeUsersTotalActiveStaffAccounts: number;
+  employeeExpensesTotalAmountThisMonth: number;
+  employeeExpensesEntryCountThisMonth: number;
+  businessExpensesTotalAmountThisMonth: number;
+  businessExpensesEntryCountThisMonth: number;
+};
 
-  return rows[0];
-}
-
-async function getCustomersSummary(branchId: string | null) {
-  const db = getPool();
-  const { rows } = await db.query<CustomersSummary>(
-    `
-      SELECT
-        COUNT(*)::int AS "totalCustomers",
-        COUNT(*) FILTER (WHERE created_at >= date_trunc('month', now()))::int AS "newCustomersThisMonth"
-      FROM customers c
-      WHERE (
-        $1::uuid IS NULL
-        OR EXISTS (
-          SELECT 1
-          FROM orders o
-          WHERE o.customer_id = c.id
-            AND o.branch_id = $1::uuid
-        )
-      )
-    `,
-    [branchId],
-  );
-
-  return rows[0];
-}
-
-async function getInventorySummary(branchId: string | null) {
-  const db = getPool();
-  const { rows } = await db.query<InventorySummary>(
-    `
-      SELECT
-        COUNT(*)::int AS "totalInventoryItems",
-        COUNT(*) FILTER (WHERE quantity <= 10)::int AS "lowStockItems",
-        COALESCE(SUM(quantity), 0)::double precision AS "totalStockQuantity"
-      FROM inventory
-      WHERE ($1::uuid IS NULL OR branch_id = $1::uuid)
-    `,
-    [branchId],
-  );
-
-  return rows[0];
-}
-
-async function getActiveUsersSummary(branchId: string | null) {
+export async function getDashboardSummary(branchId: string | null): Promise<DashboardSummary> {
   const db = getPool();
   const activeWindowMinutes = getActiveUserWindowMinutes();
-  const { rows } = await db.query<ActiveUsersSummary>(
+  const { rows } = await db.query<DashboardSummaryRow>(
     `
       SELECT
-        COUNT(DISTINCT s.user_id)::int AS "currentActiveUsers",
+        (
+          SELECT COUNT(*)::int
+          FROM orders o
+          WHERE ($1::uuid IS NULL OR o.branch_id = $1::uuid)
+        ) AS "ordersTotalOrders",
+        (
+          SELECT COUNT(*) FILTER (WHERE o.status = 'pending')::int
+          FROM orders o
+          WHERE ($1::uuid IS NULL OR o.branch_id = $1::uuid)
+        ) AS "ordersPendingOrders",
+        (
+          SELECT COUNT(*) FILTER (WHERE o.status = 'completed')::int
+          FROM orders o
+          WHERE ($1::uuid IS NULL OR o.branch_id = $1::uuid)
+        ) AS "ordersCompletedOrders",
+        (
+          SELECT COALESCE(SUM(o.payable_amount), 0)::double precision
+          FROM orders o
+          WHERE ($1::uuid IS NULL OR o.branch_id = $1::uuid)
+        ) AS "ordersTotalPayableAmount",
+        (
+          SELECT COUNT(*)::int
+          FROM customers c
+          WHERE (
+            $1::uuid IS NULL
+            OR EXISTS (
+              SELECT 1
+              FROM orders o
+              WHERE o.customer_id = c.id
+                AND o.branch_id = $1::uuid
+            )
+          )
+        ) AS "customersTotalCustomers",
+        (
+          SELECT COUNT(*) FILTER (WHERE c.created_at >= date_trunc('month', now()))::int
+          FROM customers c
+          WHERE (
+            $1::uuid IS NULL
+            OR EXISTS (
+              SELECT 1
+              FROM orders o
+              WHERE o.customer_id = c.id
+                AND o.branch_id = $1::uuid
+            )
+          )
+        ) AS "customersNewCustomersThisMonth",
+        (
+          SELECT COUNT(*)::int
+          FROM inventory i
+          WHERE ($1::uuid IS NULL OR i.branch_id = $1::uuid)
+        ) AS "inventoryTotalInventoryItems",
+        (
+          SELECT COUNT(*) FILTER (WHERE i.quantity <= 10)::int
+          FROM inventory i
+          WHERE ($1::uuid IS NULL OR i.branch_id = $1::uuid)
+        ) AS "inventoryLowStockItems",
+        (
+          SELECT COALESCE(SUM(i.quantity), 0)::double precision
+          FROM inventory i
+          WHERE ($1::uuid IS NULL OR i.branch_id = $1::uuid)
+        ) AS "inventoryTotalStockQuantity",
+        (
+          SELECT COUNT(DISTINCT s.user_id)::int
+          FROM app_sessions s
+          JOIN users u ON u.id = s.user_id
+          WHERE s.is_revoked = false
+            AND s.expires_at > now()
+            AND s.last_seen_at >= now() - make_interval(mins => $2::int)
+            AND u.is_active = true
+            AND ($1::uuid IS NULL OR COALESCE(s.branch_id, u.branch_id) = $1::uuid)
+        ) AS "activeUsersCurrentActiveUsers",
         (
           SELECT COUNT(*)::int
           FROM users u
           WHERE u.is_active = true
             AND ($1::uuid IS NULL OR u.branch_id = $1::uuid)
-        ) AS "totalActiveStaffAccounts"
-      FROM app_sessions s
-      JOIN users u ON u.id = s.user_id
-      WHERE s.is_revoked = false
-        AND s.expires_at > now()
-        AND s.last_seen_at >= now() - make_interval(mins => $2::int)
-        AND u.is_active = true
-        AND ($1::uuid IS NULL OR COALESCE(s.branch_id, u.branch_id) = $1::uuid)
+        ) AS "activeUsersTotalActiveStaffAccounts",
+        (
+          SELECT COALESCE(SUM(ee.amount), 0)::double precision
+          FROM employee_expenses ee
+          JOIN users u ON u.id = ee.user_id
+          WHERE ee.created_at >= date_trunc('month', now())
+            AND ($1::uuid IS NULL OR u.branch_id = $1::uuid)
+        ) AS "employeeExpensesTotalAmountThisMonth",
+        (
+          SELECT COUNT(*)::int
+          FROM employee_expenses ee
+          JOIN users u ON u.id = ee.user_id
+          WHERE ee.created_at >= date_trunc('month', now())
+            AND ($1::uuid IS NULL OR u.branch_id = $1::uuid)
+        ) AS "employeeExpensesEntryCountThisMonth",
+        (
+          SELECT COALESCE(SUM(be.amount), 0)::double precision
+          FROM branch_expenses be
+          WHERE be.created_at >= date_trunc('month', now())
+            AND ($1::uuid IS NULL OR be.branch_id = $1::uuid)
+        ) AS "businessExpensesTotalAmountThisMonth",
+        (
+          SELECT COUNT(*)::int
+          FROM branch_expenses be
+          WHERE be.created_at >= date_trunc('month', now())
+            AND ($1::uuid IS NULL OR be.branch_id = $1::uuid)
+        ) AS "businessExpensesEntryCountThisMonth"
     `,
     [branchId, activeWindowMinutes],
   );
-
-  return rows[0];
-}
-
-async function getEmployeeExpensesSummary(branchId: string | null) {
-  const db = getPool();
-  const { rows } = await db.query<ExpenseSummary>(
-    `
-      SELECT
-        COALESCE(SUM(ee.amount), 0)::double precision AS "totalAmountThisMonth",
-        COUNT(*)::int AS "entryCountThisMonth"
-      FROM employee_expenses ee
-      JOIN users u ON u.id = ee.user_id
-      WHERE ee.created_at >= date_trunc('month', now())
-        AND ($1::uuid IS NULL OR u.branch_id = $1::uuid)
-    `,
-    [branchId],
-  );
-
-  return rows[0];
-}
-
-async function getBusinessExpensesSummary(branchId: string | null) {
-  const db = getPool();
-  const { rows } = await db.query<ExpenseSummary>(
-    `
-      SELECT
-        COALESCE(SUM(amount), 0)::double precision AS "totalAmountThisMonth",
-        COUNT(*)::int AS "entryCountThisMonth"
-      FROM branch_expenses
-      WHERE created_at >= date_trunc('month', now())
-        AND ($1::uuid IS NULL OR branch_id = $1::uuid)
-    `,
-    [branchId],
-  );
-
-  return rows[0];
-}
-
-export async function getDashboardSummary(branchId: string | null): Promise<DashboardSummary> {
-  const [orders, customers, inventory, activeUsers, employeeExpenses, businessExpenses] = await Promise.all([
-    getOrdersSummary(branchId),
-    getCustomersSummary(branchId),
-    getInventorySummary(branchId),
-    getActiveUsersSummary(branchId),
-    getEmployeeExpensesSummary(branchId),
-    getBusinessExpensesSummary(branchId),
-  ]);
+  const row = rows[0];
 
   return {
-    orders,
-    customers,
-    inventory,
-    activeUsers,
-    employeeExpenses,
-    businessExpenses,
+    orders: {
+      totalOrders: row.ordersTotalOrders,
+      pendingOrders: row.ordersPendingOrders,
+      completedOrders: row.ordersCompletedOrders,
+      totalPayableAmount: row.ordersTotalPayableAmount,
+    },
+    customers: {
+      totalCustomers: row.customersTotalCustomers,
+      newCustomersThisMonth: row.customersNewCustomersThisMonth,
+    },
+    inventory: {
+      totalInventoryItems: row.inventoryTotalInventoryItems,
+      lowStockItems: row.inventoryLowStockItems,
+      totalStockQuantity: row.inventoryTotalStockQuantity,
+    },
+    activeUsers: {
+      currentActiveUsers: row.activeUsersCurrentActiveUsers,
+      totalActiveStaffAccounts: row.activeUsersTotalActiveStaffAccounts,
+    },
+    employeeExpenses: {
+      totalAmountThisMonth: row.employeeExpensesTotalAmountThisMonth,
+      entryCountThisMonth: row.employeeExpensesEntryCountThisMonth,
+    },
+    businessExpenses: {
+      totalAmountThisMonth: row.businessExpensesTotalAmountThisMonth,
+      entryCountThisMonth: row.businessExpensesEntryCountThisMonth,
+    },
   };
 }
 

@@ -27,6 +27,12 @@ export function getActiveUserWindowMinutes() {
   return Number.isFinite(value) && value > 0 ? value : 15;
 }
 
+export function getSessionTouchIntervalSeconds() {
+  const value = Number.parseInt(process.env.SESSION_TOUCH_INTERVAL_SECONDS ?? "60", 10);
+
+  return Number.isFinite(value) && value > 0 ? value : 60;
+}
+
 function getSessionSecret() {
   const secret = process.env.APP_SECRET;
 

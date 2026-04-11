@@ -27,8 +27,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
   try {
     const context = await getDashboardContext(currentUser, resolvedSearchParams?.branchId);
-    const [summary, recentOrders, lowStockItems, recentExpenses] = await Promise.all([
-      getDashboardSummary(context.selectedBranchId),
+    const summary = await getDashboardSummary(context.selectedBranchId);
+    const [recentOrders, lowStockItems, recentExpenses] = await Promise.all([
       getRecentOrders(context.selectedBranchId),
       getLowStockItems(context.selectedBranchId),
       getRecentExpenses(context.selectedBranchId),

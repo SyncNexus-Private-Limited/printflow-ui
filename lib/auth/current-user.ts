@@ -1,7 +1,13 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { getPool } from "@/lib/db/postgres";
-import { SESSION_COOKIE_NAME, hashSessionToken, type SessionPayload, verifySession } from "@/lib/auth/session";
+import {
+  getSessionTouchIntervalSeconds,
+  SESSION_COOKIE_NAME,
+  hashSessionToken,
+  type SessionPayload,
+  verifySession,
+} from "@/lib/auth/session";
 
 type CurrentUserRow = {
   sessionId: string;
@@ -33,34 +39,48 @@ async function getSessionPayloadFromCookies() {
 async function loadCurrentUser(session: SessionPayload, sessionToken: string, touchSession: boolean) {
   const db = getPool();
   const tokenHash = await hashSessionToken(sessionToken);
+  const sessionTouchIntervalSeconds = getSessionTouchIntervalSeconds();
   const { rows } = await db.query<CurrentUserRow>(
     `
       WITH matching_session AS (
-        UPDATE app_sessions
-        SET last_seen_at = CASE WHEN $3::boolean THEN now() ELSE last_seen_at END
-        WHERE id = $1::uuid
-          AND user_id = $2::uuid
-          AND session_token_hash = $4
-          AND is_revoked = false
-          AND expires_at > now()
-        RETURNING id, user_id
+        SELECT
+          s.id,
+          s.user_id,
+          s.last_seen_at
+        FROM app_sessions s
+        WHERE s.id = $1::uuid
+          AND s.user_id = $2::uuid
+          AND s.session_token_hash = $3
+          AND s.is_revoked = false
+          AND s.expires_at > now()
+        LIMIT 1
+      ),
+      touched_session AS (
+        UPDATE app_sessions s
+        SET last_seen_at = now()
+        FROM matching_session ms
+        WHERE $4::boolean
+          AND s.id = ms.id
+          AND ms.last_seen_at < now() - make_interval(secs => $5::int)
+        RETURNING s.id
       )
       SELECT
-        matching_session.id::text AS "sessionId",
+        ms.id::text AS "sessionId",
         u.id::text AS "userId",
-        COALESCE(ua.username, $5) AS username,
+        COALESCE(ua.username, $6) AS username,
         u.role::text AS role,
         u.branch_id::text AS "branchId",
         b.name AS "branchName",
         u.full_name AS "fullName"
-      FROM matching_session
-      JOIN users u ON u.id = matching_session.user_id
+      FROM matching_session ms
+      LEFT JOIN touched_session ts ON ts.id = ms.id
+      JOIN users u ON u.id = ms.user_id
       LEFT JOIN user_auth ua ON ua.user_id = u.id
       LEFT JOIN branches b ON b.id = u.branch_id
       WHERE u.is_active = true
       LIMIT 1
     `,
-    [session.sessionId, session.userId, touchSession, tokenHash, session.username],
+    [session.sessionId, session.userId, tokenHash, touchSession, sessionTouchIntervalSeconds, session.username],
   );
 
   return rows[0] ?? null;

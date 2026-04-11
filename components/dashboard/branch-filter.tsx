@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Select } from "@/components/ui/select";
+import { useGlobalLoader } from "@/lib/ui/global-loader-context";
 
 type BranchFilterOption = {
   label: string;
@@ -19,6 +20,7 @@ export function BranchFilter({ options, value, disabled = false }: BranchFilterP
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { showBlockingLoader } = useGlobalLoader();
   const [isPending, startTransition] = useTransition();
 
   return (
@@ -34,6 +36,9 @@ export function BranchFilter({ options, value, disabled = false }: BranchFilterP
         onChange={(event) => {
           const nextSearchParams = new URLSearchParams(searchParams.toString());
           nextSearchParams.set("branchId", event.target.value);
+          showBlockingLoader("Updating branch...", {
+            autoHideOnRouteChange: true,
+          });
 
           startTransition(() => {
             router.replace(`${pathname}?${nextSearchParams.toString()}`);

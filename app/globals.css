@@ -147,3 +147,17 @@ textarea {
 .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
   border-color: rgb(var(--border)) !important;
 }
+
+@keyframes global-loader-marquee {
+  0% {
+    transform: translateX(-140%);
+  }
+
+  65% {
+    transform: translateX(140%);
+  }
+
+  100% {
+    transform: translateX(220%);
+  }
+}

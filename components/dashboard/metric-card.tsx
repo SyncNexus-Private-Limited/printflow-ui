@@ -1,5 +1,9 @@
+"use client";
+
+import { useState, type MouseEvent } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
+import { useGlobalLoader } from "@/lib/ui/global-loader-context";
 
 type Accent = "blue" | "emerald" | "amber" | "violet" | "rose" | "orange";
 
@@ -28,12 +32,58 @@ const accentClasses: Record<Accent, string> = {
     "border-[rgb(var(--metric-orange)/0.18)] bg-[linear-gradient(180deg,rgb(var(--card))_0%,rgb(var(--metric-orange-soft))_125%)] text-[rgb(var(--metric-orange-ink))] shadow-[0_26px_60px_-42px_rgb(var(--metric-orange)/0.35)]",
 };
 
+function shouldShowLoaderForNavigation(event: MouseEvent<HTMLAnchorElement>) {
+  if (event.defaultPrevented) {
+    return false;
+  }
+
+  if (event.button !== 0) {
+    return false;
+  }
+
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+    return false;
+  }
+
+  const currentTarget = event.currentTarget;
+
+  if (currentTarget.target && currentTarget.target !== "_self") {
+    return false;
+  }
+
+  if (currentTarget.hasAttribute("download")) {
+    return false;
+  }
+
+  return true;
+}
+
 export function MetricCard({ title, value, helperText, href, accent, stats }: MetricCardProps) {
+  const { showBlockingLoader } = useGlobalLoader();
+  const [isNavigating, setIsNavigating] = useState(false);
+
   return (
     <Link
       href={href}
+      onClick={(event) => {
+        if (isNavigating) {
+          event.preventDefault();
+          return;
+        }
+
+        if (!shouldShowLoaderForNavigation(event)) {
+          return;
+        }
+
+        setIsNavigating(true);
+        showBlockingLoader(`Loading ${title.toLowerCase()}...`, {
+          autoHideOnRouteChange: true,
+        });
+      }}
+      aria-disabled={isNavigating}
       className={cn(
         "group block rounded-[24px] border p-5 transition-transform duration-200 hover:-translate-y-0.5",
+        isNavigating && "pointer-events-none",
         accentClasses[accent],
       )}
     >

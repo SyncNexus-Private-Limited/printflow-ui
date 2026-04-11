@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { loginSchema, type LoginInput } from "@/lib/validations/auth";
+import { useGlobalLoader } from "@/lib/ui/global-loader-context";
 
 type LoginApiResponse = {
   success: boolean;
@@ -22,6 +23,7 @@ type LoginApiResponse = {
 
 export function LoginForm() {
   const router = useRouter();
+  const { showBlockingLoader, hideBlockingLoader } = useGlobalLoader();
   const [serverError, setServerError] = useState<string | null>(null);
   const {
     register,
@@ -39,41 +41,50 @@ export function LoginForm() {
 
   const onSubmit = handleSubmit(async (values) => {
     setServerError(null);
-
-    const response = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(values),
+    showBlockingLoader("Signing in...", {
+      autoHideOnRouteChange: true,
     });
 
-    const data = (await response.json().catch(() => null)) as LoginApiResponse | null;
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(values),
+      });
 
-    if (!response.ok || !data?.success) {
-      clearErrors();
-      let hasFieldErrors = false;
+      const data = (await response.json().catch(() => null)) as LoginApiResponse | null;
 
-      if (data?.fieldErrors) {
-        for (const [field, message] of Object.entries(data.fieldErrors)) {
-          if (!message) {
-            continue;
+      if (!response.ok || !data?.success) {
+        clearErrors();
+        let hasFieldErrors = false;
+
+        if (data?.fieldErrors) {
+          for (const [field, message] of Object.entries(data.fieldErrors)) {
+            if (!message) {
+              continue;
+            }
+
+            hasFieldErrors = true;
+            setError(field as keyof LoginInput, {
+              type: "server",
+              message,
+            });
           }
-
-          hasFieldErrors = true;
-          setError(field as keyof LoginInput, {
-            type: "server",
-            message,
-          });
         }
+
+        setServerError(hasFieldErrors ? null : data?.message ?? "Unable to sign in right now. Please try again shortly.");
+        hideBlockingLoader();
+        return;
       }
 
-      setServerError(hasFieldErrors ? null : data?.message ?? "Unable to sign in right now. Please try again shortly.");
-      return;
+      router.push("/dashboard");
+      // router.refresh();
+    } catch {
+      setServerError("Unable to sign in right now. Please try again shortly.");
+      hideBlockingLoader();
     }
-
-    router.push("/dashboard");
-    // router.refresh();
   });
 
   return (

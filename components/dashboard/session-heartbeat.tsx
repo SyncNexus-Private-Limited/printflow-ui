@@ -15,7 +15,6 @@ export function SessionHeartbeat() {
       }
     };
 
-    void sendHeartbeat();
     const intervalId = window.setInterval(() => {
       void sendHeartbeat();
     }, 5 * 60 * 1000);

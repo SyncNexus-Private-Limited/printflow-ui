@@ -42,7 +42,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
             title="Dashboard"
-            subtitle={`Business overview / ${context.selectedBranchName}`}
             branchOptions={branchOptions}
             selectedBranchValue={context.selectedBranchValue}
             branchFilterDisabled={!context.canSelectAll}
@@ -144,7 +143,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
             title="Dashboard"
-            subtitle="Business overview"
             branchOptions={[{ label: currentUser.branchName ?? "Branch", value: currentUser.branchId ?? "all" }]}
             selectedBranchValue={currentUser.branchId ?? "all"}
             branchFilterDisabled

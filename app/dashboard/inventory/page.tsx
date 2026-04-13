@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { buildBranchFilterOptions, buildBranchHref } from "@/lib/dashboard/helpers";
+import { buildBranchFilterOptions } from "@/lib/dashboard/helpers";
 import { getDashboardContext, getDashboardSummary, getInventoryDetails } from "@/lib/dashboard/queries";
 import { formatCompactNumber } from "@/lib/utils/format";
 
@@ -34,11 +34,9 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
             title="Inventory"
-            subtitle={`Inventory health / ${context.selectedBranchName}`}
             branchOptions={branchOptions}
             selectedBranchValue={context.selectedBranchValue}
             branchFilterDisabled={!context.canSelectAll}
-            backHref={buildBranchHref("/dashboard", context.selectedBranchValue)}
           />
 
           <section className="grid gap-4 md:grid-cols-3">
@@ -105,11 +103,9 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
             title="Inventory"
-            subtitle="Inventory health"
             branchOptions={[{ label: currentUser.branchName ?? "Branch", value: currentUser.branchId ?? "all" }]}
             selectedBranchValue={currentUser.branchId ?? "all"}
             branchFilterDisabled
-            backHref={buildBranchHref("/dashboard", currentUser.branchId ?? "all")}
           />
           <SectionCard title="Unable to load dashboard data right now.">
             <p className="text-sm text-slate-600">Please try again shortly.</p>

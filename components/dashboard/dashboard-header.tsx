@@ -9,19 +9,16 @@ import { getDashboardBreadcrumbs } from "@/components/dashboard/dashboard-naviga
 
 type DashboardHeaderProps = {
   title: string;
-  subtitle: string;
   branchOptions: Array<{
     label: string;
     value: string;
   }>;
   selectedBranchValue: string;
   branchFilterDisabled?: boolean;
-  backHref?: string;
 };
 
 export function DashboardHeader({
   title,
-  subtitle,
   branchOptions,
   selectedBranchValue,
   branchFilterDisabled = false,
@@ -46,7 +43,7 @@ export function DashboardHeader({
   }, [setBranchControl]);
 
   return (
-    <header className="space-y-3 px-1">
+    <header className="space-y-2 px-1">
       {!isOverviewHeader ? (
         <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-xs font-medium text-[rgb(var(--muted-foreground))]">
           {breadcrumbs.map((breadcrumb, index) => {
@@ -62,7 +59,12 @@ export function DashboardHeader({
                     {breadcrumb.label}
                   </Link>
                 ) : (
-                  <span className={isLast ? "text-[rgb(var(--foreground))]" : undefined}>{breadcrumb.label}</span>
+                  <span
+                    aria-current={isLast ? "page" : undefined}
+                    className={isLast ? "text-[rgb(var(--foreground))]" : undefined}
+                  >
+                    {breadcrumb.label}
+                  </span>
                 )}
                 {!isLast ? <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" strokeWidth={1.9} /> : null}
               </div>
@@ -71,13 +73,7 @@ export function DashboardHeader({
         </nav>
       ) : null}
 
-      <div className="space-y-1">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[rgb(var(--muted-foreground))]">
-          {isOverviewHeader ? "Overview" : breadcrumbs[breadcrumbs.length - 1]?.label ?? "Dashboard"}
-        </p>
-        <h1 className="text-2xl font-semibold tracking-tight text-[rgb(var(--foreground))] sm:text-3xl">{title}</h1>
-        <p className="text-sm text-[rgb(var(--muted-foreground))]">{subtitle}</p>
-      </div>
+      <h1 className="text-2xl font-semibold tracking-tight text-[rgb(var(--foreground))] sm:text-3xl">{title}</h1>
     </header>
   );
 }

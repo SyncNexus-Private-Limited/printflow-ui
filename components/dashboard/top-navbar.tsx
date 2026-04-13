@@ -1,8 +1,7 @@
 "use client";
 
-import { Menu } from "lucide-react";
+import { House, Menu } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { SVGProps } from "react";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { BranchFilter } from "@/components/dashboard/branch-filter";
 import { ThemeToggleButton } from "@/components/dashboard/theme-toggle-button";
@@ -17,15 +16,6 @@ type TopNavbarProps = {
   isOverviewRoute: boolean;
   isMobileMenuOpen: boolean;
 };
-
-function ProductIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true" {...props}>
-      <path d="M4.5 12 12 5l7.5 7v6a1.5 1.5 0 0 1-1.5 1.5h-12A1.5 1.5 0 0 1 4.5 18v-6Z" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M9.5 19.5v-5h5v5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
 
 export function TopNavbar({ onOpenMobileMenu, homeHref, isOverviewRoute, isMobileMenuOpen }: TopNavbarProps) {
   const router = useRouter();
@@ -73,7 +63,7 @@ export function TopNavbar({ onOpenMobileMenu, homeHref, isOverviewRoute, isMobil
           >
             <span className="flex items-center gap-2">
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[rgb(var(--primary-soft))] text-[rgb(var(--primary-soft-foreground))]">
-                <ProductIcon className="h-4 w-4" />
+                <House className="h-4 w-4" aria-hidden="true" strokeWidth={1.8} />
               </span>
               <span className="hidden truncate text-sm font-semibold sm:inline">PrintFlow</span>
             </span>

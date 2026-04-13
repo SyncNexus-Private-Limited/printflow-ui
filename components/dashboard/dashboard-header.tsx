@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -28,7 +28,7 @@ export function DashboardHeader({
   const isOverviewHeader = pathname === "/dashboard";
   const breadcrumbs = getDashboardBreadcrumbs(pathname, selectedBranchValue);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setBranchControl({
       options: branchOptions,
       value: selectedBranchValue,

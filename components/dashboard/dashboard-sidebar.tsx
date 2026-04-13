@@ -114,7 +114,7 @@ function SidebarLink({
         collapsed && "justify-center px-0",
       )}
     >
-      <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
+      <Icon className="h-4.5 w-4.5 shrink-0" strokeWidth={1.9} />
       {!collapsed ? (
         <span data-dashboard-sidebar-link-label className="min-w-0 truncate">
           {label}
@@ -167,7 +167,7 @@ export function DashboardSidebar({
       data-dashboard-sidebar-surface
       data-mobile={mobile ? "true" : "false"}
       className={cn(
-        "flex h-full flex-col rounded-[28px] border border-[rgb(var(--border)/0.84)] bg-[rgb(var(--card)/0.9)] shadow-[0_22px_60px_-48px_rgb(var(--shadow)/0.26)] backdrop-blur transition-[width,padding] duration-200",
+        "flex h-full flex-col rounded-[28px] border border-[rgb(var(--border)/0.72)] bg-[rgb(var(--card)/0.94)] shadow-[0_22px_52px_-48px_rgb(var(--shadow)/0.18)] backdrop-blur-[10px] transition-[width,padding] duration-200",
         mobile ? "p-4" : cn("hidden lg:flex", isDesktopCollapsed ? "w-20 p-3" : "w-72 p-4"),
       )}
     >
@@ -190,7 +190,7 @@ export function DashboardSidebar({
             aria-label="Close navigation menu"
             title="Close navigation menu"
           >
-            <X className="h-[18px] w-[18px]" aria-hidden="true" strokeWidth={1.9} />
+            <X className="h-4.5 w-4.5" aria-hidden="true" strokeWidth={1.9} />
           </Button>
         ) : (
           <Button
@@ -203,9 +203,9 @@ export function DashboardSidebar({
             title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsed ? (
-              <PanelLeftOpen className="h-[18px] w-[18px]" aria-hidden="true" strokeWidth={1.9} />
+              <PanelLeftOpen className="h-4.5 w-4.5" aria-hidden="true" strokeWidth={1.9} />
             ) : (
-              <PanelLeftClose className="h-[18px] w-[18px]" aria-hidden="true" strokeWidth={1.9} />
+              <PanelLeftClose className="h-4.5 w-4.5" aria-hidden="true" strokeWidth={1.9} />
             )}
           </Button>
         )}
@@ -274,7 +274,7 @@ export function DashboardSidebar({
                 aria-expanded={isExpanded}
                 aria-controls={groupPanelId}
               >
-                <item.icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" strokeWidth={1.9} />
+                <item.icon className="h-4.5 w-4.5 shrink-0" aria-hidden="true" strokeWidth={1.9} />
                 <span data-dashboard-sidebar-group-label className="min-w-0 flex-1 truncate">
                   {item.label}
                 </span>

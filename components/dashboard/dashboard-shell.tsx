@@ -159,7 +159,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
             <button
               type="button"
               className={cn(
-                "absolute inset-0 bg-[rgb(var(--shadow)/0.42)] backdrop-blur-[2px] transition-opacity duration-[220ms] ease-out",
+                "absolute inset-0 bg-[rgb(var(--shadow)/0.42)] backdrop-blur-[2px] transition-opacity duration-220 ease-out",
                 isMobileSidebarOpen ? "opacity-100" : "opacity-0",
               )}
               onClick={closeMobileSidebar}
@@ -168,7 +168,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
             />
             <div
               className={cn(
-                "absolute inset-y-0 left-0 w-[min(22rem,calc(100vw-1rem))] p-3 transition-[transform,opacity] duration-[240ms] ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform",
+                "absolute inset-y-0 left-0 w-[min(22rem,calc(100vw-1rem))] p-3 transition-[transform,opacity] duration-240 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform",
                 "transform-gpu",
                 isMobileSidebarOpen ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0",
               )}
@@ -186,8 +186,8 @@ export function DashboardShell({ children }: DashboardShellProps) {
           </div>
         ) : null}
 
-        <div className="mx-auto flex w-full max-w-[96rem] gap-4 px-4 pb-6 pt-4 sm:px-6 lg:gap-6 xl:px-8">
-          <div className="hidden lg:sticky lg:top-[5.5rem] lg:block lg:h-[calc(100vh-6.5rem)] lg:self-start">
+        <div className="mx-auto flex w-full max-w-384 gap-4 px-4 pb-6 pt-4 sm:px-6 lg:gap-6 xl:px-8">
+          <div className="hidden lg:sticky lg:top-22 lg:block lg:h-[calc(100vh-6.5rem)] lg:self-start">
             <DashboardSidebar
               pathname={pathname}
               currentBranchId={currentBranchId}

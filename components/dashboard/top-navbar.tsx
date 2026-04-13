@@ -35,7 +35,7 @@ export function TopNavbar({ onOpenMobileMenu, homeHref, isOverviewRoute, isMobil
 
   return (
     <div className="sticky top-0 z-40 px-4 pt-4 sm:px-6 xl:px-8">
-      <nav className="mx-auto flex w-full max-w-[96rem] flex-wrap items-start justify-between gap-2.5 rounded-[24px] border border-[rgb(var(--border))] bg-[rgb(var(--card)/0.78)] px-3 py-2.5 shadow-[0_20px_56px_-42px_rgb(var(--shadow)/0.45)] backdrop-blur supports-[backdrop-filter]:bg-[rgb(var(--card)/0.72)] sm:flex-nowrap sm:items-center sm:gap-3 sm:px-4">
+      <nav className="mx-auto flex w-full max-w-[96rem] flex-wrap items-start justify-between gap-2.5 rounded-[24px] border border-[rgb(var(--border)/0.72)] bg-[rgb(var(--card)/0.86)] px-3 py-2.5 shadow-[0_20px_48px_-42px_rgb(var(--shadow)/0.18)] backdrop-blur supports-[backdrop-filter]:bg-[rgb(var(--card)/0.82)] sm:flex-nowrap sm:items-center sm:gap-3 sm:px-4">
         <div className="flex min-w-0 items-center gap-2">
           <Button
             type="button"
@@ -71,19 +71,16 @@ export function TopNavbar({ onOpenMobileMenu, homeHref, isOverviewRoute, isMobil
         </div>
 
         <div className="ml-auto flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-none sm:justify-end sm:gap-3">
-          {branchControl ? (
-            <BranchFilter
-              options={branchControl.options}
-              value={branchControl.value}
-              disabled={branchControl.disabled}
-              className="min-w-0 flex-1 sm:flex-none sm:w-72 lg:w-80"
-              selectClassName="rounded-2xl border-[rgb(var(--border))] bg-[rgb(var(--background))] pr-10"
-              hideLabel
-              id="dashboard-navbar-branch-filter"
-            />
-          ) : (
-            <div className="h-10 min-w-0 flex-1 rounded-2xl sm:w-72 sm:flex-none lg:w-80" aria-hidden="true" />
-          )}
+          <BranchFilter
+            options={branchControl?.options ?? []}
+            value={branchControl?.value ?? "__branch-placeholder__"}
+            disabled={branchControl?.disabled ?? true}
+            placeholderLabel="All branches"
+            className="min-w-0 flex-1 sm:flex-none sm:w-72 sm:min-w-72 lg:w-80 lg:min-w-80"
+            selectClassName="rounded-2xl border-[rgb(var(--border))] bg-[rgb(var(--background))] pr-10"
+            hideLabel
+            id="dashboard-navbar-branch-filter"
+          />
           <ThemeToggleButton />
           <LogoutButton iconOnly title="Sign out" />
         </div>

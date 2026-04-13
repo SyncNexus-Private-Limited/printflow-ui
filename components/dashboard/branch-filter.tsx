@@ -20,6 +20,7 @@ type BranchFilterProps = {
   selectClassName?: string;
   hideLabel?: boolean;
   id?: string;
+  placeholderLabel?: string;
 };
 
 export function BranchFilter({
@@ -30,6 +31,7 @@ export function BranchFilter({
   selectClassName,
   hideLabel = false,
   id = "branch-filter",
+  placeholderLabel = "All branches",
 }: BranchFilterProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -37,10 +39,12 @@ export function BranchFilter({
   const { showBlockingLoader } = useGlobalLoader();
   const [isPending, startTransition] = useTransition();
   const isDisabled = disabled || isPending;
-  const selectedLabel = options.find((option) => option.value === value)?.label ?? "Select branch";
+  const selectedOption = options.find((option) => option.value === value);
+  const resolvedValue = selectedOption ? value : "__branch-placeholder__";
+  const selectedLabel = selectedOption?.label ?? placeholderLabel;
 
   return (
-    <div className={cn("min-w-0 w-full sm:w-72", className)}>
+    <div className={cn("w-full min-w-0", className)}>
       <label
         className={cn("mb-2 block text-sm font-medium text-[rgb(var(--foreground))]", hideLabel && "sr-only mb-0")}
         htmlFor={id}
@@ -51,7 +55,7 @@ export function BranchFilter({
         <Select
           className="peer absolute inset-0 h-full w-full cursor-pointer appearance-none opacity-0"
           id={id}
-          value={value}
+          value={resolvedValue}
           disabled={isDisabled}
           title={selectedLabel}
           aria-label={selectedLabel}
@@ -67,6 +71,11 @@ export function BranchFilter({
             });
           }}
         >
+          {!selectedOption ? (
+            <option value={resolvedValue}>
+              {selectedLabel}
+            </option>
+          ) : null}
           {options.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}

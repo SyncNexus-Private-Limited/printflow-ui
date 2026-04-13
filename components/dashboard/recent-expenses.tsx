@@ -16,7 +16,7 @@ export function RecentExpenses({ expenses }: RecentExpensesProps) {
           {expenses.map((expense) => (
             <div
               key={expense.id}
-              className="rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--card)/0.72)] px-4 py-3"
+              className="rounded-2xl border border-[rgb(var(--border)/0.68)] bg-[rgb(var(--card)/0.84)] px-4 py-3"
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>

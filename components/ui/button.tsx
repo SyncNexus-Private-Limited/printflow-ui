@@ -3,6 +3,8 @@ import { cn } from "@/lib/utils/cn";
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: "primary" | "secondary";
+  size?: "default" | "icon";
+  fullWidth?: boolean;
 };
 
 const buttonVariants = {
@@ -12,17 +14,24 @@ const buttonVariants = {
     "border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--foreground))] hover:bg-[rgb(var(--muted))]",
 };
 
+const buttonSizes = {
+  default: "h-10 px-4 text-sm",
+  icon: "h-10 w-10 px-4",
+};
+
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, type = "button", variant = "primary", ...props }, ref) => {
+  ({ className, type = "button", variant = "primary", size = "default", fullWidth = false, ...props }, ref) => {
     return (
       <button
         ref={ref}
         type={type}
         className={cn(
-          "inline-flex h-10 w-full items-center justify-center rounded-xl border px-4 text-sm font-semibold transition-all",
+          "inline-flex items-center justify-center rounded-xl border font-semibold transition-all",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
           "disabled:cursor-not-allowed disabled:opacity-60",
           buttonVariants[variant],
+          buttonSizes[size],
+          fullWidth ? "w-full" : "w-auto",
           className,
         )}
         {...props}
@@ -32,4 +41,3 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 );
 
 Button.displayName = "Button";
-

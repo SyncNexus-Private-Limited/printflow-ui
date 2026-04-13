@@ -1,38 +1,102 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { useGlobalLoader } from "@/lib/ui/global-loader-context";
+import { Menu } from "lucide-react";
+import { useRouter } from "next/navigation";
+import type { SVGProps } from "react";
+import { LogoutButton } from "@/components/auth/logout-button";
+import { BranchFilter } from "@/components/dashboard/branch-filter";
 import { ThemeToggleButton } from "@/components/dashboard/theme-toggle-button";
+import { Button } from "@/components/ui/button";
+import { useDashboardChrome } from "@/components/dashboard/dashboard-chrome-context";
+import { cn } from "@/lib/utils/cn";
+import { useGlobalLoader } from "@/lib/ui/global-loader-context";
 
-export function TopNavbar() {
-  const pathname = usePathname();
+type TopNavbarProps = {
+  onOpenMobileMenu: () => void;
+  homeHref: string;
+  isOverviewRoute: boolean;
+  isMobileMenuOpen: boolean;
+};
+
+function ProductIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true" {...props}>
+      <path d="M4.5 12 12 5l7.5 7v6a1.5 1.5 0 0 1-1.5 1.5h-12A1.5 1.5 0 0 1 4.5 18v-6Z" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9.5 19.5v-5h5v5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function TopNavbar({ onOpenMobileMenu, homeHref, isOverviewRoute, isMobileMenuOpen }: TopNavbarProps) {
   const router = useRouter();
   const { showBlockingLoader } = useGlobalLoader();
+  const { branchControl } = useDashboardChrome();
 
   const handleHomeClick = () => {
-    if (pathname === "/dashboard") {
+    if (isOverviewRoute) {
       return;
     }
 
     showBlockingLoader("Loading dashboard...", {
       autoHideOnRouteChange: true,
     });
-    router.push("/dashboard");
+    router.push(homeHref);
   };
 
   return (
-    <div className="sticky top-0 z-30 px-4 pt-4">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between rounded-[24px] border border-[rgb(var(--border))] bg-[rgb(var(--card)/0.78)] px-4 py-3 shadow-[0_20px_56px_-42px_rgb(var(--shadow)/0.45)] backdrop-blur supports-[backdrop-filter]:bg-[rgb(var(--card)/0.72)] sm:px-5">
-        <Button
-          type="button"
-          variant="secondary"
-          className="h-10 w-auto rounded-full px-4"
-          onClick={handleHomeClick}
-        >
-          Home
-        </Button>
-        <ThemeToggleButton />
+    <div className="sticky top-0 z-40 px-4 pt-4 sm:px-6 xl:px-8">
+      <nav className="mx-auto flex w-full max-w-[96rem] flex-wrap items-start justify-between gap-2.5 rounded-[24px] border border-[rgb(var(--border))] bg-[rgb(var(--card)/0.78)] px-3 py-2.5 shadow-[0_20px_56px_-42px_rgb(var(--shadow)/0.45)] backdrop-blur supports-[backdrop-filter]:bg-[rgb(var(--card)/0.72)] sm:flex-nowrap sm:items-center sm:gap-3 sm:px-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="icon"
+            className="shrink-0 rounded-xl lg:hidden"
+            onClick={onOpenMobileMenu}
+            aria-label="Open navigation menu"
+            aria-controls="dashboard-mobile-sidebar"
+            aria-expanded={isMobileMenuOpen}
+            title="Open navigation menu"
+          >
+            <Menu className="h-[18px] w-[18px]" aria-hidden="true" strokeWidth={1.9} />
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            className={cn(
+              "h-10 w-auto rounded-2xl px-3 shadow-[0_16px_40px_-32px_rgb(var(--shadow)/0.4)] sm:px-4",
+              isOverviewRoute && "cursor-default",
+            )}
+            onClick={handleHomeClick}
+            aria-label="Go to dashboard overview"
+            title="Go to dashboard overview"
+          >
+            <span className="flex items-center gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[rgb(var(--primary-soft))] text-[rgb(var(--primary-soft-foreground))]">
+                <ProductIcon className="h-4 w-4" />
+              </span>
+              <span className="hidden truncate text-sm font-semibold sm:inline">PrintFlow</span>
+            </span>
+          </Button>
+        </div>
+
+        <div className="ml-auto flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-none sm:justify-end sm:gap-3">
+          {branchControl ? (
+            <BranchFilter
+              options={branchControl.options}
+              value={branchControl.value}
+              disabled={branchControl.disabled}
+              className="min-w-0 flex-1 sm:flex-none sm:w-72 lg:w-80"
+              selectClassName="rounded-2xl border-[rgb(var(--border))] bg-[rgb(var(--background))] pr-10"
+              hideLabel
+              id="dashboard-navbar-branch-filter"
+            />
+          ) : (
+            <div className="h-10 min-w-0 flex-1 rounded-2xl sm:w-72 sm:flex-none lg:w-80" aria-hidden="true" />
+          )}
+          <ThemeToggleButton />
+          <LogoutButton iconOnly title="Sign out" />
+        </div>
       </nav>
     </div>
   );

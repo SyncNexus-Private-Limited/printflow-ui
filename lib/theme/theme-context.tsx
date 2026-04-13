@@ -1,10 +1,11 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-
-export const THEME_STORAGE_KEY = "printflow-theme";
-
-export type ThemeName = "light" | "dark";
+import {
+  buildThemeCookieValue,
+  isThemeName,
+  type ThemeName,
+} from "@/lib/ui/client-preferences";
 
 type ThemeContextValue = {
   theme: ThemeName;
@@ -15,48 +16,81 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
+let themeTransitionCleanupFrame: number | null = null;
+
 function applyTheme(theme: ThemeName) {
   document.documentElement.dataset.theme = theme;
+  document.documentElement.style.colorScheme = theme;
 }
 
-function resolveInitialTheme(): ThemeName {
-  const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+function readResolvedDocumentTheme() {
+  const documentTheme = document.documentElement.dataset.theme;
 
-  if (storedTheme === "light" || storedTheme === "dark") {
-    return storedTheme;
+  if (isThemeName(documentTheme)) {
+    return documentTheme;
   }
 
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return null;
 }
 
-export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<ThemeName>("light");
+function persistThemeCookie(theme: ThemeName) {
+  document.cookie = buildThemeCookieValue(theme, window.location.protocol === "https:");
+}
+
+function resolveInitialTheme(initialTheme: ThemeName) {
+  if (typeof document === "undefined") {
+    return initialTheme;
+  }
+
+  return readResolvedDocumentTheme() ?? initialTheme;
+}
+
+function applyThemeSynchronously(theme: ThemeName) {
+  const root = document.documentElement;
+
+  root.dataset.themeSwitching = "true";
+  void window.getComputedStyle(root).getPropertyValue("color-scheme");
+
+  applyTheme(theme);
+  persistThemeCookie(theme);
+
+  void window.getComputedStyle(root).getPropertyValue("color-scheme");
+
+  if (themeTransitionCleanupFrame !== null) {
+    window.cancelAnimationFrame(themeTransitionCleanupFrame);
+  }
+
+  themeTransitionCleanupFrame = window.requestAnimationFrame(() => {
+    themeTransitionCleanupFrame = window.requestAnimationFrame(() => {
+      delete root.dataset.themeSwitching;
+      themeTransitionCleanupFrame = null;
+    });
+  });
+}
+
+export function ThemeProvider({ children, initialTheme }: { children: ReactNode; initialTheme: ThemeName }) {
+  const [theme, setThemeState] = useState<ThemeName>(() => resolveInitialTheme(initialTheme));
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    const initialTheme = resolveInitialTheme();
+    if (readResolvedDocumentTheme() !== theme) {
+      applyTheme(theme);
+    }
 
-    applyTheme(initialTheme);
-    setThemeState(initialTheme);
+    persistThemeCookie(theme);
     setIsHydrated(true);
-  }, []);
+  }, [theme]);
 
   const setTheme = useCallback((nextTheme: ThemeName) => {
     setThemeState(nextTheme);
-    applyTheme(nextTheme);
-    window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    applyThemeSynchronously(nextTheme);
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setThemeState((currentTheme) => {
-      const nextTheme = currentTheme === "dark" ? "light" : "dark";
+    const nextTheme = theme === "dark" ? "light" : "dark";
 
-      applyTheme(nextTheme);
-      window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
-
-      return nextTheme;
-    });
-  }, []);
+    setTheme(nextTheme);
+  }, [setTheme, theme]);
 
   return (
     <ThemeContext.Provider

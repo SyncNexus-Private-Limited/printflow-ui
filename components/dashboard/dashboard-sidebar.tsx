@@ -87,6 +87,7 @@ function SidebarLink({
   return (
     <Link
       href={resolvedHref}
+      data-dashboard-sidebar-link
       aria-current={active ? "page" : undefined}
       aria-label={accessibleLabel}
       title={accessibleLabel}
@@ -114,7 +115,15 @@ function SidebarLink({
       )}
     >
       <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={1.9} />
-      {!collapsed ? <span className="min-w-0 truncate">{label}</span> : <span className="sr-only">{label}</span>}
+      {!collapsed ? (
+        <span data-dashboard-sidebar-link-label className="min-w-0 truncate">
+          {label}
+        </span>
+      ) : (
+        <span data-dashboard-sidebar-link-label className="sr-only">
+          {label}
+        </span>
+      )}
     </Link>
   );
 }
@@ -155,13 +164,15 @@ export function DashboardSidebar({
 
   return (
     <aside
+      data-dashboard-sidebar-surface
+      data-mobile={mobile ? "true" : "false"}
       className={cn(
         "flex h-full flex-col rounded-[28px] border border-[rgb(var(--border)/0.84)] bg-[rgb(var(--card)/0.9)] shadow-[0_22px_60px_-48px_rgb(var(--shadow)/0.26)] backdrop-blur transition-[width,padding] duration-200",
         mobile ? "p-4" : cn("hidden lg:flex", isDesktopCollapsed ? "w-20 p-3" : "w-72 p-4"),
       )}
     >
-      <div className={cn("flex items-start gap-3", isDesktopCollapsed ? "justify-center" : "justify-between")}>
-        <div className={cn("min-w-0", isDesktopCollapsed && "sr-only")}>
+      <div data-dashboard-sidebar-header className={cn("flex items-start gap-3", isDesktopCollapsed ? "justify-center" : "justify-between")}>
+        <div data-dashboard-sidebar-heading className={cn("min-w-0", isDesktopCollapsed && "sr-only")}>
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted-foreground))]">
             Workspace
           </p>
@@ -245,6 +256,7 @@ export function DashboardSidebar({
             <section key={item.label} className="space-y-1">
               <button
                 type="button"
+                data-dashboard-sidebar-group-toggle
                 className={cn(
                   "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
@@ -263,8 +275,11 @@ export function DashboardSidebar({
                 aria-controls={groupPanelId}
               >
                 <item.icon className="h-[18px] w-[18px] shrink-0" aria-hidden="true" strokeWidth={1.9} />
-                <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                <span data-dashboard-sidebar-group-label className="min-w-0 flex-1 truncate">
+                  {item.label}
+                </span>
                 <ChevronDown
+                  data-dashboard-sidebar-group-chevron
                   className={cn("h-4 w-4 shrink-0 transition-transform duration-200", !isExpanded && "-rotate-90")}
                   aria-hidden="true"
                   strokeWidth={1.9}
@@ -274,6 +289,7 @@ export function DashboardSidebar({
               {isExpanded ? (
                 <ul
                   id={groupPanelId}
+                  data-dashboard-sidebar-group-panel
                   className="ml-4 list-none space-y-1 border-l border-[rgb(var(--border)/0.7)] pl-3"
                   role="list"
                 >

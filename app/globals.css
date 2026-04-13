@@ -93,6 +93,12 @@ body {
     background 160ms ease;
 }
 
+html[data-theme-switching="true"] *,
+html[data-theme-switching="true"] *::before,
+html[data-theme-switching="true"] *::after {
+  transition: none !important;
+}
+
 ::selection {
   background: rgb(var(--primary) / 0.24);
   color: rgb(var(--foreground));
@@ -146,6 +152,46 @@ textarea {
 
 .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
   border-color: rgb(var(--border)) !important;
+}
+
+@media (min-width: 1024px) {
+  html[data-dashboard-sidebar-collapsed="true"] [data-dashboard-sidebar-surface][data-mobile="false"] {
+    width: 5rem !important;
+    padding: 0.75rem !important;
+  }
+
+  html[data-dashboard-sidebar-collapsed="true"] [data-dashboard-sidebar-surface][data-mobile="false"] [data-dashboard-sidebar-header] {
+    justify-content: center !important;
+  }
+
+  html[data-dashboard-sidebar-collapsed="true"] [data-dashboard-sidebar-surface][data-mobile="false"] [data-dashboard-sidebar-heading] {
+    display: none !important;
+  }
+
+  html[data-dashboard-sidebar-collapsed="true"] [data-dashboard-sidebar-surface][data-mobile="false"] [data-dashboard-sidebar-link],
+  html[data-dashboard-sidebar-collapsed="true"] [data-dashboard-sidebar-surface][data-mobile="false"] [data-dashboard-sidebar-group-toggle] {
+    justify-content: center !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  html[data-dashboard-sidebar-collapsed="true"] [data-dashboard-sidebar-surface][data-mobile="false"] [data-dashboard-sidebar-link-label],
+  html[data-dashboard-sidebar-collapsed="true"] [data-dashboard-sidebar-surface][data-mobile="false"] [data-dashboard-sidebar-group-label] {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+  }
+
+  html[data-dashboard-sidebar-collapsed="true"] [data-dashboard-sidebar-surface][data-mobile="false"] [data-dashboard-sidebar-group-chevron],
+  html[data-dashboard-sidebar-collapsed="true"] [data-dashboard-sidebar-surface][data-mobile="false"] [data-dashboard-sidebar-group-panel] {
+    display: none !important;
+  }
 }
 
 @keyframes global-loader-marquee {

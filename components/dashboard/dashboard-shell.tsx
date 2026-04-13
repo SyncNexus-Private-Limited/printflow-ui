@@ -1,19 +1,55 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { DashboardChromeProvider } from "@/components/dashboard/dashboard-chrome-context";
 import { buildDashboardHref } from "@/components/dashboard/dashboard-navigation";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
 import { TopNavbar } from "@/components/dashboard/top-navbar";
 import { cn } from "@/lib/utils/cn";
+import { DESKTOP_SIDEBAR_STORAGE_KEY } from "@/lib/ui/client-preferences";
 
-const DESKTOP_SIDEBAR_STORAGE_KEY = "printflow.dashboard.sidebar-collapsed";
 const MOBILE_DRAWER_TRANSITION_MS = 240;
 
 type DashboardShellProps = {
   children: ReactNode;
 };
+
+function readDesktopSidebarPreference() {
+  if (typeof document !== "undefined") {
+    const resolvedPreference = document.documentElement.dataset.dashboardSidebarCollapsed;
+
+    if (resolvedPreference === "true" || resolvedPreference === "false") {
+      return resolvedPreference === "true";
+    }
+  }
+
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    return window.localStorage.getItem(DESKTOP_SIDEBAR_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function applyDesktopSidebarPreference(isCollapsed: boolean) {
+  if (typeof document !== "undefined") {
+    document.documentElement.dataset.dashboardSidebarCollapsed = String(isCollapsed);
+  }
+
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(DESKTOP_SIDEBAR_STORAGE_KEY, String(isCollapsed));
+  } catch {
+    // Ignore storage failures and keep the in-memory UI state.
+  }
+}
 
 export function DashboardShell({ children }: DashboardShellProps) {
   const pathname = usePathname();
@@ -23,7 +59,6 @@ export function DashboardShell({ children }: DashboardShellProps) {
   const [isMobileSidebarMounted, setIsMobileSidebarMounted] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false);
-  const [hasRestoredDesktopPreference, setHasRestoredDesktopPreference] = useState(false);
 
   const openMobileSidebar = () => {
     setIsMobileSidebarMounted(true);
@@ -36,19 +71,12 @@ export function DashboardShell({ children }: DashboardShellProps) {
     setIsMobileSidebarOpen(false);
   };
 
-  useEffect(() => {
-    const savedPreference = window.localStorage.getItem(DESKTOP_SIDEBAR_STORAGE_KEY);
-    setIsDesktopSidebarCollapsed(savedPreference === "true");
-    setHasRestoredDesktopPreference(true);
+  useLayoutEffect(() => {
+    const resolvedPreference = readDesktopSidebarPreference();
+
+    setIsDesktopSidebarCollapsed(resolvedPreference);
+    applyDesktopSidebarPreference(resolvedPreference);
   }, []);
-
-  useEffect(() => {
-    if (!hasRestoredDesktopPreference) {
-      return;
-    }
-
-    window.localStorage.setItem(DESKTOP_SIDEBAR_STORAGE_KEY, String(isDesktopSidebarCollapsed));
-  }, [hasRestoredDesktopPreference, isDesktopSidebarCollapsed]);
 
   useEffect(() => {
     closeMobileSidebar();
@@ -112,7 +140,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
 
   return (
     <DashboardChromeProvider>
-      <div className="min-h-screen bg-[rgb(var(--background))]">
+      <div className="min-h-screen bg-[rgb(var(--background))]" data-dashboard-shell>
         <TopNavbar
           onOpenMobileMenu={openMobileSidebar}
           homeHref={buildDashboardHref("/dashboard", currentBranchId)}
@@ -165,7 +193,15 @@ export function DashboardShell({ children }: DashboardShellProps) {
               currentBranchId={currentBranchId}
               collapsed={isDesktopSidebarCollapsed}
               mobile={false}
-              onToggleCollapsed={() => setIsDesktopSidebarCollapsed((currentValue) => !currentValue)}
+              onToggleCollapsed={() =>
+                setIsDesktopSidebarCollapsed((currentValue) => {
+                  const nextValue = !currentValue;
+
+                  applyDesktopSidebarPreference(nextValue);
+
+                  return nextValue;
+                })
+              }
             />
           </div>
           <div className="min-w-0 flex-1">{children}</div>

@@ -1,9 +1,10 @@
 "use client";
 
-import { House, Menu, Plus } from "lucide-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { House, Menu } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { BranchFilter } from "@/components/dashboard/branch-filter";
+import { CreateMenu } from "@/components/dashboard/create-menu";
 import { ThemeToggleButton } from "@/components/dashboard/theme-toggle-button";
 import { Button } from "@/components/ui/button";
 import { useDashboardChrome } from "@/components/dashboard/dashboard-chrome-context";
@@ -19,22 +20,11 @@ type TopNavbarProps = {
 
 export function TopNavbar({ onOpenMobileMenu, homeHref, isOverviewRoute, isMobileMenuOpen }: TopNavbarProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { showBlockingLoader } = useGlobalLoader();
   const { branchControl } = useDashboardChrome();
   const currentBranchValue =
     branchControl?.value && branchControl.value !== "__branch-placeholder__" ? branchControl.value : searchParams.get("branchId");
-  const createSearchParams = new URLSearchParams();
-
-  if (currentBranchValue) {
-    createSearchParams.set("branchId", currentBranchValue);
-  }
-
-  createSearchParams.set("type", "business");
-
-  const createHref = `/dashboard/expenses/new?${createSearchParams.toString()}`;
-  const currentHref = `${pathname}?${searchParams.toString()}`;
 
   const handleHomeClick = () => {
     if (isOverviewRoute) {
@@ -45,17 +35,6 @@ export function TopNavbar({ onOpenMobileMenu, homeHref, isOverviewRoute, isMobil
       autoHideOnRouteChange: true,
     });
     router.push(homeHref);
-  };
-
-  const handleCreateClick = () => {
-    if (currentHref === createHref) {
-      return;
-    }
-
-    showBlockingLoader("Opening add expense...", {
-      autoHideOnRouteChange: true,
-    });
-    router.push(createHref);
   };
 
   return (
@@ -106,17 +85,7 @@ export function TopNavbar({ onOpenMobileMenu, homeHref, isOverviewRoute, isMobil
             hideLabel
             id="dashboard-navbar-branch-filter"
           />
-          <Button
-            type="button"
-            className="h-10 rounded-2xl px-3 shadow-[0_16px_40px_-32px_rgb(var(--shadow)/0.4)] sm:px-4"
-            onClick={handleCreateClick}
-            aria-label="Add expense"
-            title="Add expense"
-          >
-            <Plus className="h-4.5 w-4.5 shrink-0" aria-hidden="true" strokeWidth={1.9} />
-            <span className="hidden sm:inline">Create</span>
-            <span className="sr-only sm:hidden">Add expense</span>
-          </Button>
+          <CreateMenu currentBranchValue={currentBranchValue} />
           <ThemeToggleButton />
           <LogoutButton iconOnly title="Sign out" />
         </div>

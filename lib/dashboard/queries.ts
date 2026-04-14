@@ -196,27 +196,29 @@ export async function getDashboardSummary(branchId: string | null): Promise<Dash
         (
           SELECT COALESCE(SUM(ee.amount), 0)::double precision
           FROM employee_expenses ee
-          JOIN users u ON u.id = ee.user_id
-          WHERE ee.created_at >= date_trunc('month', now())
-            AND ($1::uuid IS NULL OR u.branch_id = $1::uuid)
+          WHERE ee.expense_date >= date_trunc('month', CURRENT_DATE)::date
+            AND ee.expense_date < (date_trunc('month', CURRENT_DATE) + interval '1 month')::date
+            AND ($1::uuid IS NULL OR ee.branch_id = $1::uuid)
         ) AS "employeeExpensesTotalAmountThisMonth",
         (
           SELECT COUNT(*)::int
           FROM employee_expenses ee
-          JOIN users u ON u.id = ee.user_id
-          WHERE ee.created_at >= date_trunc('month', now())
-            AND ($1::uuid IS NULL OR u.branch_id = $1::uuid)
+          WHERE ee.expense_date >= date_trunc('month', CURRENT_DATE)::date
+            AND ee.expense_date < (date_trunc('month', CURRENT_DATE) + interval '1 month')::date
+            AND ($1::uuid IS NULL OR ee.branch_id = $1::uuid)
         ) AS "employeeExpensesEntryCountThisMonth",
         (
           SELECT COALESCE(SUM(be.amount), 0)::double precision
           FROM branch_expenses be
-          WHERE be.created_at >= date_trunc('month', now())
+          WHERE be.expense_date >= date_trunc('month', CURRENT_DATE)::date
+            AND be.expense_date < (date_trunc('month', CURRENT_DATE) + interval '1 month')::date
             AND ($1::uuid IS NULL OR be.branch_id = $1::uuid)
         ) AS "businessExpensesTotalAmountThisMonth",
         (
           SELECT COUNT(*)::int
           FROM branch_expenses be
-          WHERE be.created_at >= date_trunc('month', now())
+          WHERE be.expense_date >= date_trunc('month', CURRENT_DATE)::date
+            AND be.expense_date < (date_trunc('month', CURRENT_DATE) + interval '1 month')::date
             AND ($1::uuid IS NULL OR be.branch_id = $1::uuid)
         ) AS "businessExpensesEntryCountThisMonth"
     `,
@@ -309,29 +311,41 @@ export async function getRecentExpenses(branchId: string | null) {
         SELECT
           ee.id::text AS id,
           'Employee Expense'::text AS type,
-          ee.category,
+          ee.title,
+          ec.id::text AS "categoryId",
+          ec.code AS "categoryCode",
+          ec.name AS category,
+          ec.scope AS "categoryScope",
           ee.amount::double precision AS amount,
+          ee.expense_date::text AS "expenseDate",
           ee.created_at::text AS "createdAt",
           CONCAT(COALESCE(u.full_name, 'Unknown user'), ' - ', COALESCE(b.name, 'No branch')) AS context
         FROM employee_expenses ee
         JOIN users u ON u.id = ee.user_id
-        LEFT JOIN branches b ON b.id = u.branch_id
-        WHERE ($1::uuid IS NULL OR u.branch_id = $1::uuid)
+        JOIN expense_categories ec ON ec.id = ee.category_id
+        LEFT JOIN branches b ON b.id = ee.branch_id
+        WHERE ($1::uuid IS NULL OR ee.branch_id = $1::uuid)
       )
       UNION ALL
       (
         SELECT
           be.id::text AS id,
           'Business Expense'::text AS type,
-          be.category,
+          be.title,
+          ec.id::text AS "categoryId",
+          ec.code AS "categoryCode",
+          ec.name AS category,
+          ec.scope AS "categoryScope",
           be.amount::double precision AS amount,
+          be.expense_date::text AS "expenseDate",
           be.created_at::text AS "createdAt",
           COALESCE(b.name, 'No branch') AS context
         FROM branch_expenses be
+        JOIN expense_categories ec ON ec.id = be.category_id
         LEFT JOIN branches b ON b.id = be.branch_id
         WHERE ($1::uuid IS NULL OR be.branch_id = $1::uuid)
       )
-      ORDER BY "createdAt" DESC
+      ORDER BY "expenseDate" DESC, "createdAt" DESC
       LIMIT 5
     `,
     [branchId],
@@ -453,15 +467,21 @@ export async function getEmployeeExpenseDetails(branchId: string | null) {
       SELECT
         ee.id::text AS id,
         u.full_name AS "userName",
-        ee.category,
+        ee.title,
+        ec.id::text AS "categoryId",
+        ec.code AS "categoryCode",
+        ec.name AS category,
+        ec.scope AS "categoryScope",
         ee.amount::double precision AS amount,
         ee.payment_mode::text AS "paymentMode",
         ee.remarks,
+        ee.expense_date::text AS "expenseDate",
         ee.created_at::text AS "createdAt"
       FROM employee_expenses ee
       JOIN users u ON u.id = ee.user_id
-      WHERE ($1::uuid IS NULL OR u.branch_id = $1::uuid)
-      ORDER BY ee.created_at DESC
+      JOIN expense_categories ec ON ec.id = ee.category_id
+      WHERE ($1::uuid IS NULL OR ee.branch_id = $1::uuid)
+      ORDER BY ee.expense_date DESC, ee.created_at DESC
     `,
     [branchId],
   );
@@ -475,17 +495,22 @@ export async function getBusinessExpenseDetails(branchId: string | null) {
     `
       SELECT
         be.id::text AS id,
-        be.category,
-        be.name,
+        be.title,
+        ec.id::text AS "categoryId",
+        ec.code AS "categoryCode",
+        ec.name AS category,
+        ec.scope AS "categoryScope",
         be.amount::double precision AS amount,
         be.payment_mode::text AS "paymentMode",
         be.remarks,
+        be.expense_date::text AS "expenseDate",
         be.created_at::text AS "createdAt",
         b.name AS "branchName"
       FROM branch_expenses be
+      JOIN expense_categories ec ON ec.id = be.category_id
       LEFT JOIN branches b ON b.id = be.branch_id
       WHERE ($1::uuid IS NULL OR be.branch_id = $1::uuid)
-      ORDER BY be.created_at DESC
+      ORDER BY be.expense_date DESC, be.created_at DESC
     `,
     [branchId],
   );

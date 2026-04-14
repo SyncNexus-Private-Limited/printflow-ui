@@ -40,6 +40,15 @@ export type ExpenseSummary = {
   entryCountThisMonth: number;
 };
 
+export type ExpenseCategoryScope = "branch" | "employee" | "both";
+
+export type ExpenseCategorySummary = {
+  categoryId: string;
+  categoryCode: string;
+  category: string;
+  categoryScope: ExpenseCategoryScope;
+};
+
 export type DashboardSummary = {
   orders: OrdersSummary;
   customers: CustomersSummary;
@@ -66,11 +75,12 @@ export type LowStockRow = {
   branchName: string;
 };
 
-export type RecentExpenseRow = {
+export type RecentExpenseRow = ExpenseCategorySummary & {
   id: string;
   type: "Employee Expense" | "Business Expense";
-  category: string;
+  title: string | null;
   amount: number;
+  expenseDate: string;
   createdAt: string;
   context: string;
 };
@@ -115,24 +125,24 @@ export type ActiveUserRow = {
   sessionCreatedAt: string;
 };
 
-export type EmployeeExpenseDetailRow = {
+export type EmployeeExpenseDetailRow = ExpenseCategorySummary & {
   id: string;
   userName: string;
-  category: string;
+  title: string;
   amount: number;
   paymentMode: string;
   remarks: string | null;
+  expenseDate: string;
   createdAt: string;
 };
 
-export type BusinessExpenseDetailRow = {
+export type BusinessExpenseDetailRow = ExpenseCategorySummary & {
   id: string;
-  category: string;
-  name: string | null;
+  title: string | null;
   amount: number;
   paymentMode: string;
   remarks: string | null;
+  expenseDate: string;
   createdAt: string;
   branchName: string | null;
 };
-

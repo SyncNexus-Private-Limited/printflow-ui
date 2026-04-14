@@ -4,7 +4,7 @@ import { SectionCard } from "@/components/dashboard/section-card";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { buildBranchFilterOptions } from "@/lib/dashboard/helpers";
 import { getBusinessExpenseDetails, getDashboardContext, getDashboardSummary } from "@/lib/dashboard/queries";
-import { formatCompactNumber, formatCurrency, formatDateTime } from "@/lib/utils/format";
+import { formatCompactNumber, formatCurrency, formatDate } from "@/lib/utils/format";
 
 type BusinessExpensesPageProps = {
   searchParams?: Promise<{
@@ -63,11 +63,11 @@ export default async function BusinessExpensesPage({ searchParams }: BusinessExp
                   <thead className="text-slate-500">
                     <tr>
                       <th className="pb-3 font-medium">Category</th>
-                      <th className="pb-3 font-medium">Name</th>
+                      <th className="pb-3 font-medium">Title</th>
                       <th className="pb-3 font-medium">Amount</th>
                       <th className="pb-3 font-medium">Payment mode</th>
                       <th className="pb-3 font-medium">Remarks</th>
-                      <th className="pb-3 font-medium">Created</th>
+                      <th className="pb-3 font-medium">Expense date</th>
                       <th className="pb-3 font-medium">Branch</th>
                     </tr>
                   </thead>
@@ -75,12 +75,12 @@ export default async function BusinessExpensesPage({ searchParams }: BusinessExp
                     {expenses.map((expense) => (
                       <tr key={expense.id}>
                         <td className="py-3 font-medium text-slate-900">{expense.category}</td>
-                        <td className="py-3 text-slate-700">{expense.name ?? "—"}</td>
+                        <td className="py-3 text-slate-700">{expense.title ?? "-"}</td>
                         <td className="py-3 text-slate-700">{formatCurrency(expense.amount)}</td>
                         <td className="py-3 capitalize text-slate-700">{expense.paymentMode}</td>
-                        <td className="py-3 text-slate-700">{expense.remarks ?? "—"}</td>
-                        <td className="py-3 text-slate-700">{formatDateTime(expense.createdAt)}</td>
-                        <td className="py-3 text-slate-700">{expense.branchName ?? "—"}</td>
+                        <td className="py-3 text-slate-700">{expense.remarks ?? "-"}</td>
+                        <td className="py-3 text-slate-700">{formatDate(expense.expenseDate)}</td>
+                        <td className="py-3 text-slate-700">{expense.branchName ?? "-"}</td>
                       </tr>
                     ))}
                   </tbody>

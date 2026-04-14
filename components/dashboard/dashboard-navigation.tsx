@@ -57,6 +57,7 @@ export const dashboardNavigation: DashboardNavItem[] = [
     children: [
       { label: "Employee Expenses", href: "/dashboard/employee-expenses" },
       { label: "Business Expenses", href: "/dashboard/business-expenses" },
+      { label: "Add Expense", href: "/dashboard/expenses/new", breadcrumbLabel: "Add Expense" },
     ],
   },
   {

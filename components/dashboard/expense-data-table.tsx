@@ -1,10 +1,10 @@
 import { DataPill, getExpenseCategoryTone, getExpensePaymentModeTone } from "@/components/dashboard/data-pill";
 import { DashboardPagination } from "@/components/dashboard/dashboard-pagination";
 import { TableScrollArea } from "@/components/dashboard/table-scroll-area";
+import { type ExpensePageFilterState } from "@/lib/dashboard/expense-page-filters";
 import { getPaymentModeLabel } from "@/lib/expenses/types";
 import type {
   BusinessExpenseDetailRow,
-  DashboardPageFilterState,
   DashboardPaginationState,
   EmployeeExpenseDetailRow,
 } from "@/lib/dashboard/types";
@@ -14,7 +14,7 @@ import { formatCurrency, formatDate } from "@/lib/utils/format";
 type ExpenseDataTableBaseProps = {
   emptyMessage: string;
   currentPath: string;
-  currentFilters: DashboardPageFilterState;
+  currentFilters: ExpensePageFilterState;
   pagination: DashboardPaginationState;
   fallbackBranchName?: string;
 };
@@ -64,7 +64,7 @@ function renderEmployeeRows(items: EmployeeExpenseDetailRow[]) {
     >
       <td className={getTableBodyCellClassName()}>
         <div className="space-y-1">
-          <p className="wrap-break-word font-semibold leading-6 text-[rgb(var(--card-foreground))]">{expense.userName}</p>
+          <p className="break-words font-semibold leading-6 text-[rgb(var(--card-foreground))]">{expense.userName}</p>
         </div>
       </td>
       <td className={getTableBodyCellClassName()}>
@@ -85,7 +85,7 @@ function renderEmployeeRows(items: EmployeeExpenseDetailRow[]) {
       <td className={getTableBodyCellClassName()}>{renderPaymentPill(expense.paymentMode)}</td>
       <td className={getTableBodyCellClassName()}>
         <div className="max-w-lg">
-          <p className="wrap-break-word text-sm leading-6 text-[rgb(var(--foreground)/0.68)]">
+          <p className="break-words text-sm leading-6 text-[rgb(var(--foreground)/0.68)]">
             {expense.remarks ?? "No remarks added."}
           </p>
         </div>
@@ -126,7 +126,7 @@ function renderBusinessRows(items: BusinessExpenseDetailRow[], fallbackBranchNam
       <td className={getTableBodyCellClassName()}>{renderPaymentPill(expense.paymentMode)}</td>
       <td className={getTableBodyCellClassName()}>
         <div className="max-w-lg">
-          <p className="wrap-break-word text-sm leading-6 text-[rgb(var(--foreground)/0.68)]">
+          <p className="break-words text-sm leading-6 text-[rgb(var(--foreground)/0.68)]">
             {expense.remarks ?? "No remarks added."}
           </p>
         </div>
@@ -138,7 +138,7 @@ function renderBusinessRows(items: BusinessExpenseDetailRow[], fallbackBranchNam
         <p className="whitespace-nowrap font-medium text-[rgb(var(--card-foreground))]">{formatDate(expense.createdAt)}</p>
       </td>
       <td className={getTableBodyCellClassName()}>
-        <p className="max-w-44 wrap-break-word font-medium leading-6 text-[rgb(var(--foreground)/0.76)]">
+        <p className="max-w-44 break-words font-medium leading-6 text-[rgb(var(--foreground)/0.76)]">
           {expense.branchName ?? fallbackBranchName}
         </p>
       </td>

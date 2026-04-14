@@ -2,6 +2,7 @@ import "server-only";
 import { getActiveUserWindowMinutes } from "@/lib/auth/session";
 import type { AuthenticatedUser } from "@/lib/auth/current-user";
 import { getPool } from "@/lib/db/postgres";
+import type { ExpensePageFilterState } from "@/lib/dashboard/expense-page-filters";
 import {
   type ActiveUserRow,
   type BranchFilterState,
@@ -312,6 +313,190 @@ function buildPaginationState(totalItems: number, filters: DashboardPageFilterSt
   };
 }
 
+type ExpenseQueryParts = {
+  joins: string;
+  whereClause: string;
+  values: Array<number | string | null>;
+  orderByClause: string;
+};
+
+function getExpenseDateColumnExpression(alias: string, filters: ExpensePageFilterState) {
+  return filters.dateField === "logged" ? `${alias}.created_at::date` : `${alias}.expense_date`;
+}
+
+function getEmployeeExpensesOrderByClause(filters: ExpensePageFilterState) {
+  switch (filters.sort) {
+    case "expense-date-asc":
+      return "ee.expense_date ASC, ee.created_at ASC";
+    case "logged-date-desc":
+      return "ee.created_at DESC, ee.expense_date DESC";
+    case "logged-date-asc":
+      return "ee.created_at ASC, ee.expense_date ASC";
+    case "amount-desc":
+      return "ee.amount DESC, ee.expense_date DESC, ee.created_at DESC";
+    case "amount-asc":
+      return "ee.amount ASC, ee.expense_date DESC, ee.created_at DESC";
+    case "category-asc":
+      return "LOWER(ec.name) ASC, ee.expense_date DESC, ee.created_at DESC";
+    case "payment-asc":
+      return "LOWER(ee.payment_mode::text) ASC, ee.expense_date DESC, ee.created_at DESC";
+    case "title-asc":
+      return "LOWER(ee.title) ASC, ee.expense_date DESC, ee.created_at DESC";
+    case "employee-asc":
+      return "LOWER(u.full_name) ASC, ee.expense_date DESC, ee.created_at DESC";
+    case "expense-date-desc":
+    case "vendor-asc":
+    default:
+      return "ee.expense_date DESC, ee.created_at DESC";
+  }
+}
+
+function getBusinessExpensesOrderByClause(filters: ExpensePageFilterState) {
+  switch (filters.sort) {
+    case "expense-date-asc":
+      return "be.expense_date ASC, be.created_at ASC";
+    case "logged-date-desc":
+      return "be.created_at DESC, be.expense_date DESC";
+    case "logged-date-asc":
+      return "be.created_at ASC, be.expense_date ASC";
+    case "amount-desc":
+      return "be.amount DESC, be.expense_date DESC, be.created_at DESC";
+    case "amount-asc":
+      return "be.amount ASC, be.expense_date DESC, be.created_at DESC";
+    case "category-asc":
+      return "LOWER(ec.name) ASC, be.expense_date DESC, be.created_at DESC";
+    case "payment-asc":
+      return "LOWER(be.payment_mode::text) ASC, be.expense_date DESC, be.created_at DESC";
+    case "title-asc":
+      return "LOWER(COALESCE(be.title, '')) ASC, be.expense_date DESC, be.created_at DESC";
+    case "vendor-asc":
+      return "CASE WHEN v.name IS NULL THEN 1 ELSE 0 END ASC, LOWER(v.name) ASC, be.expense_date DESC, be.created_at DESC";
+    case "expense-date-desc":
+    case "employee-asc":
+    default:
+      return "be.expense_date DESC, be.created_at DESC";
+  }
+}
+
+function buildEmployeeExpensesQueryParts(branchId: string | null, filters: ExpensePageFilterState): ExpenseQueryParts {
+  const values: Array<number | string | null> = [branchId];
+  const whereParts = ["($1::uuid IS NULL OR ee.branch_id = $1::uuid)"];
+  const joins = ["JOIN users u ON u.id = ee.user_id", "JOIN expense_categories ec ON ec.id = ee.category_id"];
+  const dateColumnExpression = getExpenseDateColumnExpression("ee", filters);
+
+  if (filters.from) {
+    values.push(filters.from);
+    whereParts.push(`${dateColumnExpression} >= $${values.length}::date`);
+  }
+
+  if (filters.to) {
+    values.push(filters.to);
+    whereParts.push(`${dateColumnExpression} <= $${values.length}::date`);
+  }
+
+  if (filters.categoryId) {
+    values.push(filters.categoryId);
+    whereParts.push(`ee.category_id = $${values.length}::uuid`);
+  }
+
+  if (filters.paymentMode) {
+    values.push(filters.paymentMode);
+    whereParts.push(`ee.payment_mode::text = $${values.length}`);
+  }
+
+  if (filters.amountMin) {
+    values.push(filters.amountMin);
+    whereParts.push(`ee.amount >= $${values.length}::numeric`);
+  }
+
+  if (filters.amountMax) {
+    values.push(filters.amountMax);
+    whereParts.push(`ee.amount <= $${values.length}::numeric`);
+  }
+
+  if (filters.remarks === "with") {
+    whereParts.push("NULLIF(BTRIM(COALESCE(ee.remarks, '')), '') IS NOT NULL");
+  }
+
+  if (filters.remarks === "without") {
+    whereParts.push("NULLIF(BTRIM(COALESCE(ee.remarks, '')), '') IS NULL");
+  }
+
+  if (filters.employeeId) {
+    values.push(filters.employeeId);
+    whereParts.push(`ee.user_id = $${values.length}::uuid`);
+  }
+
+  return {
+    joins: joins.join("\n      "),
+    whereClause: whereParts.join("\n        AND "),
+    values,
+    orderByClause: getEmployeeExpensesOrderByClause(filters),
+  };
+}
+
+function buildBusinessExpensesQueryParts(branchId: string | null, filters: ExpensePageFilterState): ExpenseQueryParts {
+  const values: Array<number | string | null> = [branchId];
+  const whereParts = ["($1::uuid IS NULL OR be.branch_id = $1::uuid)"];
+  const joins = [
+    "JOIN expense_categories ec ON ec.id = be.category_id",
+    "LEFT JOIN branches b ON b.id = be.branch_id",
+    "LEFT JOIN order_vendors ov ON ov.id = be.order_vendor_id",
+    "LEFT JOIN vendors v ON v.id = ov.vendor_id",
+  ];
+  const dateColumnExpression = getExpenseDateColumnExpression("be", filters);
+
+  if (filters.from) {
+    values.push(filters.from);
+    whereParts.push(`${dateColumnExpression} >= $${values.length}::date`);
+  }
+
+  if (filters.to) {
+    values.push(filters.to);
+    whereParts.push(`${dateColumnExpression} <= $${values.length}::date`);
+  }
+
+  if (filters.categoryId) {
+    values.push(filters.categoryId);
+    whereParts.push(`be.category_id = $${values.length}::uuid`);
+  }
+
+  if (filters.paymentMode) {
+    values.push(filters.paymentMode);
+    whereParts.push(`be.payment_mode::text = $${values.length}`);
+  }
+
+  if (filters.amountMin) {
+    values.push(filters.amountMin);
+    whereParts.push(`be.amount >= $${values.length}::numeric`);
+  }
+
+  if (filters.amountMax) {
+    values.push(filters.amountMax);
+    whereParts.push(`be.amount <= $${values.length}::numeric`);
+  }
+
+  if (filters.remarks === "with") {
+    whereParts.push("NULLIF(BTRIM(COALESCE(be.remarks, '')), '') IS NOT NULL");
+  }
+
+  if (filters.remarks === "without") {
+    whereParts.push("NULLIF(BTRIM(COALESCE(be.remarks, '')), '') IS NULL");
+  }
+
+  if (filters.vendorId) {
+    values.push(filters.vendorId);
+    whereParts.push(`v.id = $${values.length}::uuid`);
+  }
+
+  return {
+    joins: joins.join("\n      "),
+    whereClause: whereParts.join("\n        AND "),
+    values,
+    orderByClause: getBusinessExpensesOrderByClause(filters),
+  };
+}
+
 export async function getOrdersPageData(branchId: string | null, filters: DashboardPageFilterState): Promise<OrdersPageData> {
   const db = getPool();
   const dateRange = {
@@ -452,36 +637,26 @@ export async function getCustomersPageData(
 
 export async function getEmployeeExpensesPageData(
   branchId: string | null,
-  filters: DashboardPageFilterState,
+  filters: ExpensePageFilterState,
 ): Promise<EmployeeExpensesPageData> {
   const db = getPool();
-  const dateRange = {
-    from: filters.from,
-    to: filters.to,
-  };
-  const summaryDateFilter = buildDashboardDateFilterClause("ee.expense_date", dateRange, 2);
+  const queryParts = buildEmployeeExpensesQueryParts(branchId, filters);
   const { rows: summaryRows } = await db.query<ExpenseRangeSummary>(
     `
       SELECT
         COALESCE(SUM(ee.amount), 0)::double precision AS "totalAmountInRange",
         COUNT(*)::int AS "entryCountInRange"
       FROM employee_expenses ee
-      WHERE ($1::uuid IS NULL OR ee.branch_id = $1::uuid)
-      ${summaryDateFilter.clause}
+      ${queryParts.joins}
+      WHERE ${queryParts.whereClause}
     `,
-    [branchId, ...summaryDateFilter.values],
+    queryParts.values,
   );
   const summary = summaryRows[0];
   const pagination = buildPaginationState(summary.entryCountInRange, filters);
-  const listDateFilter = buildDashboardDateFilterClause("ee.expense_date", dateRange, 2);
-  const listQueryParams = [
-    branchId,
-    ...listDateFilter.values,
-    pagination.pageSize,
-    (pagination.page - 1) * pagination.pageSize,
-  ];
-  const limitParameterIndex = listDateFilter.nextParameterIndex;
-  const offsetParameterIndex = listDateFilter.nextParameterIndex + 1;
+  const listQueryParams = [...queryParts.values, pagination.pageSize, (pagination.page - 1) * pagination.pageSize];
+  const limitParameterIndex = queryParts.values.length + 1;
+  const offsetParameterIndex = queryParts.values.length + 2;
   const { rows } = await db.query<EmployeeExpenseDetailRow>(
     `
       SELECT
@@ -498,11 +673,9 @@ export async function getEmployeeExpensesPageData(
         ee.expense_date::text AS "expenseDate",
         ee.created_at::text AS "createdAt"
       FROM employee_expenses ee
-      JOIN users u ON u.id = ee.user_id
-      JOIN expense_categories ec ON ec.id = ee.category_id
-      WHERE ($1::uuid IS NULL OR ee.branch_id = $1::uuid)
-      ${listDateFilter.clause}
-      ORDER BY ee.expense_date DESC, ee.created_at DESC
+      ${queryParts.joins}
+      WHERE ${queryParts.whereClause}
+      ORDER BY ${queryParts.orderByClause}
       LIMIT $${limitParameterIndex}
       OFFSET $${offsetParameterIndex}
     `,
@@ -520,36 +693,26 @@ export async function getEmployeeExpensesPageData(
 
 export async function getBusinessExpensesPageData(
   branchId: string | null,
-  filters: DashboardPageFilterState,
+  filters: ExpensePageFilterState,
 ): Promise<BusinessExpensesPageData> {
   const db = getPool();
-  const dateRange = {
-    from: filters.from,
-    to: filters.to,
-  };
-  const summaryDateFilter = buildDashboardDateFilterClause("be.expense_date", dateRange, 2);
+  const queryParts = buildBusinessExpensesQueryParts(branchId, filters);
   const { rows: summaryRows } = await db.query<ExpenseRangeSummary>(
     `
       SELECT
         COALESCE(SUM(be.amount), 0)::double precision AS "totalAmountInRange",
         COUNT(*)::int AS "entryCountInRange"
       FROM branch_expenses be
-      WHERE ($1::uuid IS NULL OR be.branch_id = $1::uuid)
-      ${summaryDateFilter.clause}
+      ${queryParts.joins}
+      WHERE ${queryParts.whereClause}
     `,
-    [branchId, ...summaryDateFilter.values],
+    queryParts.values,
   );
   const summary = summaryRows[0];
   const pagination = buildPaginationState(summary.entryCountInRange, filters);
-  const listDateFilter = buildDashboardDateFilterClause("be.expense_date", dateRange, 2);
-  const listQueryParams = [
-    branchId,
-    ...listDateFilter.values,
-    pagination.pageSize,
-    (pagination.page - 1) * pagination.pageSize,
-  ];
-  const limitParameterIndex = listDateFilter.nextParameterIndex;
-  const offsetParameterIndex = listDateFilter.nextParameterIndex + 1;
+  const listQueryParams = [...queryParts.values, pagination.pageSize, (pagination.page - 1) * pagination.pageSize];
+  const limitParameterIndex = queryParts.values.length + 1;
+  const offsetParameterIndex = queryParts.values.length + 2;
   const { rows } = await db.query<BusinessExpenseDetailRow>(
     `
       SELECT
@@ -566,11 +729,9 @@ export async function getBusinessExpensesPageData(
         be.created_at::text AS "createdAt",
         b.name AS "branchName"
       FROM branch_expenses be
-      JOIN expense_categories ec ON ec.id = be.category_id
-      LEFT JOIN branches b ON b.id = be.branch_id
-      WHERE ($1::uuid IS NULL OR be.branch_id = $1::uuid)
-      ${listDateFilter.clause}
-      ORDER BY be.expense_date DESC, be.created_at DESC
+      ${queryParts.joins}
+      WHERE ${queryParts.whereClause}
+      ORDER BY ${queryParts.orderByClause}
       LIMIT $${limitParameterIndex}
       OFFSET $${offsetParameterIndex}
     `,

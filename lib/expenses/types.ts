@@ -42,6 +42,7 @@ export type ExpenseEmployeeOption = {
   id: string;
   fullName: string;
   role: string;
+  branchName?: string | null;
 };
 
 export type ExpenseVendorOption = {

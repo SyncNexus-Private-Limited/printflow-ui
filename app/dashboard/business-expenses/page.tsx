@@ -1,22 +1,18 @@
 import { redirect } from "next/navigation";
 import { ExpenseDataTable } from "@/components/dashboard/expense-data-table";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { ExpenseListControls } from "@/components/dashboard/expense-list-controls";
 import { ListStatCard } from "@/components/dashboard/list-stat-card";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { parseExpensePageFilters } from "@/lib/dashboard/expense-page-filters";
 import { buildBranchFilterOptions } from "@/lib/dashboard/helpers";
-import { parseDashboardPageFilters } from "@/lib/dashboard/page-filters";
 import { getBusinessExpensesPageData, getDashboardContext } from "@/lib/dashboard/queries";
+import { getExpenseCategories, getExpenseVendors } from "@/lib/expenses/queries";
 import { formatCompactNumber, formatCurrency, formatDateRangeLabel } from "@/lib/utils/format";
 
 type BusinessExpensesPageProps = {
-  searchParams?: Promise<{
-    branchId?: string | string[];
-    from?: string | string[];
-    to?: string | string[];
-    page?: string | string[];
-    pageSize?: string | string[];
-  }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function BusinessExpensesPage({ searchParams }: BusinessExpensesPageProps) {
@@ -29,15 +25,20 @@ export default async function BusinessExpensesPage({ searchParams }: BusinessExp
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
 
   try {
-    const filters = parseDashboardPageFilters(resolvedSearchParams);
+    const filters = parseExpensePageFilters(resolvedSearchParams, "business");
     const context = await getDashboardContext(currentUser, filters.branchId ?? undefined);
     const currentFilters = {
       ...filters,
       branchId: context.selectedBranchValue,
     };
-    const pageData = await getBusinessExpensesPageData(context.selectedBranchId, currentFilters);
+    const [pageData, categoryOptions, vendorOptions] = await Promise.all([
+      getBusinessExpensesPageData(context.selectedBranchId, currentFilters),
+      getExpenseCategories("business"),
+      getExpenseVendors(context.selectedBranchId),
+    ]);
     const branchOptions = buildBranchFilterOptions(context);
     const dateRangeLabel = formatDateRangeLabel(currentFilters.from, currentFilters.to);
+    const dateBasisLabel = currentFilters.dateField === "logged" ? "logged dates" : "expense dates";
 
     return (
       <main className="min-h-screen px-4 py-8">
@@ -53,7 +54,7 @@ export default async function BusinessExpensesPage({ searchParams }: BusinessExp
             <ListStatCard
               label="Spend in range"
               value={formatCurrency(pageData.summary.totalAmountInRange)}
-              meta={`Across ${dateRangeLabel}`}
+              meta={`Across ${dateBasisLabel} for ${dateRangeLabel}`}
               accent="amber"
             />
             <ListStatCard
@@ -63,6 +64,14 @@ export default async function BusinessExpensesPage({ searchParams }: BusinessExp
               accent="violet"
             />
           </section>
+
+          <ExpenseListControls
+            kind="business"
+            currentPath="/dashboard/business-expenses"
+            currentFilters={currentFilters}
+            categoryOptions={categoryOptions}
+            vendorOptions={vendorOptions}
+          />
 
           <ExpenseDataTable
             kind="business"

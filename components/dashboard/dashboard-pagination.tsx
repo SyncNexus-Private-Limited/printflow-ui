@@ -7,6 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { cn, suggestCanonicalClasses } from "@/lib/utils/cn";
 import {
+  buildExpensePageHref,
+  buildExpensePaginationHref,
+  type ExpensePageFilterState,
+} from "@/lib/dashboard/expense-page-filters";
+import {
   DASHBOARD_PAGE_SIZE_OPTIONS,
   buildDashboardPageHref,
   buildDashboardPaginationHref,
@@ -14,9 +19,9 @@ import {
 import type { DashboardPageFilterState, DashboardPaginationState } from "@/lib/dashboard/types";
 import { useGlobalLoader } from "@/lib/ui/global-loader-context";
 
-type DashboardPaginationProps = {
+type DashboardPaginationProps<TFilters extends DashboardPageFilterState = DashboardPageFilterState> = {
   currentPath: string;
-  currentFilters: DashboardPageFilterState;
+  currentFilters: TFilters;
   pagination: DashboardPaginationState;
   variant?: "default" | "expense";
 };
@@ -55,21 +60,36 @@ function getVisiblePageNumbers(page: number, totalPages: number) {
   return [1, page - 1, page, page + 1, totalPages];
 }
 
-export function DashboardPagination({
+export function DashboardPagination<TFilters extends DashboardPageFilterState = DashboardPageFilterState>({
   currentPath,
   currentFilters,
   pagination,
   variant = "default",
-}: DashboardPaginationProps) {
+}: DashboardPaginationProps<TFilters>) {
   const router = useRouter();
   const { showBlockingLoader } = useGlobalLoader();
-  const currentHref = useMemo(() => buildDashboardPageHref(currentPath, currentFilters), [currentFilters, currentPath]);
+  const isExpenseVariant = variant === "expense";
+  const resolvePageHref = (path: string, filters: TFilters) =>
+    isExpenseVariant
+      ? buildExpensePageHref(path, filters as unknown as ExpensePageFilterState)
+      : buildDashboardPageHref(path, filters);
+  const resolvePaginationHref = (
+    path: string,
+    filters: TFilters,
+    nextPagination: {
+      page?: number;
+      pageSize?: number;
+    },
+  ) =>
+    isExpenseVariant
+      ? buildExpensePaginationHref(path, filters as unknown as ExpensePageFilterState, nextPagination)
+      : buildDashboardPaginationHref(path, filters, nextPagination);
+  const currentHref = useMemo(() => resolvePageHref(currentPath, currentFilters), [currentFilters, currentPath, resolvePageHref]);
   const visiblePageNumbers = useMemo(
     () => getVisiblePageNumbers(pagination.page, pagination.totalPages),
     [pagination.page, pagination.totalPages],
   );
   const hasMultiplePages = pagination.totalPages > 1;
-  const isExpenseVariant = variant === "expense";
 
   if (pagination.totalItems === 0) {
     return null;
@@ -110,7 +130,7 @@ export function DashboardPagination({
                   title={`Rows per page: ${pagination.pageSize}`}
                   onChange={(event) => {
                     const nextPageSize = Number.parseInt(event.target.value, 10);
-                    const nextHref = buildDashboardPaginationHref(currentPath, currentFilters, {
+                    const nextHref = resolvePaginationHref(currentPath, currentFilters, {
                       page: 1,
                       pageSize: nextPageSize,
                     });
@@ -151,7 +171,7 @@ export function DashboardPagination({
               disabled={pagination.page <= 1}
               onClick={() =>
                 navigateToPagination(
-                  buildDashboardPaginationHref(currentPath, currentFilters, {
+                  resolvePaginationHref(currentPath, currentFilters, {
                     page: pagination.page - 1,
                   }),
                   "Loading previous page...",
@@ -175,7 +195,7 @@ export function DashboardPagination({
               disabled={pagination.page >= pagination.totalPages}
               onClick={() =>
                 navigateToPagination(
-                  buildDashboardPaginationHref(currentPath, currentFilters, {
+                  resolvePaginationHref(currentPath, currentFilters, {
                     page: pagination.page + 1,
                   }),
                   "Loading next page...",
@@ -225,7 +245,7 @@ export function DashboardPagination({
             value={String(pagination.pageSize)}
             onChange={(event) => {
               const nextPageSize = Number.parseInt(event.target.value, 10);
-              const nextHref = buildDashboardPaginationHref(currentPath, currentFilters, {
+              const nextHref = resolvePaginationHref(currentPath, currentFilters, {
                 page: 1,
                 pageSize: nextPageSize,
               });
@@ -250,7 +270,7 @@ export function DashboardPagination({
           disabled={pagination.page <= 1}
           onClick={() =>
             navigateToPagination(
-              buildDashboardPaginationHref(currentPath, currentFilters, {
+              resolvePaginationHref(currentPath, currentFilters, {
                 page: pagination.page - 1,
               }),
               "Loading previous page...",
@@ -281,7 +301,7 @@ export function DashboardPagination({
                     className="h-10 min-w-10 rounded-2xl px-3"
                     onClick={() =>
                       navigateToPagination(
-                        buildDashboardPaginationHref(currentPath, currentFilters, {
+                        resolvePaginationHref(currentPath, currentFilters, {
                           page: pageNumber,
                         }),
                         `Loading page ${pageNumber}...`,
@@ -312,7 +332,7 @@ export function DashboardPagination({
           disabled={pagination.page >= pagination.totalPages}
           onClick={() =>
             navigateToPagination(
-              buildDashboardPaginationHref(currentPath, currentFilters, {
+              resolvePaginationHref(currentPath, currentFilters, {
                 page: pagination.page + 1,
               }),
               "Loading next page...",

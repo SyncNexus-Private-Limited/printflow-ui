@@ -83,17 +83,19 @@ export async function getExpenseCategories(type: ExpenseType, db?: Queryable): P
   return rows;
 }
 
-export async function getExpenseEmployees(branchId: string, db?: Queryable): Promise<ExpenseEmployeeOption[]> {
+export async function getExpenseEmployees(branchId: string | null, db?: Queryable): Promise<ExpenseEmployeeOption[]> {
   const { rows } = await getQueryable(db).query<ExpenseEmployeeOption>(
     `
       SELECT
-        id::text AS id,
-        full_name AS "fullName",
-        role::text AS role
+        users.id::text AS id,
+        users.full_name AS "fullName",
+        users.role::text AS role,
+        b.name AS "branchName"
       FROM users
-      WHERE branch_id = $1::uuid
-        AND is_active = true
-      ORDER BY full_name ASC
+      LEFT JOIN branches b ON b.id = users.branch_id
+      WHERE ($1::uuid IS NULL OR users.branch_id = $1::uuid)
+        AND users.is_active = true
+      ORDER BY users.full_name ASC
     `,
     [branchId],
   );
@@ -101,7 +103,7 @@ export async function getExpenseEmployees(branchId: string, db?: Queryable): Pro
   return rows;
 }
 
-export async function getExpenseVendors(branchId: string, db?: Queryable): Promise<ExpenseVendorOption[]> {
+export async function getExpenseVendors(branchId: string | null, db?: Queryable): Promise<ExpenseVendorOption[]> {
   const { rows } = await getQueryable(db).query<ExpenseVendorOption>(
     `
       SELECT DISTINCT
@@ -113,13 +115,13 @@ export async function getExpenseVendors(branchId: string, db?: Queryable): Promi
         FROM order_vendors ov
         JOIN orders o ON o.id = ov.order_id
         WHERE ov.vendor_id = v.id
-          AND o.branch_id = $1::uuid
+          AND ($1::uuid IS NULL OR o.branch_id = $1::uuid)
       )
       OR EXISTS (
         SELECT 1
         FROM inventory i
         WHERE i.last_vendor_id = v.id
-          AND i.branch_id = $1::uuid
+          AND ($1::uuid IS NULL OR i.branch_id = $1::uuid)
       )
       ORDER BY name ASC
     `,

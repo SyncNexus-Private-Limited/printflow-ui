@@ -38,3 +38,27 @@ export function formatDate(value: string | Date) {
 export function formatDateTime(value: string | Date) {
   return dateTimeFormatter.format(new Date(value));
 }
+
+export function formatDateRangeLabel(from: string | null, to: string | null) {
+  if (from && to) {
+    return `${formatDate(from)} to ${formatDate(to)}`;
+  }
+
+  if (from) {
+    return `From ${formatDate(from)}`;
+  }
+
+  if (to) {
+    return `Until ${formatDate(to)}`;
+  }
+
+  return "All dates";
+}
+
+export function formatEnumLabel(value: string) {
+  return value
+    .trim()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}

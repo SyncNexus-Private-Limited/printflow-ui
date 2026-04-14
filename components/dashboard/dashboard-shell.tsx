@@ -6,6 +6,7 @@ import { DashboardChromeProvider } from "@/components/dashboard/dashboard-chrome
 import { buildDashboardHref } from "@/components/dashboard/dashboard-navigation";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
 import { TopNavbar } from "@/components/dashboard/top-navbar";
+import { getDashboardNavigationFilterState } from "@/lib/dashboard/page-filters";
 import { cn } from "@/lib/utils/cn";
 import { DESKTOP_SIDEBAR_STORAGE_KEY } from "@/lib/ui/client-preferences";
 
@@ -13,6 +14,9 @@ const MOBILE_DRAWER_TRANSITION_MS = 240;
 
 type DashboardShellProps = {
   children: ReactNode;
+  initialBranchId: string | null;
+  initialBranchName: string | null;
+  canSelectAllBranches: boolean;
 };
 
 function readDesktopSidebarPreference() {
@@ -51,10 +55,21 @@ function applyDesktopSidebarPreference(isCollapsed: boolean) {
   }
 }
 
-export function DashboardShell({ children }: DashboardShellProps) {
+export function DashboardShell({
+  children,
+  initialBranchId,
+  initialBranchName,
+  canSelectAllBranches,
+}: DashboardShellProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const currentBranchId = searchParams.get("branchId");
+  const navigationFilters = getDashboardNavigationFilterState({
+    branchId: searchParams.get("branchId") ?? undefined,
+    from: searchParams.get("from") ?? undefined,
+    to: searchParams.get("to") ?? undefined,
+    pageSize: searchParams.get("pageSize") ?? undefined,
+  });
+  const currentBranchId = navigationFilters.branchId;
   const routeSignature = `${pathname}?${searchParams.toString()}`;
   const [isMobileSidebarMounted, setIsMobileSidebarMounted] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
@@ -143,9 +158,12 @@ export function DashboardShell({ children }: DashboardShellProps) {
       <div className="min-h-screen bg-[rgb(var(--background))]" data-dashboard-shell>
         <TopNavbar
           onOpenMobileMenu={openMobileSidebar}
-          homeHref={buildDashboardHref("/dashboard", currentBranchId)}
+          homeHref={buildDashboardHref("/dashboard", navigationFilters)}
           isOverviewRoute={pathname === "/dashboard"}
           isMobileMenuOpen={isMobileSidebarOpen}
+          initialBranchId={initialBranchId}
+          initialBranchName={initialBranchName}
+          canSelectAllBranches={canSelectAllBranches}
         />
 
         {isMobileSidebarMounted ? (

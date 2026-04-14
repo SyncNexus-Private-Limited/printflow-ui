@@ -22,6 +22,32 @@ export function buildBranchHref(path: string, branchValue: string) {
   return `${path}?branchId=${encodeURIComponent(branchValue)}`;
 }
 
+export function buildBranchScopedHref(
+  path: string,
+  branchValue: string,
+  extraSearchParams?: Record<string, string | null | undefined>,
+) {
+  const searchParams = new URLSearchParams();
+
+  if (branchValue) {
+    searchParams.set("branchId", branchValue);
+  }
+
+  if (extraSearchParams) {
+    for (const [key, value] of Object.entries(extraSearchParams)) {
+      if (!value) {
+        continue;
+      }
+
+      searchParams.set(key, value);
+    }
+  }
+
+  const queryString = searchParams.toString();
+
+  return queryString.length > 0 ? `${path}?${queryString}` : path;
+}
+
 export function hasDashboardData(
   summary: DashboardSummary,
   recentOrders: RecentOrderRow[],
@@ -40,4 +66,3 @@ export function hasDashboardData(
     recentExpenses.length > 0
   );
 }
-

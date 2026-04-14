@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { CreateExpenseFormValues } from "@/lib/expenses/schema";
-import { paymentModeValues, type CreateExpenseFieldName, type ExpenseFormPageData, type ExpenseType } from "@/lib/expenses/types";
+import { paymentModeLabels, paymentModeValues, type CreateExpenseFieldName, type ExpenseFormPageData, type ExpenseType } from "@/lib/expenses/types";
 
 type ExpenseFormFieldsProps = Pick<
   ExpenseFormPageData,
@@ -26,14 +26,6 @@ type ExpenseFormFieldsProps = Pick<
   selectedVendorId: string;
   onTypeChange: (nextType: ExpenseType) => void;
   onBranchChange: (nextBranchId: string) => void;
-};
-
-const paymentModeLabels: Record<(typeof paymentModeValues)[number], string> = {
-  cash: "Cash",
-  upi: "UPI",
-  card: "Card",
-  credit: "Credit",
-  other: "Other",
 };
 
 function getFieldErrorMessage(errors: FieldErrors<CreateExpenseFormValues>, fieldName: CreateExpenseFieldName) {

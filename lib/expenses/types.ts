@@ -3,6 +3,25 @@ export type ExpenseType = (typeof expenseTypeValues)[number];
 
 export const paymentModeValues = ["cash", "upi", "card", "credit", "other"] as const;
 export type PaymentMode = (typeof paymentModeValues)[number];
+export const paymentModeLabels: Record<PaymentMode, string> = {
+  cash: "Cash",
+  upi: "UPI",
+  card: "Card",
+  credit: "Credit",
+  other: "Other",
+};
+
+export function getPaymentModeLabel(value: string) {
+  if (value in paymentModeLabels) {
+    return paymentModeLabels[value as PaymentMode];
+  }
+
+  return value
+    .trim()
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
 
 export const expenseCategoryScopeValues = ["branch", "employee", "both"] as const;
 export type ExpenseCategoryScope = (typeof expenseCategoryScopeValues)[number];

@@ -1,3 +1,5 @@
+import type { DashboardPageFilterState } from "@/lib/dashboard/types";
+import { DEFAULT_DASHBOARD_PAGE_SIZE, buildDashboardNavigationHref } from "@/lib/dashboard/page-filters";
 import type { LucideIcon } from "lucide-react";
 import { Boxes, Home, Receipt, ShoppingBag, Users } from "lucide-react";
 
@@ -26,6 +28,8 @@ export type DashboardBreadcrumb = {
   label: string;
   href?: string;
 };
+
+type DashboardNavigationFilters = Pick<DashboardPageFilterState, "branchId" | "from" | "to" | "pageSize">;
 
 export const dashboardNavigation: DashboardNavItem[] = [
   {
@@ -68,12 +72,18 @@ export const dashboardNavigation: DashboardNavItem[] = [
   },
 ];
 
-export function buildDashboardHref(href: string, branchId: string | null) {
-  if (!branchId) {
-    return href;
-  }
+export function buildDashboardHref(href: string, branchIdOrFilters: string | DashboardNavigationFilters | null) {
+  const filters =
+    typeof branchIdOrFilters === "string" || branchIdOrFilters === null
+      ? {
+          branchId: branchIdOrFilters,
+          from: null,
+          to: null,
+          pageSize: DEFAULT_DASHBOARD_PAGE_SIZE,
+        }
+      : branchIdOrFilters;
 
-  return `${href}?branchId=${encodeURIComponent(branchId)}`;
+  return buildDashboardNavigationHref(href, filters);
 }
 
 export function isDashboardRouteActive(pathname: string, href: string) {
@@ -88,8 +98,8 @@ export function getDashboardGroupFallback(item: Extract<DashboardNavItem, { type
   return item.children[0];
 }
 
-export function getDashboardBreadcrumbs(pathname: string, branchId: string | null): DashboardBreadcrumb[] {
-  const homeHref = buildDashboardHref("/dashboard", branchId);
+export function getDashboardBreadcrumbs(pathname: string, filters: DashboardNavigationFilters): DashboardBreadcrumb[] {
+  const homeHref = buildDashboardHref("/dashboard", filters);
 
   if (pathname === "/dashboard") {
     return [{ label: "Home", href: homeHref }];

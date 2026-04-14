@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useLayoutEffect } from "react";
+import { useLayoutEffect } from "react";
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useDashboardChrome } from "@/components/dashboard/dashboard-chrome-context";
 import { getDashboardBreadcrumbs } from "@/components/dashboard/dashboard-navigation";
+import { getDashboardNavigationFilterState, isDashboardFilterAwarePath } from "@/lib/dashboard/page-filters";
 
 type DashboardHeaderProps = {
   title: string;
@@ -24,9 +25,18 @@ export function DashboardHeader({
   branchFilterDisabled = false,
 }: DashboardHeaderProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { setBranchControl } = useDashboardChrome();
   const isOverviewHeader = pathname === "/dashboard";
-  const breadcrumbs = getDashboardBreadcrumbs(pathname, selectedBranchValue);
+  const navigationFilters = getDashboardNavigationFilterState({
+    branchId: selectedBranchValue,
+    from: searchParams.get("from") ?? undefined,
+    to: searchParams.get("to") ?? undefined,
+    pageSize: searchParams.get("pageSize") ?? undefined,
+  }, {
+    applyDefaultDateRange: isDashboardFilterAwarePath(pathname),
+  });
+  const breadcrumbs = getDashboardBreadcrumbs(pathname, navigationFilters);
 
   useLayoutEffect(() => {
     setBranchControl({
@@ -35,12 +45,6 @@ export function DashboardHeader({
       disabled: branchFilterDisabled || branchOptions.length <= 1,
     });
   }, [branchFilterDisabled, branchOptions, selectedBranchValue, setBranchControl]);
-
-  useEffect(() => {
-    return () => {
-      setBranchControl(null);
-    };
-  }, [setBranchControl]);
 
   return (
     <header className="space-y-2 px-1">

@@ -424,7 +424,7 @@ export function CreateMenu({ currentBranchValue }: CreateMenuProps) {
       ) : null}
 
       {isOpen && !isDesktopViewport ? (
-        <div className="fixed inset-0 z-[70] sm:hidden">
+        <div className="fixed inset-0 z-70 sm:hidden">
           <button
             type="button"
             className="absolute inset-0 bg-[rgb(var(--shadow)/0.26)] backdrop-blur-[2px]"
@@ -438,7 +438,7 @@ export function CreateMenu({ currentBranchValue }: CreateMenuProps) {
               aria-label="Create new"
               className={cn(
                 "mx-auto w-full max-w-sm overflow-hidden rounded-[26px] border border-[rgb(var(--border)/0.8)]",
-                "bg-[rgb(var(--card)/0.98)] p-2 shadow-[0_28px_60px_-34px_rgb(var(--shadow)/0.28)] backdrop-blur-[16px]",
+                "bg-[rgb(var(--card)/0.98)] p-2 shadow-[0_28px_60px_-34px_rgb(var(--shadow)/0.28)] backdrop-blur-lg",
               )}
             >
               <div className="flex items-center justify-between gap-3 px-2 pb-2 pt-1">

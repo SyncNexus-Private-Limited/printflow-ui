@@ -7,12 +7,21 @@ import {
   type BranchFilterState,
   type BranchOption,
   type BusinessExpenseDetailRow,
+  type BusinessExpensesPageData,
   type CustomerDetailRow,
+  type CustomersPageData,
+  type CustomersPageSummary,
   type DashboardSummary,
+  type DashboardDateRange,
+  type DashboardPageFilterState,
   type EmployeeExpenseDetailRow,
+  type EmployeeExpensesPageData,
+  type ExpenseRangeSummary,
   type InventoryDetailRow,
   type LowStockRow,
   type OrderDetailRow,
+  type OrdersPageData,
+  type OrdersSummary,
   type RecentExpenseRow,
   type RecentOrderRow,
 } from "@/lib/dashboard/types";
@@ -253,6 +262,326 @@ export async function getDashboardSummary(branchId: string | null): Promise<Dash
     businessExpenses: {
       totalAmountThisMonth: row.businessExpensesTotalAmountThisMonth,
       entryCountThisMonth: row.businessExpensesEntryCountThisMonth,
+    },
+  };
+}
+
+type DashboardDateFilterClause = {
+  clause: string;
+  values: string[];
+  nextParameterIndex: number;
+};
+
+function buildDashboardDateFilterClause(
+  columnExpression: string,
+  dateRange: DashboardDateRange,
+  startingParameterIndex: number,
+): DashboardDateFilterClause {
+  const filters: string[] = [];
+  const values: string[] = [];
+  let parameterIndex = startingParameterIndex;
+
+  if (dateRange.from) {
+    filters.push(`${columnExpression} >= $${parameterIndex}::date`);
+    values.push(dateRange.from);
+    parameterIndex += 1;
+  }
+
+  if (dateRange.to) {
+    filters.push(`${columnExpression} <= $${parameterIndex}::date`);
+    values.push(dateRange.to);
+    parameterIndex += 1;
+  }
+
+  return {
+    clause: filters.length > 0 ? ` AND ${filters.join(" AND ")}` : "",
+    values,
+    nextParameterIndex: parameterIndex,
+  };
+}
+
+function buildPaginationState(totalItems: number, filters: DashboardPageFilterState) {
+  const totalPages = Math.max(1, Math.ceil(totalItems / filters.pageSize));
+  const page = Math.min(Math.max(filters.page, 1), totalPages);
+
+  return {
+    page,
+    pageSize: filters.pageSize,
+    totalItems,
+    totalPages,
+  };
+}
+
+export async function getOrdersPageData(branchId: string | null, filters: DashboardPageFilterState): Promise<OrdersPageData> {
+  const db = getPool();
+  const dateRange = {
+    from: filters.from,
+    to: filters.to,
+  };
+  const summaryDateFilter = buildDashboardDateFilterClause("o.order_date", dateRange, 2);
+  const { rows: summaryRows } = await db.query<OrdersSummary>(
+    `
+      SELECT
+        COUNT(*)::int AS "totalOrders",
+        COUNT(*) FILTER (WHERE o.status = 'pending')::int AS "pendingOrders",
+        COUNT(*) FILTER (WHERE o.status = 'completed')::int AS "completedOrders",
+        COALESCE(SUM(o.payable_amount), 0)::double precision AS "totalPayableAmount"
+      FROM orders o
+      WHERE ($1::uuid IS NULL OR o.branch_id = $1::uuid)
+      ${summaryDateFilter.clause}
+    `,
+    [branchId, ...summaryDateFilter.values],
+  );
+  const summary = summaryRows[0];
+  const pagination = buildPaginationState(summary.totalOrders, filters);
+  const listDateFilter = buildDashboardDateFilterClause("o.order_date", dateRange, 2);
+  const listQueryParams = [
+    branchId,
+    ...listDateFilter.values,
+    pagination.pageSize,
+    (pagination.page - 1) * pagination.pageSize,
+  ];
+  const limitParameterIndex = listDateFilter.nextParameterIndex;
+  const offsetParameterIndex = listDateFilter.nextParameterIndex + 1;
+  const { rows } = await db.query<OrderDetailRow>(
+    `
+      SELECT
+        o.id::text AS id,
+        o.order_code AS "orderCode",
+        c.name AS "customerName",
+        o.status::text AS status,
+        o.payable_amount::double precision AS "payableAmount",
+        o.paid_amount::double precision AS "paidAmount",
+        o.payment_status::text AS "paymentStatus",
+        o.order_date::text AS "orderDate"
+      FROM orders o
+      JOIN customers c ON c.id = o.customer_id
+      WHERE ($1::uuid IS NULL OR o.branch_id = $1::uuid)
+      ${listDateFilter.clause}
+      ORDER BY o.order_date DESC, o.order_code DESC
+      LIMIT $${limitParameterIndex}
+      OFFSET $${offsetParameterIndex}
+    `,
+    listQueryParams,
+  );
+
+  return {
+    summary,
+    result: {
+      items: rows,
+      pagination,
+    },
+  };
+}
+
+export async function getCustomersPageData(
+  branchId: string | null,
+  filters: DashboardPageFilterState,
+): Promise<CustomersPageData> {
+  const db = getPool();
+  const dateRange = {
+    from: filters.from,
+    to: filters.to,
+  };
+  const summaryDateFilter = buildDashboardDateFilterClause("c.created_at::date", dateRange, 2);
+  const { rows: summaryRows } = await db.query<CustomersPageSummary>(
+    `
+      SELECT
+        COUNT(*)::int AS "totalCustomersInRange",
+        COUNT(*) FILTER (WHERE LOWER(c.type::text) = 'studio')::int AS "studioCustomersInRange"
+      FROM customers c
+      WHERE (
+        $1::uuid IS NULL
+        OR EXISTS (
+          SELECT 1
+          FROM orders o
+          WHERE o.customer_id = c.id
+            AND o.branch_id = $1::uuid
+        )
+      )
+      ${summaryDateFilter.clause}
+    `,
+    [branchId, ...summaryDateFilter.values],
+  );
+  const summary = summaryRows[0];
+  const pagination = buildPaginationState(summary.totalCustomersInRange, filters);
+  const listDateFilter = buildDashboardDateFilterClause("c.created_at::date", dateRange, 2);
+  const listQueryParams = [
+    branchId,
+    ...listDateFilter.values,
+    pagination.pageSize,
+    (pagination.page - 1) * pagination.pageSize,
+  ];
+  const limitParameterIndex = listDateFilter.nextParameterIndex;
+  const offsetParameterIndex = listDateFilter.nextParameterIndex + 1;
+  const { rows } = await db.query<CustomerDetailRow>(
+    `
+      SELECT
+        c.id::text AS id,
+        c.name,
+        c.phone,
+        c.type::text AS type,
+        c.studio_name AS "studioName",
+        c.created_at::text AS "createdAt"
+      FROM customers c
+      WHERE (
+        $1::uuid IS NULL
+        OR EXISTS (
+          SELECT 1
+          FROM orders o
+          WHERE o.customer_id = c.id
+            AND o.branch_id = $1::uuid
+        )
+      )
+      ${listDateFilter.clause}
+      ORDER BY c.created_at DESC, c.name ASC
+      LIMIT $${limitParameterIndex}
+      OFFSET $${offsetParameterIndex}
+    `,
+    listQueryParams,
+  );
+
+  return {
+    summary,
+    result: {
+      items: rows,
+      pagination,
+    },
+  };
+}
+
+export async function getEmployeeExpensesPageData(
+  branchId: string | null,
+  filters: DashboardPageFilterState,
+): Promise<EmployeeExpensesPageData> {
+  const db = getPool();
+  const dateRange = {
+    from: filters.from,
+    to: filters.to,
+  };
+  const summaryDateFilter = buildDashboardDateFilterClause("ee.expense_date", dateRange, 2);
+  const { rows: summaryRows } = await db.query<ExpenseRangeSummary>(
+    `
+      SELECT
+        COALESCE(SUM(ee.amount), 0)::double precision AS "totalAmountInRange",
+        COUNT(*)::int AS "entryCountInRange"
+      FROM employee_expenses ee
+      WHERE ($1::uuid IS NULL OR ee.branch_id = $1::uuid)
+      ${summaryDateFilter.clause}
+    `,
+    [branchId, ...summaryDateFilter.values],
+  );
+  const summary = summaryRows[0];
+  const pagination = buildPaginationState(summary.entryCountInRange, filters);
+  const listDateFilter = buildDashboardDateFilterClause("ee.expense_date", dateRange, 2);
+  const listQueryParams = [
+    branchId,
+    ...listDateFilter.values,
+    pagination.pageSize,
+    (pagination.page - 1) * pagination.pageSize,
+  ];
+  const limitParameterIndex = listDateFilter.nextParameterIndex;
+  const offsetParameterIndex = listDateFilter.nextParameterIndex + 1;
+  const { rows } = await db.query<EmployeeExpenseDetailRow>(
+    `
+      SELECT
+        ee.id::text AS id,
+        u.full_name AS "userName",
+        ee.title,
+        ec.id::text AS "categoryId",
+        ec.code AS "categoryCode",
+        ec.name AS category,
+        ec.scope AS "categoryScope",
+        ee.amount::double precision AS amount,
+        ee.payment_mode::text AS "paymentMode",
+        ee.remarks,
+        ee.expense_date::text AS "expenseDate",
+        ee.created_at::text AS "createdAt"
+      FROM employee_expenses ee
+      JOIN users u ON u.id = ee.user_id
+      JOIN expense_categories ec ON ec.id = ee.category_id
+      WHERE ($1::uuid IS NULL OR ee.branch_id = $1::uuid)
+      ${listDateFilter.clause}
+      ORDER BY ee.expense_date DESC, ee.created_at DESC
+      LIMIT $${limitParameterIndex}
+      OFFSET $${offsetParameterIndex}
+    `,
+    listQueryParams,
+  );
+
+  return {
+    summary,
+    result: {
+      items: rows,
+      pagination,
+    },
+  };
+}
+
+export async function getBusinessExpensesPageData(
+  branchId: string | null,
+  filters: DashboardPageFilterState,
+): Promise<BusinessExpensesPageData> {
+  const db = getPool();
+  const dateRange = {
+    from: filters.from,
+    to: filters.to,
+  };
+  const summaryDateFilter = buildDashboardDateFilterClause("be.expense_date", dateRange, 2);
+  const { rows: summaryRows } = await db.query<ExpenseRangeSummary>(
+    `
+      SELECT
+        COALESCE(SUM(be.amount), 0)::double precision AS "totalAmountInRange",
+        COUNT(*)::int AS "entryCountInRange"
+      FROM branch_expenses be
+      WHERE ($1::uuid IS NULL OR be.branch_id = $1::uuid)
+      ${summaryDateFilter.clause}
+    `,
+    [branchId, ...summaryDateFilter.values],
+  );
+  const summary = summaryRows[0];
+  const pagination = buildPaginationState(summary.entryCountInRange, filters);
+  const listDateFilter = buildDashboardDateFilterClause("be.expense_date", dateRange, 2);
+  const listQueryParams = [
+    branchId,
+    ...listDateFilter.values,
+    pagination.pageSize,
+    (pagination.page - 1) * pagination.pageSize,
+  ];
+  const limitParameterIndex = listDateFilter.nextParameterIndex;
+  const offsetParameterIndex = listDateFilter.nextParameterIndex + 1;
+  const { rows } = await db.query<BusinessExpenseDetailRow>(
+    `
+      SELECT
+        be.id::text AS id,
+        be.title,
+        ec.id::text AS "categoryId",
+        ec.code AS "categoryCode",
+        ec.name AS category,
+        ec.scope AS "categoryScope",
+        be.amount::double precision AS amount,
+        be.payment_mode::text AS "paymentMode",
+        be.remarks,
+        be.expense_date::text AS "expenseDate",
+        be.created_at::text AS "createdAt",
+        b.name AS "branchName"
+      FROM branch_expenses be
+      JOIN expense_categories ec ON ec.id = be.category_id
+      LEFT JOIN branches b ON b.id = be.branch_id
+      WHERE ($1::uuid IS NULL OR be.branch_id = $1::uuid)
+      ${listDateFilter.clause}
+      ORDER BY be.expense_date DESC, be.created_at DESC
+      LIMIT $${limitParameterIndex}
+      OFFSET $${offsetParameterIndex}
+    `,
+    listQueryParams,
+  );
+
+  return {
+    summary,
+    result: {
+      items: rows,
+      pagination,
     },
   };
 }

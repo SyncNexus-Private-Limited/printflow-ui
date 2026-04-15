@@ -338,14 +338,23 @@ function getEmployeeExpensesOrderByClause(filters: ExpensePageFilterState) {
       return "ee.amount ASC, ee.expense_date DESC, ee.created_at DESC";
     case "category-asc":
       return "LOWER(ec.name) ASC, ee.expense_date DESC, ee.created_at DESC";
+    case "category-desc":
+      return "LOWER(ec.name) DESC, ee.expense_date DESC, ee.created_at DESC";
     case "payment-asc":
       return "LOWER(ee.payment_mode::text) ASC, ee.expense_date DESC, ee.created_at DESC";
+    case "payment-desc":
+      return "LOWER(ee.payment_mode::text) DESC, ee.expense_date DESC, ee.created_at DESC";
     case "title-asc":
       return "LOWER(ee.title) ASC, ee.expense_date DESC, ee.created_at DESC";
+    case "title-desc":
+      return "LOWER(ee.title) DESC, ee.expense_date DESC, ee.created_at DESC";
     case "employee-asc":
       return "LOWER(u.full_name) ASC, ee.expense_date DESC, ee.created_at DESC";
+    case "employee-desc":
+      return "LOWER(u.full_name) DESC, ee.expense_date DESC, ee.created_at DESC";
     case "expense-date-desc":
     case "vendor-asc":
+    case "vendor-desc":
     default:
       return "ee.expense_date DESC, ee.created_at DESC";
   }
@@ -365,14 +374,23 @@ function getBusinessExpensesOrderByClause(filters: ExpensePageFilterState) {
       return "be.amount ASC, be.expense_date DESC, be.created_at DESC";
     case "category-asc":
       return "LOWER(ec.name) ASC, be.expense_date DESC, be.created_at DESC";
+    case "category-desc":
+      return "LOWER(ec.name) DESC, be.expense_date DESC, be.created_at DESC";
     case "payment-asc":
       return "LOWER(be.payment_mode::text) ASC, be.expense_date DESC, be.created_at DESC";
+    case "payment-desc":
+      return "LOWER(be.payment_mode::text) DESC, be.expense_date DESC, be.created_at DESC";
     case "title-asc":
       return "LOWER(COALESCE(be.title, '')) ASC, be.expense_date DESC, be.created_at DESC";
+    case "title-desc":
+      return "LOWER(COALESCE(be.title, '')) DESC, be.expense_date DESC, be.created_at DESC";
     case "vendor-asc":
       return "CASE WHEN v.name IS NULL THEN 1 ELSE 0 END ASC, LOWER(v.name) ASC, be.expense_date DESC, be.created_at DESC";
+    case "vendor-desc":
+      return "CASE WHEN v.name IS NULL THEN 1 ELSE 0 END ASC, LOWER(v.name) DESC, be.expense_date DESC, be.created_at DESC";
     case "expense-date-desc":
     case "employee-asc":
+    case "employee-desc":
     default:
       return "be.expense_date DESC, be.created_at DESC";
   }

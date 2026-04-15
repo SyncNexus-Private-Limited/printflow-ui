@@ -18,10 +18,15 @@ const expenseSortValues = [
   "amount-desc",
   "amount-asc",
   "category-asc",
+  "category-desc",
   "payment-asc",
+  "payment-desc",
   "title-asc",
+  "title-desc",
   "employee-asc",
+  "employee-desc",
   "vendor-asc",
+  "vendor-desc",
 ] as const;
 
 export const expenseQuickDatePresetValues = ["this-month", "last-month", "custom"] as const;
@@ -119,11 +124,11 @@ export function getExpensePagePath(kind: ExpensePageKind) {
 }
 
 export function isExpenseSortSupported(kind: ExpensePageKind, sort: ExpenseSortValue) {
-  if (sort === "employee-asc") {
+  if (sort === "employee-asc" || sort === "employee-desc") {
     return kind === "employee";
   }
 
-  if (sort === "vendor-asc") {
+  if (sort === "vendor-asc" || sort === "vendor-desc") {
     return kind === "business";
   }
 

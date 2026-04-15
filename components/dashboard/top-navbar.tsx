@@ -1,9 +1,10 @@
 "use client";
 
 import { House, Menu } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { BranchFilter } from "@/components/dashboard/branch-filter";
+import { CreateMenu } from "@/components/dashboard/create-menu";
 import { ThemeToggleButton } from "@/components/dashboard/theme-toggle-button";
 import { Button } from "@/components/ui/button";
 import { useDashboardChrome } from "@/components/dashboard/dashboard-chrome-context";
@@ -15,12 +16,77 @@ type TopNavbarProps = {
   homeHref: string;
   isOverviewRoute: boolean;
   isMobileMenuOpen: boolean;
+  initialBranchId: string | null;
+  initialBranchName: string | null;
+  canSelectAllBranches: boolean;
 };
 
-export function TopNavbar({ onOpenMobileMenu, homeHref, isOverviewRoute, isMobileMenuOpen }: TopNavbarProps) {
+function getFallbackBranchControl({
+  branchIdFromSearchParams,
+  initialBranchId,
+  initialBranchName,
+  canSelectAllBranches,
+}: {
+  branchIdFromSearchParams: string | null;
+  initialBranchId: string | null;
+  initialBranchName: string | null;
+  canSelectAllBranches: boolean;
+}) {
+  if (canSelectAllBranches) {
+    const resolvedValue = branchIdFromSearchParams ?? "all";
+
+    return {
+      options: [
+        {
+          label: resolvedValue === "all" ? "All branches" : "Selected branch",
+          value: resolvedValue,
+        },
+      ],
+      value: resolvedValue,
+      disabled: false,
+    };
+  }
+
+  const resolvedValue = initialBranchId ?? branchIdFromSearchParams ?? "all";
+
+  return {
+    options: [
+      {
+        label: initialBranchName ?? "Your branch",
+        value: resolvedValue,
+      },
+    ],
+    value: resolvedValue,
+    disabled: true,
+  };
+}
+
+export function TopNavbar({
+  onOpenMobileMenu,
+  homeHref,
+  isOverviewRoute,
+  isMobileMenuOpen,
+  initialBranchId,
+  initialBranchName,
+  canSelectAllBranches,
+}: TopNavbarProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showBlockingLoader } = useGlobalLoader();
   const { branchControl } = useDashboardChrome();
+  const branchIdFromSearchParams = searchParams.get("branchId");
+  const resolvedBranchControl =
+    branchControl ??
+    getFallbackBranchControl({
+      branchIdFromSearchParams,
+      initialBranchId,
+      initialBranchName,
+      canSelectAllBranches,
+    });
+  const currentBranchValue =
+    resolvedBranchControl.value && resolvedBranchControl.value !== "__branch-placeholder__"
+      ? resolvedBranchControl.value
+      : branchIdFromSearchParams;
 
   const handleHomeClick = () => {
     if (isOverviewRoute) {
@@ -72,15 +138,16 @@ export function TopNavbar({ onOpenMobileMenu, homeHref, isOverviewRoute, isMobil
 
         <div className="ml-auto flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-none sm:justify-end sm:gap-3">
           <BranchFilter
-            options={branchControl?.options ?? []}
-            value={branchControl?.value ?? "__branch-placeholder__"}
-            disabled={branchControl?.disabled ?? true}
+            options={resolvedBranchControl.options}
+            value={resolvedBranchControl.value}
+            disabled={resolvedBranchControl.disabled}
             placeholderLabel="All branches"
             className="min-w-0 flex-1 sm:flex-none sm:w-72 sm:min-w-72 lg:w-80 lg:min-w-80"
             selectClassName="rounded-2xl border-[rgb(var(--border))] bg-[rgb(var(--background))] pr-10"
             hideLabel
             id="dashboard-navbar-branch-filter"
           />
+          <CreateMenu currentBranchValue={currentBranchValue} />
           <ThemeToggleButton />
           <LogoutButton iconOnly title="Sign out" />
         </div>

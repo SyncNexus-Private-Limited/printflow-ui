@@ -1,15 +1,18 @@
 import { redirect } from "next/navigation";
+import { ExpenseDataTable } from "@/components/dashboard/expense-data-table";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { ExpenseListControls } from "@/components/dashboard/expense-list-controls";
+import { ListStatCard } from "@/components/dashboard/list-stat-card";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { parseExpensePageFilters } from "@/lib/dashboard/expense-page-filters";
 import { buildBranchFilterOptions } from "@/lib/dashboard/helpers";
-import { getBusinessExpenseDetails, getDashboardContext, getDashboardSummary } from "@/lib/dashboard/queries";
-import { formatCompactNumber, formatCurrency, formatDateTime } from "@/lib/utils/format";
+import { getBusinessExpensesPageData, getDashboardContext } from "@/lib/dashboard/queries";
+import { getExpenseCategories, getExpenseVendors } from "@/lib/expenses/queries";
+import { formatCompactNumber, formatCurrency, formatDateRangeLabel } from "@/lib/utils/format";
 
 type BusinessExpensesPageProps = {
-  searchParams?: Promise<{
-    branchId?: string | string[];
-  }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function BusinessExpensesPage({ searchParams }: BusinessExpensesPageProps) {
@@ -22,12 +25,20 @@ export default async function BusinessExpensesPage({ searchParams }: BusinessExp
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
 
   try {
-    const context = await getDashboardContext(currentUser, resolvedSearchParams?.branchId);
-    const [summary, expenses] = await Promise.all([
-      getDashboardSummary(context.selectedBranchId),
-      getBusinessExpenseDetails(context.selectedBranchId),
+    const filters = parseExpensePageFilters(resolvedSearchParams, "business");
+    const context = await getDashboardContext(currentUser, filters.branchId ?? undefined);
+    const currentFilters = {
+      ...filters,
+      branchId: context.selectedBranchValue,
+    };
+    const [pageData, categoryOptions, vendorOptions] = await Promise.all([
+      getBusinessExpensesPageData(context.selectedBranchId, currentFilters),
+      getExpenseCategories("business"),
+      getExpenseVendors(context.selectedBranchId),
     ]);
     const branchOptions = buildBranchFilterOptions(context);
+    const dateRangeLabel = formatDateRangeLabel(currentFilters.from, currentFilters.to);
+    const dateBasisLabel = currentFilters.dateField === "logged" ? "logged dates" : "expense dates";
 
     return (
       <main className="min-h-screen px-4 py-8">
@@ -39,55 +50,38 @@ export default async function BusinessExpensesPage({ searchParams }: BusinessExp
             branchFilterDisabled={!context.canSelectAll}
           />
 
-          <section className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-[22px] border border-[rgb(var(--border))] bg-[rgb(var(--card)/0.92)] p-5 shadow-[0_18px_48px_-38px_rgb(var(--shadow)/0.28)]">
-              <p className="text-sm text-slate-500">Total this month</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-950">
-                {formatCurrency(summary.businessExpenses.totalAmountThisMonth)}
-              </p>
-            </div>
-            <div className="rounded-[22px] border border-[rgb(var(--border))] bg-[rgb(var(--card)/0.92)] p-5 shadow-[0_18px_48px_-38px_rgb(var(--shadow)/0.28)]">
-              <p className="text-sm text-slate-500">Entries this month</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-950">
-                {formatCompactNumber(summary.businessExpenses.entryCountThisMonth)}
-              </p>
-            </div>
+          <section className="grid gap-4 lg:grid-cols-2">
+            <ListStatCard
+              label="Spend in range"
+              value={formatCurrency(pageData.summary.totalAmountInRange)}
+              meta={`Across ${dateBasisLabel} for ${dateRangeLabel}`}
+              accent="amber"
+            />
+            <ListStatCard
+              label="Entries in range"
+              value={formatCompactNumber(pageData.summary.entryCountInRange)}
+              meta={`Tracked for ${context.selectedBranchName}`}
+              accent="violet"
+            />
           </section>
 
-          <SectionCard title="Business expenses list" description={`Showing business expenses for ${context.selectedBranchName.toLowerCase()}.`}>
-            {expenses.length === 0 ? (
-              <p className="text-sm text-slate-600">No business expenses found for this branch.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-left text-sm">
-                  <thead className="text-slate-500">
-                    <tr>
-                      <th className="pb-3 font-medium">Category</th>
-                      <th className="pb-3 font-medium">Name</th>
-                      <th className="pb-3 font-medium">Amount</th>
-                      <th className="pb-3 font-medium">Payment mode</th>
-                      <th className="pb-3 font-medium">Remarks</th>
-                      <th className="pb-3 font-medium">Created</th>
-                      <th className="pb-3 font-medium">Branch</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {expenses.map((expense) => (
-                      <tr key={expense.id}>
-                        <td className="py-3 font-medium text-slate-900">{expense.category}</td>
-                        <td className="py-3 text-slate-700">{expense.name ?? "—"}</td>
-                        <td className="py-3 text-slate-700">{formatCurrency(expense.amount)}</td>
-                        <td className="py-3 capitalize text-slate-700">{expense.paymentMode}</td>
-                        <td className="py-3 text-slate-700">{expense.remarks ?? "—"}</td>
-                        <td className="py-3 text-slate-700">{formatDateTime(expense.createdAt)}</td>
-                        <td className="py-3 text-slate-700">{expense.branchName ?? "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </SectionCard>
+          <ExpenseListControls
+            kind="business"
+            currentPath="/dashboard/business-expenses"
+            currentFilters={currentFilters}
+            categoryOptions={categoryOptions}
+            vendorOptions={vendorOptions}
+          />
+
+          <ExpenseDataTable
+            kind="business"
+            emptyMessage="No business expenses were recorded for the selected branch and date range."
+            items={pageData.result.items}
+            currentPath="/dashboard/business-expenses"
+            currentFilters={currentFilters}
+            pagination={pageData.result.pagination}
+            fallbackBranchName={context.selectedBranchName}
+          />
         </div>
       </main>
     );

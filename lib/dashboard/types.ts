@@ -12,6 +12,41 @@ export type BranchFilterState = {
   canSelectAll: boolean;
 };
 
+export type DashboardDateRange = {
+  from: string | null;
+  to: string | null;
+};
+
+export type DashboardPaginationState = {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+};
+
+export type DashboardPageFilterState = DashboardDateRange & {
+  branchId: string | null;
+  page: number;
+  pageSize: number;
+};
+
+export type PaginatedListResult<T> = {
+  items: T[];
+  pagination: DashboardPaginationState;
+};
+
+export type DashboardPageToolbarAction = {
+  label: string;
+  href?: string;
+  loaderMessage?: string;
+  disabled?: boolean;
+  disabledReason?: string;
+};
+
+export type DashboardPageToolbarMenuAction = DashboardPageToolbarAction & {
+  key: string;
+};
+
 export type OrdersSummary = {
   totalOrders: number;
   pendingOrders: number;
@@ -22,6 +57,11 @@ export type OrdersSummary = {
 export type CustomersSummary = {
   totalCustomers: number;
   newCustomersThisMonth: number;
+};
+
+export type CustomersPageSummary = {
+  totalCustomersInRange: number;
+  studioCustomersInRange: number;
 };
 
 export type InventorySummary = {
@@ -40,6 +80,15 @@ export type ExpenseSummary = {
   entryCountThisMonth: number;
 };
 
+export type ExpenseCategoryScope = "branch" | "employee" | "both";
+
+export type ExpenseCategorySummary = {
+  categoryId: string;
+  categoryCode: string;
+  category: string;
+  categoryScope: ExpenseCategoryScope;
+};
+
 export type DashboardSummary = {
   orders: OrdersSummary;
   customers: CustomersSummary;
@@ -47,6 +96,11 @@ export type DashboardSummary = {
   activeUsers: ActiveUsersSummary;
   employeeExpenses: ExpenseSummary;
   businessExpenses: ExpenseSummary;
+};
+
+export type ExpenseRangeSummary = {
+  totalAmountInRange: number;
+  entryCountInRange: number;
 };
 
 export type RecentOrderRow = {
@@ -66,11 +120,12 @@ export type LowStockRow = {
   branchName: string;
 };
 
-export type RecentExpenseRow = {
+export type RecentExpenseRow = ExpenseCategorySummary & {
   id: string;
   type: "Employee Expense" | "Business Expense";
-  category: string;
+  title: string | null;
   amount: number;
+  expenseDate: string;
   createdAt: string;
   context: string;
 };
@@ -115,24 +170,44 @@ export type ActiveUserRow = {
   sessionCreatedAt: string;
 };
 
-export type EmployeeExpenseDetailRow = {
+export type EmployeeExpenseDetailRow = ExpenseCategorySummary & {
   id: string;
   userName: string;
-  category: string;
+  title: string;
   amount: number;
   paymentMode: string;
   remarks: string | null;
+  expenseDate: string;
   createdAt: string;
 };
 
-export type BusinessExpenseDetailRow = {
+export type BusinessExpenseDetailRow = ExpenseCategorySummary & {
   id: string;
-  category: string;
-  name: string | null;
+  title: string | null;
   amount: number;
   paymentMode: string;
   remarks: string | null;
+  expenseDate: string;
   createdAt: string;
   branchName: string | null;
 };
 
+export type OrdersPageData = {
+  summary: OrdersSummary;
+  result: PaginatedListResult<OrderDetailRow>;
+};
+
+export type CustomersPageData = {
+  summary: CustomersPageSummary;
+  result: PaginatedListResult<CustomerDetailRow>;
+};
+
+export type EmployeeExpensesPageData = {
+  summary: ExpenseRangeSummary;
+  result: PaginatedListResult<EmployeeExpenseDetailRow>;
+};
+
+export type BusinessExpensesPageData = {
+  summary: ExpenseRangeSummary;
+  result: PaginatedListResult<BusinessExpenseDetailRow>;
+};

@@ -113,6 +113,26 @@ textarea {
   font: inherit;
 }
 
+.dashboard-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--border)) transparent;
+}
+
+.dashboard-scrollbar::-webkit-scrollbar {
+  height: 10px;
+}
+
+.dashboard-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-scrollbar::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background: rgb(var(--border) / 0.95);
+  background-clip: padding-box;
+}
+
 .bg-white {
   background-color: rgb(var(--card)) !important;
 }

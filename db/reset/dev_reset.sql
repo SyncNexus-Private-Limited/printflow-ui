@@ -2,9 +2,11 @@ DO $$
 BEGIN
   IF to_regclass('public.branches') IS NOT NULL THEN
     TRUNCATE TABLE
-      app_sessions,
+      expense_attachments,
       employee_expenses,
       branch_expenses,
+      expense_categories,
+      app_sessions,
       order_offer_items,
       offer_items,
       order_vendors,

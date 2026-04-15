@@ -820,103 +820,254 @@ INSERT INTO order_offer_items (
   2
 );
 
--- 14) BRANCH EXPENSES
+-- 14) EXPENSE CATEGORIES
+INSERT INTO expense_categories (
+  id, code, name, description, scope, is_active, is_system, sort_order
+) VALUES
+(
+  'f1111111-1111-4111-8111-111111111111',
+  'vendor_payment',
+  'Vendor Payment',
+  'Payments made to vendors for branch operations.',
+  'branch',
+  true,
+  true,
+  10
+),
+(
+  'f2222222-2222-4222-8222-222222222222',
+  'electricity',
+  'Electricity',
+  'Branch electricity and utility payments.',
+  'branch',
+  true,
+  true,
+  20
+),
+(
+  'f3333333-3333-4333-8333-333333333333',
+  'maintenance',
+  'Maintenance',
+  'Maintenance and repair costs for branch equipment and facilities.',
+  'branch',
+  true,
+  true,
+  30
+),
+(
+  'f4444444-4444-4444-8444-444444444444',
+  'rent',
+  'Rent',
+  'Branch rent and lease payments.',
+  'branch',
+  true,
+  true,
+  40
+),
+(
+  'f5555555-5555-4555-8555-555555555555',
+  'internet',
+  'Internet',
+  'Internet and connectivity expenses.',
+  'branch',
+  true,
+  true,
+  50
+),
+(
+  'f6666666-6666-4666-8666-666666666666',
+  'stationery',
+  'Stationery',
+  'Office and printing stationery expenses.',
+  'branch',
+  true,
+  true,
+  60
+),
+(
+  'f7777777-7777-4777-8777-777777777777',
+  'logistics',
+  'Logistics',
+  'Shared shipping, packing, courier, and transport support expenses.',
+  'both',
+  true,
+  true,
+  70
+),
+(
+  'f8888888-8888-4888-8888-888888888888',
+  'travel',
+  'Travel',
+  'Employee travel and local transit expenses.',
+  'employee',
+  true,
+  true,
+  80
+),
+(
+  'f9999999-9999-4999-8999-999999999999',
+  'food',
+  'Food',
+  'Employee meals and refreshments.',
+  'employee',
+  true,
+  true,
+  90
+),
+(
+  'faaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  'fuel',
+  'Fuel',
+  'Employee fuel and vehicle running costs.',
+  'employee',
+  true,
+  true,
+  100
+),
+(
+  'fbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+  'misc',
+  'Miscellaneous',
+  'Other uncategorized business or employee expenses.',
+  'both',
+  true,
+  true,
+  110
+)
+ON CONFLICT DO NOTHING;
+
+-- 15) BRANCH EXPENSES
 INSERT INTO branch_expenses (
-  id, branch_id, amount, category, name, remarks, payment_mode, order_vendor_id
+  id, branch_id, title, amount, category_id, expense_date, remarks, payment_mode, order_vendor_id, created_by, updated_by
 ) VALUES
 (
   'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
   '11111111-1111-4111-8111-111111111111',
-  20.00,
-  'vendor_payment',
   'Vendor Settlement',
+  20.00,
+  'f1111111-1111-4111-8111-111111111111',
+  DATE '2026-04-07',
   'Sample branch expense linked to vendor',
   'cash',
-  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  '22222222-2222-4222-8222-222222222222',
+  '22222222-2222-4222-8222-222222222222'
 ),
 (
   'dededede-dede-4ede-8ede-dededededede',
   '11111111-1111-4111-8111-111111111111',
-  35.00,
-  'vendor_payment',
   'Paper Purchase Settlement',
+  35.00,
+  'f1111111-1111-4111-8111-111111111111',
+  DATE '2026-04-08',
   'Settlement against order vendor mapping',
   'upi',
-  'abababab-abab-4aba-8aba-abababababab'
+  'abababab-abab-4aba-8aba-abababababab',
+  '23232323-2323-4232-8232-232323232323',
+  '23232323-2323-4232-8232-232323232323'
 ),
 (
   'dfdfdfdf-dfdf-4fdf-8fdf-dfdfdfdfdfdf',
   '11111111-1111-4111-8111-111111111111',
-  120.00,
-  'electricity',
   'Electricity Bill',
+  120.00,
+  'f2222222-2222-4222-8222-222222222222',
+  DATE '2026-04-10',
   'April branch electricity bill',
   'cash',
-  NULL
+  NULL,
+  '24242424-2424-4242-8242-242424242424',
+  '24242424-2424-4242-8242-242424242424'
 ),
 (
   'd0d0d0d0-d0d0-40d0-80d0-d0d0d0d0d0d0',
   '12121212-1212-4212-8212-121212121212',
-  95.00,
-  'vendor_payment',
   'Canvas Vendor Settlement',
+  95.00,
+  'f1111111-1111-4111-8111-111111111111',
+  DATE '2026-04-09',
   'Linked settlement for Hanamkonda order',
   'card',
-  'aeaeaeae-aeae-4aea-8aea-aeaeaeaeaeae'
+  'aeaeaeae-aeae-4aea-8aea-aeaeaeaeaeae',
+  '27272727-2727-4272-8272-272727272727',
+  '27272727-2727-4272-8272-272727272727'
 ),
 (
   'd1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1',
   '12121212-1212-4212-8212-121212121212',
-  80.00,
-  'maintenance',
   'Printer Maintenance',
+  80.00,
+  'f3333333-3333-4333-8333-333333333333',
+  DATE '2026-04-10',
   'Routine machine service',
   'cash',
-  NULL
+  NULL,
+  '26262626-2626-4262-8262-262626262626',
+  '26262626-2626-4262-8262-262626262626'
 );
 
--- 15) EMPLOYEE EXPENSES
+-- 16) EMPLOYEE EXPENSES
 INSERT INTO employee_expenses (
-  id, user_id, amount, category, order_id, payment_mode, remarks
+  id, user_id, branch_id, title, amount, category_id, order_id, expense_date, payment_mode, remarks, created_by, updated_by
 ) VALUES
 (
   'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
   '23232323-2323-4232-8232-232323232323',
+  '11111111-1111-4111-8111-111111111111',
+  'Local Delivery Travel',
   15.00,
-  'travel',
+  'f8888888-8888-4888-8888-888888888888',
   '77777777-7777-4777-8777-777777777777',
+  DATE '2026-04-07',
   'cash',
-  'Local delivery travel expense'
+  'Local delivery travel expense',
+  '23232323-2323-4232-8232-232323232323',
+  '23232323-2323-4232-8232-232323232323'
 ),
 (
   'efefefef-efef-4fef-8fef-efefefefefef',
   '25252525-2525-4252-8252-252525252525',
+  '11111111-1111-4111-8111-111111111111',
+  'Packaging and Courier Handoff',
   40.00,
-  'packing',
+  'f7777777-7777-4777-8777-777777777777',
   '7a7a7a7a-7a7a-47a7-87a7-7a7a7a7a7a7a',
+  DATE '2026-04-09',
   'cash',
-  'Packaging and courier handoff expense'
+  'Packaging and courier handoff expense',
+  '25252525-2525-4252-8252-252525252525',
+  '25252525-2525-4252-8252-252525252525'
 ),
 (
   'e0e0e0e0-e0e0-40e0-80e0-e0e0e0e0e0e0',
   '27272727-2727-4272-8272-272727272727',
+  '12121212-1212-4212-8212-121212121212',
+  'Pickup and Delivery',
   22.00,
-  'travel',
+  'f8888888-8888-4888-8888-888888888888',
   '7b7b7b7b-7b7b-47b7-87b7-7b7b7b7b7b7b',
+  DATE '2026-04-09',
   'upi',
-  'Pickup and delivery expense'
+  'Pickup and delivery expense',
+  '27272727-2727-4272-8272-272727272727',
+  '27272727-2727-4272-8272-272727272727'
 ),
 (
   'e1e1e1e1-e1e1-41e1-81e1-e1e1e1e1e1e1',
   '26262626-2626-4262-8262-262626262626',
+  '12121212-1212-4212-8212-121212121212',
+  'Client Visit',
   55.00,
-  'client_visit',
+  'f8888888-8888-4888-8888-888888888888',
   '7c7c7c7c-7c7c-47c7-87c7-7c7c7c7c7c7c',
+  DATE '2026-04-09',
   'cash',
-  'On-site customer discussion and sample delivery'
+  'On-site customer discussion and sample delivery',
+  '26262626-2626-4262-8262-262626262626',
+  '26262626-2626-4262-8262-262626262626'
 );
 
--- 16) OPTIONAL TEST CASE: CANCELLED ORDER FLOW
+-- 17) OPTIONAL TEST CASE: CANCELLED ORDER FLOW
 -- Create a cancellable order, add items, then cancel it so inventory restoration trigger is exercised.
 INSERT INTO orders (
   id, branch_id, created_by, customer_id, status, discount_amount, order_date

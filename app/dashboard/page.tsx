@@ -122,7 +122,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             </SectionCard>
           ) : (
             <>
-              <section className="grid gap-6 xl:grid-cols-[1.4fr,1fr]">
+              <section className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
                 <RecentOrders orders={recentOrders} />
                 <LowStockPanel items={lowStockItems} />
               </section>

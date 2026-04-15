@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChevronDown, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useState, type MouseEvent } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   buildDashboardHref,
   dashboardNavigation,
@@ -11,6 +12,7 @@ import {
   isDashboardRouteActive,
 } from "@/components/dashboard/dashboard-navigation";
 import { Button } from "@/components/ui/button";
+import { getDashboardNavigationFilterState, isDashboardFilterAwarePath } from "@/lib/dashboard/page-filters";
 import { cn } from "@/lib/utils/cn";
 import { useGlobalLoader } from "@/lib/ui/global-loader-context";
 
@@ -28,11 +30,11 @@ type SidebarLinkProps = {
   href: string;
   loaderLabel: string;
   pathname: string;
-  currentBranchId: string | null;
   collapsed: boolean;
   active: boolean;
   title?: string;
   icon: LucideIcon;
+  navigationFilters: ReturnType<typeof getDashboardNavigationFilterState>;
 };
 
 function shouldHandleLinkNavigation(event: MouseEvent<HTMLAnchorElement>) {
@@ -73,14 +75,14 @@ function SidebarLink({
   href,
   loaderLabel,
   pathname,
-  currentBranchId,
   collapsed,
   active,
   title,
   icon: Icon,
+  navigationFilters,
 }: SidebarLinkProps) {
   const { showBlockingLoader } = useGlobalLoader();
-  const resolvedHref = buildDashboardHref(href, currentBranchId);
+  const resolvedHref = buildDashboardHref(href, navigationFilters);
   const isCurrentTarget = pathname === href;
   const accessibleLabel = collapsed ? title ?? label : undefined;
 
@@ -137,8 +139,17 @@ export function DashboardSidebar({
   onCloseMobile,
 }: DashboardSidebarProps) {
   const { showBlockingLoader } = useGlobalLoader();
+  const searchParams = useSearchParams();
   const isDesktopCollapsed = collapsed && !mobile;
   const [expandedGroups, setExpandedGroups] = useState<string[]>(() => getActiveGroupLabels(pathname));
+  const navigationFilters = getDashboardNavigationFilterState({
+    branchId: currentBranchId ?? searchParams.get("branchId") ?? undefined,
+    from: searchParams.get("from") ?? undefined,
+    to: searchParams.get("to") ?? undefined,
+    pageSize: searchParams.get("pageSize") ?? undefined,
+  }, {
+    applyDefaultDateRange: isDashboardFilterAwarePath(pathname),
+  });
 
   useEffect(() => {
     const activeGroupLabels = getActiveGroupLabels(pathname);
@@ -221,10 +232,10 @@ export function DashboardSidebar({
                 href={item.href}
                 loaderLabel={item.label}
                 pathname={pathname}
-                currentBranchId={currentBranchId}
                 collapsed={isDesktopCollapsed}
                 active={isDashboardRouteActive(pathname, item.href)}
                 icon={item.icon}
+                navigationFilters={navigationFilters}
               />
             );
           }
@@ -240,11 +251,11 @@ export function DashboardSidebar({
                 href={fallbackItem.href}
                 loaderLabel={fallbackItem.label}
                 pathname={pathname}
-                currentBranchId={currentBranchId}
                 collapsed
                 active={isGroupActive}
                 title={`${item.label} (${fallbackItem.label})`}
                 icon={item.icon}
+                navigationFilters={navigationFilters}
               />
             );
           }
@@ -295,7 +306,7 @@ export function DashboardSidebar({
                 >
                   {item.children.map((child) => {
                     const childIsActive = isDashboardRouteActive(pathname, child.href);
-                    const resolvedHref = buildDashboardHref(child.href, currentBranchId);
+                    const resolvedHref = buildDashboardHref(child.href, navigationFilters);
 
                     return (
                       <li key={child.label} className="list-none">

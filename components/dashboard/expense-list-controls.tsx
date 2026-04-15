@@ -6,13 +6,9 @@ import {
   useMemo,
   useRef,
   useState,
-  type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { flushSync } from "react-dom";
 import {
-  ArrowDown,
-  ArrowUp,
-  ArrowUpDown,
   ChevronDown,
   Filter,
   Undo2,
@@ -32,7 +28,6 @@ import {
   type ExpensePageFilterState,
   type ExpensePageKind,
   type ExpenseQuickDatePreset,
-  type ExpenseSortValue,
 } from "@/lib/dashboard/expense-page-filters";
 import { getCurrentMonthDashboardDateRange } from "@/lib/dashboard/page-filters";
 import type { ExpenseCategoryOption, ExpenseEmployeeOption, ExpenseVendorOption } from "@/lib/expenses/types";
@@ -50,20 +45,7 @@ type ExpenseListControlsProps = {
   vendorOptions?: ExpenseVendorOption[];
 };
 
-type ExpenseControlPanel = "sort" | "filter" | null;
-
-type ExpenseSortAction = {
-  value: ExpenseSortValue;
-  label: string;
-  shortLabel: string;
-  icon?: "up" | "down";
-};
-
-type ExpenseSortGroup = {
-  label: string;
-  hint: string;
-  actions: ExpenseSortAction[];
-};
+type ExpenseControlPanel = "filter" | null;
 
 type AppliedFilterSummaryItem = {
   key: string;
@@ -94,115 +76,6 @@ function normalizeHref(href: string) {
 
 function isSameHref(leftHref: string, rightHref: string) {
   return normalizeHref(leftHref) === normalizeHref(rightHref);
-}
-
-function useIsDesktopViewport() {
-  const [isDesktopViewport, setIsDesktopViewport] = useState(false);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(min-width: 768px)");
-
-    const handleChange = (event: MediaQueryListEvent) => {
-      setIsDesktopViewport(event.matches);
-    };
-
-    setIsDesktopViewport(mediaQuery.matches);
-    mediaQuery.addEventListener("change", handleChange);
-
-    return () => {
-      mediaQuery.removeEventListener("change", handleChange);
-    };
-  }, []);
-
-  return isDesktopViewport;
-}
-
-function getExpenseSortGroups(kind: ExpensePageKind): ExpenseSortGroup[] {
-  const sharedGroups: ExpenseSortGroup[] = [
-    {
-      label: "Logged date",
-      hint: "Newest or oldest first",
-      actions: [
-        { value: "logged-date-desc", label: "Newest first", shortLabel: "Newest", icon: "down" },
-        { value: "logged-date-asc", label: "Oldest first", shortLabel: "Oldest", icon: "up" },
-      ],
-    },
-    {
-      label: "Expense date",
-      hint: "Newest or oldest first",
-      actions: [
-        { value: "expense-date-desc", label: "Newest first", shortLabel: "Newest", icon: "down" },
-        { value: "expense-date-asc", label: "Oldest first", shortLabel: "Oldest", icon: "up" },
-      ],
-    },
-    {
-      label: "Amount",
-      hint: "High to low or low to high",
-      actions: [
-        { value: "amount-desc", label: "High to low", shortLabel: "High", icon: "down" },
-        { value: "amount-asc", label: "Low to high", shortLabel: "Low", icon: "up" },
-      ],
-    },
-    {
-      label: "Category",
-      hint: "A to Z or Z to A",
-      actions: [
-        { value: "category-asc", label: "A to Z", shortLabel: "A-Z" },
-        { value: "category-desc", label: "Z to A", shortLabel: "Z-A" },
-      ],
-    },
-    {
-      label: "Payment mode",
-      hint: "A to Z or Z to A",
-      actions: [
-        { value: "payment-asc", label: "A to Z", shortLabel: "A-Z" },
-        { value: "payment-desc", label: "Z to A", shortLabel: "Z-A" },
-      ],
-    },
-    {
-      label: "Title",
-      hint: "A to Z or Z to A",
-      actions: [
-        { value: "title-asc", label: "A to Z", shortLabel: "A-Z" },
-        { value: "title-desc", label: "Z to A", shortLabel: "Z-A" },
-      ],
-    },
-  ];
-
-  if (kind === "employee") {
-    return [
-      ...sharedGroups,
-      {
-        label: "Employee name",
-        hint: "A to Z or Z to A",
-        actions: [
-          { value: "employee-asc", label: "A to Z", shortLabel: "A-Z" },
-          { value: "employee-desc", label: "Z to A", shortLabel: "Z-A" },
-        ],
-      },
-    ];
-  }
-
-  return [
-    ...sharedGroups,
-    {
-      label: "Vendor name",
-      hint: "A to Z or Z to A",
-      actions: [
-        { value: "vendor-asc", label: "A to Z", shortLabel: "A-Z" },
-        { value: "vendor-desc", label: "Z to A", shortLabel: "Z-A" },
-      ],
-    },
-  ];
-}
-
-function flattenExpenseSortGroups(sortGroups: ExpenseSortGroup[]) {
-  return sortGroups.flatMap((group) =>
-    group.actions.map((action) => ({
-      ...action,
-      groupLabel: group.label,
-    })),
-  );
 }
 
 function getActiveFilterCount(kind: ExpensePageKind, filters: ExpensePageFilterState) {
@@ -417,16 +290,12 @@ export function ExpenseListControls({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const isDesktopViewport = useIsDesktopViewport();
   const { showBlockingLoader } = useGlobalLoader();
   const baseId = useId();
-  const sortPanelId = `${baseId}-sort-panel`;
   const filterPanelId = `${baseId}-filter-panel`;
   const filterTitleId = `${baseId}-filter-title`;
   const advancedPanelId = `${baseId}-advanced-filters`;
   const routeSignature = `${pathname}?${searchParams.toString()}`;
-  const wrapperRef = useRef<HTMLDivElement | null>(null);
-  const sortButtonRef = useRef<HTMLButtonElement | null>(null);
   const filterButtonRef = useRef<HTMLButtonElement | null>(null);
   const filterCloseButtonRef = useRef<HTMLButtonElement | null>(null);
   const previousOpenPanelRef = useRef<ExpenseControlPanel>(null);
@@ -434,12 +303,6 @@ export function ExpenseListControls({
   const [draftFilters, setDraftFilters] = useState<ExpensePageFilterState>(currentFilters);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const currentHref = useMemo(() => buildExpensePageHref(currentPath, currentFilters), [currentFilters, currentPath]);
-  const sortGroups = useMemo(() => getExpenseSortGroups(kind), [kind]);
-  const sortActions = useMemo(() => flattenExpenseSortGroups(sortGroups), [sortGroups]);
-  const currentSortAction = useMemo(
-    () => sortActions.find((action) => action.value === currentFilters.sort) ?? sortActions[0],
-    [currentFilters.sort, sortActions],
-  );
   const activeFilterCount = useMemo(() => getActiveFilterCount(kind, currentFilters), [currentFilters, kind]);
   const primaryFilterSummary = useMemo(() => buildPrimaryFilterSummary(currentFilters), [currentFilters]);
   const currentDatePreset = getExpenseQuickDatePreset({
@@ -476,38 +339,6 @@ export function ExpenseListControls({
   }, [routeSignature]);
 
   useEffect(() => {
-    if (openPanel !== "sort" || !isDesktopViewport) {
-      return;
-    }
-
-    const handlePointerDown = (event: PointerEvent) => {
-      if (!(event.target instanceof Node)) {
-        return;
-      }
-
-      if (wrapperRef.current?.contains(event.target)) {
-        return;
-      }
-
-      setOpenPanel(null);
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpenPanel(null);
-      }
-    };
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    window.addEventListener("keydown", handleEscape);
-
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      window.removeEventListener("keydown", handleEscape);
-    };
-  }, [isDesktopViewport, openPanel]);
-
-  useEffect(() => {
     if (openPanel !== "filter") {
       return;
     }
@@ -536,10 +367,6 @@ export function ExpenseListControls({
   useEffect(() => {
     if (previousOpenPanelRef.current === "filter" && openPanel !== "filter") {
       filterButtonRef.current?.focus();
-    }
-
-    if (previousOpenPanelRef.current === "sort" && openPanel !== "sort") {
-      sortButtonRef.current?.focus();
     }
 
     previousOpenPanelRef.current = openPanel;
@@ -633,72 +460,6 @@ export function ExpenseListControls({
 
     navigateToHref(nextHref, "Resetting expense filters...");
   };
-
-  const handleSortSelect = (sortValue: ExpenseSortValue) => {
-    const nextHref = buildExpensePageHref(currentPath, currentFilters, {
-      page: 1,
-      sort: sortValue,
-    });
-
-    navigateToHref(nextHref, "Updating expense sort...");
-  };
-
-  const sortContent = (
-    <div className="space-y-2 p-2">
-      {sortGroups.map((group) => {
-        const isGroupActive = group.actions.some((action) => action.value === currentFilters.sort);
-
-        return (
-          <div
-            key={group.label}
-            className={cn(
-              "flex items-center justify-between gap-3 rounded-2xl border px-3 py-3",
-              isGroupActive
-                ? "border-[rgb(var(--primary)/0.22)] bg-[rgb(var(--primary-soft)/0.32)]"
-                : "border-[rgb(var(--border)/0.62)] bg-[rgb(var(--background)/0.4)]",
-            )}
-          >
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">{group.label}</p>
-              <p className="text-xs text-[rgb(var(--muted-foreground))]">{group.hint}</p>
-            </div>
-
-            <div className="flex shrink-0 items-center gap-1.5">
-              {group.actions.map((action) => {
-                const isSelected = action.value === currentFilters.sort;
-
-                return (
-                  <button
-                    key={action.value}
-                    type="button"
-                    aria-pressed={isSelected}
-                    onClick={() => handleSortSelect(action.value)}
-                    className={cn(
-                      "inline-flex h-10 items-center justify-center rounded-2xl border text-sm font-semibold transition-colors",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
-                      action.icon ? "w-10" : "min-w-14 px-3",
-                      isSelected
-                        ? "border-[rgb(var(--primary)/0.34)] bg-[rgb(var(--card))] text-[rgb(var(--primary))]"
-                        : "border-[rgb(var(--border)/0.72)] bg-[rgb(var(--background))] text-[rgb(var(--muted-foreground))] hover:text-[rgb(var(--foreground))]",
-                    )}
-                    title={`${group.label}: ${action.label}`}
-                  >
-                    {action.icon === "up" ? (
-                      <ArrowUp className="h-4 w-4" aria-hidden="true" strokeWidth={2} />
-                    ) : action.icon === "down" ? (
-                      <ArrowDown className="h-4 w-4" aria-hidden="true" strokeWidth={2} />
-                    ) : (
-                      action.shortLabel
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
 
   const filterSheet = openPanel === "filter" ? (
     <div id={filterPanelId} role="dialog" aria-modal="true" aria-labelledby={filterTitleId} className="fixed inset-0 z-50">
@@ -999,7 +760,7 @@ export function ExpenseListControls({
   ) : null;
 
   return (
-    <div ref={wrapperRef} className="relative">
+    <div className="relative">
       <div className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 flex-1">
@@ -1023,39 +784,6 @@ export function ExpenseListControls({
           </div>
 
           <div className="flex shrink-0 items-center gap-2 self-start">
-            <div className="relative">
-              <Button
-                ref={sortButtonRef}
-                type="button"
-                variant="secondary"
-                className="h-11 rounded-2xl px-4"
-                aria-haspopup="dialog"
-                aria-expanded={openPanel === "sort"}
-                aria-controls={sortPanelId}
-                onClick={() => setOpenPanel((currentValue) => (currentValue === "sort" ? null : "sort"))}
-                onKeyDown={(event: ReactKeyboardEvent<HTMLButtonElement>) => {
-                  if (event.key === "ArrowDown") {
-                    event.preventDefault();
-                    setOpenPanel("sort");
-                  }
-                }}
-              >
-                <ArrowUpDown className="mr-2 h-4 w-4" aria-hidden="true" strokeWidth={1.9} />
-                <span className="hidden sm:inline">Sort by</span>
-                <span className="text-[rgb(var(--muted-foreground))] sm:ml-2 sm:text-sm">{currentSortAction.groupLabel}</span>
-              </Button>
-              {openPanel === "sort" && isDesktopViewport ? (
-                <div id={sortPanelId} className="absolute right-0 top-[calc(100%+0.65rem)] z-50 w-80">
-                  <div className={getPanelCardClassName()}>
-                    <div className="border-b border-[rgb(var(--border)/0.62)] px-4 py-3">
-                      <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">Sort expenses</p>
-                    </div>
-                    {sortContent}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-
             <Button
               ref={filterButtonRef}
               type="button"
@@ -1078,39 +806,6 @@ export function ExpenseListControls({
         </div>
 
       </div>
-
-      {openPanel === "sort" && !isDesktopViewport ? (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <button
-            type="button"
-            className="absolute inset-0 bg-[rgb(var(--shadow)/0.28)] backdrop-blur-[2px]"
-            aria-label="Close sort panel"
-            onClick={() => setOpenPanel(null)}
-          />
-          <div className="absolute inset-x-3 bottom-3">
-            <div id={sortPanelId} className={cn(getPanelCardClassName(), "mx-auto w-full max-w-sm")}>
-              <div className="flex items-center justify-between gap-3 border-b border-[rgb(var(--border)/0.62)] px-5 py-4">
-                <div>
-                  <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">Sort expenses</p>
-                </div>
-                <button
-                  type="button"
-                  className={cn(
-                    "flex h-9 w-9 items-center justify-center rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--background))]",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
-                  )}
-                  onClick={() => setOpenPanel(null)}
-                  aria-label="Close sort panel"
-                  title="Close sort panel"
-                >
-                  <X className="h-4 w-4" aria-hidden="true" strokeWidth={1.9} />
-                </button>
-              </div>
-              {sortContent}
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       {filterSheet}
     </div>

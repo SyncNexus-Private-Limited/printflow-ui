@@ -1,13 +1,22 @@
+"use client";
+
+import { ArrowDown, ArrowUp } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { DataPill, getExpenseCategoryTone, getExpensePaymentModeTone } from "@/components/dashboard/data-pill";
 import { DashboardPagination } from "@/components/dashboard/dashboard-pagination";
 import { TableScrollArea } from "@/components/dashboard/table-scroll-area";
-import { type ExpensePageFilterState } from "@/lib/dashboard/expense-page-filters";
+import {
+  buildExpensePageHref,
+  type ExpensePageFilterState,
+  type ExpenseSortValue,
+} from "@/lib/dashboard/expense-page-filters";
 import { getPaymentModeLabel } from "@/lib/expenses/types";
 import type {
   BusinessExpenseDetailRow,
   DashboardPaginationState,
   EmployeeExpenseDetailRow,
 } from "@/lib/dashboard/types";
+import { useGlobalLoader } from "@/lib/ui/global-loader-context";
 import { cn, suggestCanonicalClasses } from "@/lib/utils/cn";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
 
@@ -32,6 +41,21 @@ type BusinessExpenseDataTableProps = ExpenseDataTableBaseProps & {
 
 type ExpenseDataTableProps = EmployeeExpenseDataTableProps | BusinessExpenseDataTableProps;
 
+type SortDirection = "asc" | "desc";
+
+type HeaderSortConfig = {
+  asc: ExpenseSortValue;
+  desc: ExpenseSortValue;
+  defaultDirection: SortDirection;
+};
+
+type HeaderConfig = {
+  key: string;
+  label: string;
+  align?: "left" | "right";
+  sort?: HeaderSortConfig;
+};
+
 const tableHeaderCellClassName = suggestCanonicalClasses(
   "whitespace-nowrap border-b border-[rgb(var(--border)/0.65)] bg-[rgb(var(--muted)/0.72)] px-4 py-3.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted-foreground)/0.9)] first:pl-5 last:pr-5 sm:first:pl-6 sm:last:pr-6",
 );
@@ -40,12 +64,189 @@ const tableBodyCellClassName = suggestCanonicalClasses(
   "px-4 py-4 align-top first:pl-5 last:pr-5 sm:first:pl-6 sm:last:pr-6",
 );
 
+const employeeHeaderConfigs: HeaderConfig[] = [
+  {
+    key: "employee",
+    label: "Employee",
+    sort: {
+      asc: "employee-asc",
+      desc: "employee-desc",
+      defaultDirection: "asc",
+    },
+  },
+  {
+    key: "expense",
+    label: "Expense",
+    sort: {
+      asc: "title-asc",
+      desc: "title-desc",
+      defaultDirection: "asc",
+    },
+  },
+  {
+    key: "category",
+    label: "Category",
+    sort: {
+      asc: "category-asc",
+      desc: "category-desc",
+      defaultDirection: "asc",
+    },
+  },
+  {
+    key: "amount",
+    label: "Amount",
+    align: "right",
+    sort: {
+      asc: "amount-asc",
+      desc: "amount-desc",
+      defaultDirection: "desc",
+    },
+  },
+  {
+    key: "payment",
+    label: "Payment",
+    sort: {
+      asc: "payment-asc",
+      desc: "payment-desc",
+      defaultDirection: "asc",
+    },
+  },
+  {
+    key: "notes",
+    label: "Notes",
+  },
+  {
+    key: "expense-date",
+    label: "Expense date",
+    sort: {
+      asc: "expense-date-asc",
+      desc: "expense-date-desc",
+      defaultDirection: "desc",
+    },
+  },
+  {
+    key: "logged-date",
+    label: "Logged date",
+    sort: {
+      asc: "logged-date-asc",
+      desc: "logged-date-desc",
+      defaultDirection: "desc",
+    },
+  },
+];
+
+const businessHeaderConfigs: HeaderConfig[] = [
+  {
+    key: "category",
+    label: "Category",
+    sort: {
+      asc: "category-asc",
+      desc: "category-desc",
+      defaultDirection: "asc",
+    },
+  },
+  {
+    key: "expense",
+    label: "Expense",
+    sort: {
+      asc: "title-asc",
+      desc: "title-desc",
+      defaultDirection: "asc",
+    },
+  },
+  {
+    key: "amount",
+    label: "Amount",
+    align: "right",
+    sort: {
+      asc: "amount-asc",
+      desc: "amount-desc",
+      defaultDirection: "desc",
+    },
+  },
+  {
+    key: "payment",
+    label: "Payment",
+    sort: {
+      asc: "payment-asc",
+      desc: "payment-desc",
+      defaultDirection: "asc",
+    },
+  },
+  {
+    key: "notes",
+    label: "Notes",
+  },
+  {
+    key: "expense-date",
+    label: "Expense date",
+    sort: {
+      asc: "expense-date-asc",
+      desc: "expense-date-desc",
+      defaultDirection: "desc",
+    },
+  },
+  {
+    key: "logged-date",
+    label: "Logged date",
+    sort: {
+      asc: "logged-date-asc",
+      desc: "logged-date-desc",
+      defaultDirection: "desc",
+    },
+  },
+  {
+    key: "branch",
+    label: "Branch",
+  },
+];
+
 function getTableHeaderCellClassName(align: "left" | "right" = "left") {
   return cn(tableHeaderCellClassName, align === "right" && "text-right");
 }
 
 function getTableBodyCellClassName(align: "left" | "right" = "left") {
   return cn(tableBodyCellClassName, align === "right" && "text-right");
+}
+
+function getSortDirection(currentSort: ExpenseSortValue, sortConfig: HeaderSortConfig): SortDirection | null {
+  if (currentSort === sortConfig.asc) {
+    return "asc";
+  }
+
+  if (currentSort === sortConfig.desc) {
+    return "desc";
+  }
+
+  return null;
+}
+
+function getNextSortValue(currentSort: ExpenseSortValue, sortConfig: HeaderSortConfig) {
+  const activeDirection = getSortDirection(currentSort, sortConfig);
+
+  if (activeDirection === "asc") {
+    return sortConfig.desc;
+  }
+
+  if (activeDirection === "desc") {
+    return sortConfig.asc;
+  }
+
+  return sortConfig.defaultDirection === "desc" ? sortConfig.desc : sortConfig.asc;
+}
+
+function getNextSortDirectionLabel(currentSort: ExpenseSortValue, sortConfig: HeaderSortConfig) {
+  const nextSortValue = getNextSortValue(currentSort, sortConfig);
+
+  return nextSortValue === sortConfig.asc ? "ascending" : "descending";
+}
+
+function getTableMinWidthClassName(kind: ExpenseDataTableProps["kind"]) {
+  return kind === "employee" ? "min-w-[76rem]" : "min-w-[82rem]";
+}
+
+function getHeaderConfigs(kind: ExpenseDataTableProps["kind"]) {
+  return kind === "employee" ? employeeHeaderConfigs : businessHeaderConfigs;
 }
 
 function renderPaymentPill(paymentMode: string) {
@@ -155,7 +356,22 @@ export function ExpenseDataTable({
   pagination,
   fallbackBranchName,
 }: ExpenseDataTableProps) {
-  const tableMinWidthClassName = kind === "employee" ? "min-w-[76rem]" : "min-w-[82rem]";
+  const router = useRouter();
+  const { showBlockingLoader } = useGlobalLoader();
+  const tableMinWidthClassName = getTableMinWidthClassName(kind);
+  const headerConfigs = getHeaderConfigs(kind);
+
+  const handleSortChange = (sortValue: ExpenseSortValue) => {
+    const nextHref = buildExpensePageHref(currentPath, currentFilters, {
+      page: 1,
+      sort: sortValue,
+    });
+
+    showBlockingLoader("Updating expense sort...", {
+      autoHideOnRouteChange: true,
+    });
+    router.push(nextHref);
+  };
 
   return (
     <div className="overflow-hidden rounded-3xl border border-[rgb(var(--border)/0.72)] bg-[rgb(var(--card)/0.98)]">
@@ -190,61 +406,67 @@ export function ExpenseDataTable({
               )}
 
               <thead>
-                {kind === "employee" ? (
-                  <tr>
-                    <th scope="col" className={getTableHeaderCellClassName()}>
-                      Employee
-                    </th>
-                    <th scope="col" className={getTableHeaderCellClassName()}>
-                      Expense
-                    </th>
-                    <th scope="col" className={getTableHeaderCellClassName()}>
-                      Category
-                    </th>
-                    <th scope="col" className={getTableHeaderCellClassName("right")}>
-                      Amount
-                    </th>
-                    <th scope="col" className={getTableHeaderCellClassName()}>
-                      Payment
-                    </th>
-                    <th scope="col" className={getTableHeaderCellClassName()}>
-                      Notes
-                    </th>
-                    <th scope="col" className={getTableHeaderCellClassName()}>
-                      Expense date
-                    </th>
-                    <th scope="col" className={getTableHeaderCellClassName()}>
-                      Logged date
-                    </th>
-                  </tr>
-                ) : (
-                  <tr>
-                    <th scope="col" className={getTableHeaderCellClassName()}>
-                      Category
-                    </th>
-                    <th scope="col" className={getTableHeaderCellClassName()}>
-                      Expense
-                    </th>
-                    <th scope="col" className={getTableHeaderCellClassName("right")}>
-                      Amount
-                    </th>
-                    <th scope="col" className={getTableHeaderCellClassName()}>
-                      Payment
-                    </th>
-                    <th scope="col" className={getTableHeaderCellClassName()}>
-                      Notes
-                    </th>
-                    <th scope="col" className={getTableHeaderCellClassName()}>
-                      Expense date
-                    </th>
-                    <th scope="col" className={getTableHeaderCellClassName()}>
-                      Logged date
-                    </th>
-                    <th scope="col" className={getTableHeaderCellClassName()}>
-                      Branch
-                    </th>
-                  </tr>
-                )}
+                <tr>
+                  {headerConfigs.map((headerConfig) => {
+                    const activeDirection = headerConfig.sort
+                      ? getSortDirection(currentFilters.sort, headerConfig.sort)
+                      : null;
+                    const ariaSortValue =
+                      activeDirection === "asc"
+                        ? "ascending"
+                        : activeDirection === "desc"
+                          ? "descending"
+                          : "none";
+
+                    return (
+                      <th
+                        key={headerConfig.key}
+                        scope="col"
+                        aria-sort={headerConfig.sort ? ariaSortValue : undefined}
+                        className={getTableHeaderCellClassName(headerConfig.align)}
+                      >
+                        {headerConfig.sort ? (
+                          <button
+                            type="button"
+                            className={cn(
+                              "flex w-full items-center gap-3 rounded-xl transition-colors",
+                              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+                              headerConfig.align === "right" ? "justify-end text-right" : "justify-between text-left",
+                              activeDirection ? "text-[rgb(var(--card-foreground))]" : "hover:text-[rgb(var(--foreground))]",
+                            )}
+                            onClick={() => handleSortChange(getNextSortValue(currentFilters.sort, headerConfig.sort!))}
+                            aria-label={`Sort ${headerConfig.label} ${getNextSortDirectionLabel(currentFilters.sort, headerConfig.sort!)}`}
+                            title={`Sort ${headerConfig.label} ${getNextSortDirectionLabel(currentFilters.sort, headerConfig.sort!)}`}
+                          >
+                            <span className="min-w-0 truncate">{headerConfig.label}</span>
+                            <span className="flex shrink-0 items-center gap-0.5" aria-hidden="true">
+                              <ArrowUp
+                                className={cn(
+                                  "h-3.5 w-3.5 transition-colors",
+                                  activeDirection === "asc"
+                                    ? "text-[rgb(var(--primary))]"
+                                    : "text-[rgb(var(--muted-foreground)/0.72)]",
+                                )}
+                                strokeWidth={2}
+                              />
+                              <ArrowDown
+                                className={cn(
+                                  "h-3.5 w-3.5 transition-colors",
+                                  activeDirection === "desc"
+                                    ? "text-[rgb(var(--primary))]"
+                                    : "text-[rgb(var(--muted-foreground)/0.72)]",
+                                )}
+                                strokeWidth={2}
+                              />
+                            </span>
+                          </button>
+                        ) : (
+                          headerConfig.label
+                        )}
+                      </th>
+                    );
+                  })}
+                </tr>
               </thead>
 
               <tbody>

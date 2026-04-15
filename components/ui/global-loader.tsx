@@ -8,7 +8,7 @@ export function GlobalLoader() {
   return (
     <>
       {nonBlockingLoader ? (
-        <div className="pointer-events-none fixed inset-x-0 top-0 z-[70] h-1 overflow-hidden bg-[rgb(var(--border)/0.18)]">
+        <div className="pointer-events-none fixed inset-x-0 top-0 z-70 h-1 overflow-hidden bg-[rgb(var(--border)/0.18)]">
           <span className="sr-only" role="status" aria-live="polite">
             {nonBlockingLoader.message}
           </span>
@@ -18,7 +18,7 @@ export function GlobalLoader() {
 
       {blockingLoader ? (
         <div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-[rgb(var(--background)/0.62)] px-4 backdrop-blur-md"
+          className="fixed inset-0 z-80 flex items-center justify-center bg-[rgb(var(--background)/0.62)] px-4 backdrop-blur-md"
           aria-busy="true"
           aria-live="polite"
         >
@@ -29,7 +29,7 @@ export function GlobalLoader() {
             <div className="relative h-12 w-12 shrink-0">
               <div className="absolute inset-0 rounded-full border-2 border-[rgb(var(--border))]" />
               <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-r-[rgb(var(--primary-strong))] border-t-[rgb(var(--primary))]" />
-              <div className="absolute inset-[10px] rounded-full bg-[rgb(var(--card)/0.92)]" />
+              <div className="absolute inset-2.5 rounded-full bg-[rgb(var(--card)/0.92)]" />
             </div>
             <div className="space-y-1">
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[rgb(var(--primary-soft-foreground))]">

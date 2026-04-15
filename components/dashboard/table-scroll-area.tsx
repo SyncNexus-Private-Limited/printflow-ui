@@ -84,7 +84,7 @@ export function TableScrollArea({ children, className, viewportClassName }: Tabl
       {scrollState.canScrollRight ? (
         <>
           <div
-            className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-[rgb(var(--card)/0.98)] via-[rgb(var(--card)/0.9)] to-transparent"
+            className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-linear-to-l from-[rgb(var(--card)/0.98)] via-[rgb(var(--card)/0.9)] to-transparent"
             aria-hidden="true"
           />
           <div

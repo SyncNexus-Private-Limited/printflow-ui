@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { buildBranchFilterOptions, buildBranchHref } from "@/lib/dashboard/helpers";
+import { buildBranchFilterOptions } from "@/lib/dashboard/helpers";
 import { getActiveUserDetails, getDashboardContext, getDashboardSummary } from "@/lib/dashboard/queries";
 import { formatCompactNumber, formatDateTime } from "@/lib/utils/format";
 
@@ -33,12 +33,10 @@ export default async function ActiveUsersPage({ searchParams }: ActiveUsersPageP
       <main className="min-h-screen px-4 py-8">
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
-            title="Active Logged In Users"
-            subtitle={`Live session activity / ${context.selectedBranchName}`}
+            title="Active Users"
             branchOptions={branchOptions}
             selectedBranchValue={context.selectedBranchValue}
             branchFilterDisabled={!context.canSelectAll}
-            backHref={buildBranchHref("/dashboard", context.selectedBranchValue)}
           />
 
           <section className="grid gap-4 md:grid-cols-2">
@@ -98,12 +96,10 @@ export default async function ActiveUsersPage({ searchParams }: ActiveUsersPageP
       <main className="min-h-screen px-4 py-8">
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
-            title="Active Logged In Users"
-            subtitle="Live session activity"
+            title="Active Users"
             branchOptions={[{ label: currentUser.branchName ?? "Branch", value: currentUser.branchId ?? "all" }]}
             selectedBranchValue={currentUser.branchId ?? "all"}
             branchFilterDisabled
-            backHref={buildBranchHref("/dashboard", currentUser.branchId ?? "all")}
           />
           <SectionCard title="Unable to load dashboard data right now.">
             <p className="text-sm text-slate-600">Please try again shortly.</p>

@@ -118,7 +118,7 @@ export function LoginForm() {
 
       {serverError ? <p className="text-sm text-[rgb(var(--danger))]">{serverError}</p> : null}
 
-      <Button type="submit" disabled={isSubmitting}>
+      <Button type="submit" disabled={isSubmitting} fullWidth>
         {isSubmitting ? "Signing in..." : "Sign in"}
       </Button>
     </form>

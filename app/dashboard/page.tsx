@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { LowStockPanel } from "@/components/dashboard/low-stock-panel";
-import { MetricCard } from "@/components/dashboard/metric-card";
+import { MetricCard, type MetricCardAccent, type MetricCardMetaItem } from "@/components/dashboard/metric-card";
 import { RecentExpenses } from "@/components/dashboard/recent-expenses";
 import { RecentOrders } from "@/components/dashboard/recent-orders";
 import { SectionCard } from "@/components/dashboard/section-card";
@@ -14,6 +14,14 @@ type DashboardPageProps = {
   searchParams?: Promise<{
     branchId?: string | string[];
   }>;
+};
+
+type DashboardMetricCardConfig = {
+  title: string;
+  value: string;
+  href: string;
+  accent: MetricCardAccent;
+  meta: MetricCardMetaItem[];
 };
 
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
@@ -36,86 +44,74 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     const branchOptions = buildBranchFilterOptions(context);
     const branchHref = (path: string) => buildBranchHref(path, context.selectedBranchValue);
     const showData = hasDashboardData(summary, recentOrders, lowStockItems, recentExpenses);
+    const metricCards: DashboardMetricCardConfig[] = [
+      {
+        title: "Orders",
+        value: formatCompactNumber(summary.orders.totalOrders),
+        href: branchHref("/dashboard/orders"),
+        accent: "blue",
+        meta: [
+          { label: "Pending", value: formatCompactNumber(summary.orders.pendingOrders) },
+          { label: "Completed", value: formatCompactNumber(summary.orders.completedOrders) },
+        ],
+      },
+      {
+        title: "Customers",
+        value: formatCompactNumber(summary.customers.totalCustomers),
+        href: branchHref("/dashboard/customers"),
+        accent: "emerald",
+        meta: [{ label: "New this month", value: formatCompactNumber(summary.customers.newCustomersThisMonth) }],
+      },
+      {
+        title: "Inventory",
+        value: formatCompactNumber(summary.inventory.totalInventoryItems),
+        href: branchHref("/dashboard/inventory"),
+        accent: "amber",
+        meta: [
+          { label: "Low stock", value: formatCompactNumber(summary.inventory.lowStockItems) },
+          { label: "Qty", value: formatCompactNumber(summary.inventory.totalStockQuantity) },
+        ],
+      },
+      {
+        title: "Active Users",
+        value: formatCompactNumber(summary.activeUsers.currentActiveUsers),
+        href: branchHref("/dashboard/active-users"),
+        accent: "violet",
+        meta: [
+          { label: "Active now", value: formatCompactNumber(summary.activeUsers.currentActiveUsers) },
+          { label: "Staff", value: formatCompactNumber(summary.activeUsers.totalActiveStaffAccounts) },
+        ],
+      },
+      {
+        title: "Employee Expenses",
+        value: formatCurrency(summary.employeeExpenses.totalAmountThisMonth),
+        href: branchHref("/dashboard/employee-expenses"),
+        accent: "rose",
+        meta: [{ label: "Entries", value: formatCompactNumber(summary.employeeExpenses.entryCountThisMonth) }],
+      },
+      {
+        title: "Business Expenses",
+        value: formatCurrency(summary.businessExpenses.totalAmountThisMonth),
+        href: branchHref("/dashboard/business-expenses"),
+        accent: "orange",
+        meta: [{ label: "Entries", value: formatCompactNumber(summary.businessExpenses.entryCountThisMonth) }],
+      },
+    ];
 
     return (
       <main className="min-h-screen px-4 py-8">
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
             title="Dashboard"
-            subtitle={`Business overview / ${context.selectedBranchName}`}
             branchOptions={branchOptions}
             selectedBranchValue={context.selectedBranchValue}
             branchFilterDisabled={!context.canSelectAll}
           />
 
           <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <MetricCard
-              title="Orders"
-              value={formatCompactNumber(summary.orders.totalOrders)}
-              helperText="Track order volume and payment value at a glance."
-              href={branchHref("/dashboard/orders")}
-              accent="blue"
-              stats={[
-                { label: "Pending", value: formatCompactNumber(summary.orders.pendingOrders) },
-                { label: "Completed", value: formatCompactNumber(summary.orders.completedOrders) },
-                { label: "Payable", value: formatCurrency(summary.orders.totalPayableAmount) },
-              ]}
-            />
-            <MetricCard
-              title="Customers"
-              value={formatCompactNumber(summary.customers.totalCustomers)}
-              helperText="See customer growth for the selected branch scope."
-              href={branchHref("/dashboard/customers")}
-              accent="emerald"
-              stats={[
-                { label: "New this month", value: formatCompactNumber(summary.customers.newCustomersThisMonth) },
-                { label: "Scope", value: context.selectedBranchName },
-              ]}
-            />
-            <MetricCard
-              title="Inventory"
-              value={formatCompactNumber(summary.inventory.totalInventoryItems)}
-              helperText="Monitor total items, low stock, and quantity levels."
-              href={branchHref("/dashboard/inventory")}
-              accent="amber"
-              stats={[
-                { label: "Low stock", value: formatCompactNumber(summary.inventory.lowStockItems) },
-                { label: "Stock qty", value: formatCompactNumber(summary.inventory.totalStockQuantity) },
-              ]}
-            />
-            <MetricCard
-              title="Active Logged In Users"
-              value={formatCompactNumber(summary.activeUsers.currentActiveUsers)}
-              helperText="Based on live sessions active in the last 15 minutes."
-              href={branchHref("/dashboard/active-users")}
-              accent="violet"
-              stats={[
-                { label: "Active now", value: formatCompactNumber(summary.activeUsers.currentActiveUsers) },
-                { label: "Active staff", value: formatCompactNumber(summary.activeUsers.totalActiveStaffAccounts) },
-              ]}
-            />
-            <MetricCard
-              title="Employee Expenses"
-              value={formatCurrency(summary.employeeExpenses.totalAmountThisMonth)}
-              helperText="Current-month employee expense spend and activity."
-              href={branchHref("/dashboard/employee-expenses")}
-              accent="rose"
-              stats={[
-                { label: "Entries", value: formatCompactNumber(summary.employeeExpenses.entryCountThisMonth) },
-                { label: "This month", value: context.selectedBranchName },
-              ]}
-            />
-            <MetricCard
-              title="Business Expenses"
-              value={formatCurrency(summary.businessExpenses.totalAmountThisMonth)}
-              helperText="Current-month branch expense spend and activity."
-              href={branchHref("/dashboard/business-expenses")}
-              accent="orange"
-              stats={[
-                { label: "Entries", value: formatCompactNumber(summary.businessExpenses.entryCountThisMonth) },
-                { label: "This month", value: context.selectedBranchName },
-              ]}
-            />
+            {metricCards.map((card) => (
+              <MetricCard key={card.title} {...card} />
+            ))}
           </section>
 
           {!showData ? (
@@ -144,7 +140,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
             title="Dashboard"
-            subtitle="Business overview"
             branchOptions={[{ label: currentUser.branchName ?? "Branch", value: currentUser.branchId ?? "all" }]}
             selectedBranchValue={currentUser.branchId ?? "all"}
             branchFilterDisabled

@@ -2,85 +2,120 @@ function LoadingBlock({ className }: { className: string }) {
   return <div className={`animate-pulse rounded-2xl bg-[rgb(var(--muted))] ${className}`} />;
 }
 
-export default function DashboardLoading() {
+function MetricCardSkeleton() {
   return (
-    <div className="min-h-screen bg-[rgb(var(--background))]">
-      <div className="sticky top-0 z-40 px-4 pt-4 sm:px-6 xl:px-8">
-        <div className="mx-auto flex w-full max-w-384 flex-wrap items-start justify-between gap-2.5 rounded-3xl border border-[rgb(var(--border)/0.72)] bg-[rgb(var(--card)/0.86)] px-3 py-2.5 shadow-[0_20px_48px_-42px_rgb(var(--shadow)/0.18)] backdrop-blur supports-backdrop-filter:bg-[rgb(var(--card)/0.82)] sm:flex-nowrap sm:items-center sm:gap-3 sm:px-4">
-          <div className="flex items-center gap-2">
-            <LoadingBlock className="h-10 w-10 rounded-xl lg:hidden" />
-            <LoadingBlock className="h-10 w-24 rounded-2xl sm:w-36" />
+    <div className="rounded-3xl border border-[rgb(var(--border)/0.72)] bg-[rgb(var(--card)/0.94)] p-4 shadow-[0_22px_50px_-42px_rgb(var(--shadow)/0.16)] sm:p-5">
+      <div className="space-y-3.5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-2">
+            <LoadingBlock className="h-3 w-24 rounded-full" />
+            <LoadingBlock className="h-10 w-20 rounded-full" />
           </div>
-          <div className="ml-auto flex w-full min-w-0 items-center gap-2 sm:w-auto sm:flex-none sm:gap-3">
-            <LoadingBlock className="h-10 min-w-0 flex-1 rounded-2xl sm:w-72 sm:flex-none lg:w-80" />
-            <LoadingBlock className="h-10 w-10 rounded-xl" />
-            <LoadingBlock className="h-10 w-10 rounded-xl" />
-          </div>
+          <LoadingBlock className="mt-1 h-3 w-3 rounded-full" />
         </div>
-      </div>
-
-      <div className="mx-auto flex w-full max-w-384 gap-4 px-4 pb-6 pt-4 sm:px-6 lg:gap-6 xl:px-8">
-        <aside className="hidden w-72 shrink-0 rounded-[28px] border border-[rgb(var(--border)/0.72)] bg-[rgb(var(--card)/0.94)] p-4 shadow-[0_22px_52px_-48px_rgb(var(--shadow)/0.18)] lg:block">
-          <div className="flex items-start justify-between">
-            <div className="space-y-2">
-              <LoadingBlock className="h-3 w-20 rounded-full" />
-              <LoadingBlock className="h-4 w-24 rounded-full" />
-            </div>
-            <LoadingBlock className="h-10 w-10 rounded-xl" />
-          </div>
-          <div className="mt-5 space-y-1.5">
-            {Array.from({ length: 5 }).map((_, index) => (
-              <div key={index} className="space-y-1">
-                <div className="flex items-center gap-3">
-                  <LoadingBlock className="h-5 w-5 rounded-full" />
-                  <LoadingBlock className="h-4 w-28 rounded-full" />
-                  {index === 1 || index === 3 || index === 4 ? <LoadingBlock className="ml-auto h-4 w-4 rounded-full" /> : null}
-                </div>
-                {index === 1 || index === 3 || index === 4 ? (
-                  <div className="ml-2 space-y-2 border-l border-[rgb(var(--border)/0.7)] pl-5">
-                    <LoadingBlock className="h-4 w-28 rounded-full" />
-                    <LoadingBlock className="h-4 w-32 rounded-full" />
-                  </div>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        </aside>
-
-        <div className="min-w-0 flex-1">
-          <main className="min-h-screen px-4 py-8">
-            <div className="mx-auto max-w-7xl space-y-8">
-              <div className="space-y-2 px-1">
-                <LoadingBlock className="h-9 w-44 rounded-full" />
-              </div>
-
-              <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {Array.from({ length: 6 }).map((_, index) => (
-                  <div
-                    key={index}
-                    className="rounded-3xl border border-[rgb(var(--border)/0.72)] bg-[rgb(var(--card)/0.94)] p-4 shadow-[0_22px_50px_-42px_rgb(var(--shadow)/0.16)] sm:p-5"
-                  >
-                    <div className="space-y-3.5">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="space-y-1.5">
-                          <LoadingBlock className="h-4 w-24 rounded-full" />
-                          <LoadingBlock className="h-10 w-28 rounded-full" />
-                        </div>
-                        <LoadingBlock className="mt-1 h-3 w-3 rounded-full" />
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <LoadingBlock className="h-4 w-24 rounded-full" />
-                        <LoadingBlock className="h-1.5 w-1.5 rounded-full" />
-                        <LoadingBlock className="h-4 w-28 rounded-full" />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </section>
-            </div>
-          </main>
+        <div className="flex flex-wrap items-center gap-2">
+          <LoadingBlock className="h-4 w-20 rounded-full" />
+          <LoadingBlock className="h-1.5 w-1.5 rounded-full" />
+          <LoadingBlock className="h-4 w-16 rounded-full" />
+          <LoadingBlock className="h-1.5 w-1.5 rounded-full" />
+          <LoadingBlock className="h-4 w-12 rounded-full" />
         </div>
       </div>
     </div>
+  );
+}
+
+function SectionShell({
+  titleWidth,
+  descriptionWidth,
+  children,
+  className = "",
+}: {
+  titleWidth: string;
+  descriptionWidth?: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={`rounded-[28px] border border-[rgb(var(--border)/0.72)] bg-[rgb(var(--card)/0.94)] p-5 shadow-[0_22px_52px_-44px_rgb(var(--shadow)/0.18)] sm:p-6 ${className}`}
+    >
+      <div className="space-y-3">
+        <LoadingBlock className={`h-8 ${titleWidth} rounded-full`} />
+        {descriptionWidth ? <LoadingBlock className={`h-4 ${descriptionWidth} rounded-full`} /> : null}
+      </div>
+      <div className="mt-6">{children}</div>
+    </section>
+  );
+}
+
+export default function DashboardLoading() {
+  return (
+    <main className="min-h-screen px-4 py-8">
+      <div className="mx-auto max-w-7xl space-y-8">
+        <div className="space-y-2 px-1">
+          <LoadingBlock className="h-10 w-44 rounded-full" />
+        </div>
+
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <MetricCardSkeleton key={index} />
+          ))}
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
+          <SectionShell titleWidth="w-44" descriptionWidth="w-72">
+            <div className="space-y-5">
+              <div className="grid grid-cols-[1.3fr_1fr_0.8fr_0.8fr_0.8fr] gap-4">
+                <LoadingBlock className="h-4 w-12 rounded-full" />
+                <LoadingBlock className="h-4 w-20 rounded-full" />
+                <LoadingBlock className="h-4 w-14 rounded-full" />
+                <LoadingBlock className="h-4 w-16 rounded-full" />
+                <LoadingBlock className="h-4 w-12 rounded-full" />
+              </div>
+
+              <div className="space-y-4">
+                {Array.from({ length: 2 }).map((_, index) => (
+                  <div key={index} className="grid grid-cols-[1.3fr_1fr_0.8fr_0.8fr_0.8fr] gap-4">
+                    <LoadingBlock className="h-5 w-28 rounded-full" />
+                    <LoadingBlock className="h-5 w-24 rounded-full" />
+                    <LoadingBlock className="h-5 w-16 rounded-full" />
+                    <LoadingBlock className="h-5 w-16 rounded-full" />
+                    <LoadingBlock className="h-5 w-20 rounded-full" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </SectionShell>
+
+          <SectionShell titleWidth="w-48" descriptionWidth="w-44">
+            <div className="space-y-4">
+              <LoadingBlock className="h-5 w-40 rounded-full" />
+              <LoadingBlock className="h-5 w-52 rounded-full" />
+            </div>
+          </SectionShell>
+        </section>
+
+        <SectionShell titleWidth="w-44" descriptionWidth="w-80">
+          <div className="space-y-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div
+                key={index}
+                className="flex items-start justify-between gap-4 rounded-2xl border border-[rgb(var(--border)/0.72)] bg-[rgb(var(--card)/0.75)] px-4 py-4"
+              >
+                <div className="min-w-0 flex-1 space-y-2">
+                  <LoadingBlock className="h-5 w-56 rounded-full" />
+                  <LoadingBlock className="h-4 w-72 max-w-full rounded-full" />
+                </div>
+                <div className="shrink-0 space-y-2 text-right">
+                  <LoadingBlock className="ml-auto h-5 w-16 rounded-full" />
+                  <LoadingBlock className="ml-auto h-4 w-20 rounded-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionShell>
+      </div>
+    </main>
   );
 }

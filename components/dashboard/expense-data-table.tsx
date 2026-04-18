@@ -16,7 +16,6 @@ import type {
   DashboardPaginationState,
   EmployeeExpenseDetailRow,
 } from "@/lib/dashboard/types";
-import { useGlobalLoader } from "@/lib/ui/global-loader-context";
 import { cn, suggestCanonicalClasses } from "@/lib/utils/cn";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
 
@@ -357,7 +356,6 @@ export function ExpenseDataTable({
   fallbackBranchName,
 }: ExpenseDataTableProps) {
   const router = useRouter();
-  const { showBlockingLoader } = useGlobalLoader();
   const tableMinWidthClassName = getTableMinWidthClassName(kind);
   const headerConfigs = getHeaderConfigs(kind);
 
@@ -367,9 +365,6 @@ export function ExpenseDataTable({
       sort: sortValue,
     });
 
-    showBlockingLoader("Updating expense sort...", {
-      autoHideOnRouteChange: true,
-    });
     router.push(nextHref);
   };
 

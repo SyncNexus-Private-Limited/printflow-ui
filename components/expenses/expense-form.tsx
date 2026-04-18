@@ -74,9 +74,6 @@ export function ExpenseForm(props: ExpenseFormProps) {
       return;
     }
 
-    showBlockingLoader("Loading expense form...", {
-      autoHideOnRouteChange: true,
-    });
     router.replace(nextHref);
   };
 

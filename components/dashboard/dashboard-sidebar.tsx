@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { ChevronDown, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useEffect, useState, type MouseEvent } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { buildCanonicalExpenseCreateHref } from "@/lib/dashboard/helpers";
 import {
   buildDashboardHref,
   dashboardNavigation,
@@ -14,11 +15,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { getDashboardNavigationFilterState, isDashboardFilterAwarePath } from "@/lib/dashboard/page-filters";
 import { cn } from "@/lib/utils/cn";
-import { useGlobalLoader } from "@/lib/ui/global-loader-context";
 
 type DashboardSidebarProps = {
   pathname: string;
   currentBranchId: string | null;
+  initialBranchId: string | null;
   collapsed: boolean;
   mobile: boolean;
   onToggleCollapsed?: () => void;
@@ -28,7 +29,6 @@ type DashboardSidebarProps = {
 type SidebarLinkProps = {
   label: string;
   href: string;
-  loaderLabel: string;
   pathname: string;
   collapsed: boolean;
   active: boolean;
@@ -36,32 +36,6 @@ type SidebarLinkProps = {
   icon: LucideIcon;
   navigationFilters: ReturnType<typeof getDashboardNavigationFilterState>;
 };
-
-function shouldHandleLinkNavigation(event: MouseEvent<HTMLAnchorElement>) {
-  if (event.defaultPrevented) {
-    return false;
-  }
-
-  if (event.button !== 0) {
-    return false;
-  }
-
-  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-    return false;
-  }
-
-  const currentTarget = event.currentTarget;
-
-  if (currentTarget.target && currentTarget.target !== "_self") {
-    return false;
-  }
-
-  if (currentTarget.hasAttribute("download")) {
-    return false;
-  }
-
-  return true;
-}
 
 function getActiveGroupLabels(pathname: string) {
   return dashboardNavigation
@@ -73,7 +47,6 @@ function getActiveGroupLabels(pathname: string) {
 function SidebarLink({
   label,
   href,
-  loaderLabel,
   pathname,
   collapsed,
   active,
@@ -81,8 +54,7 @@ function SidebarLink({
   icon: Icon,
   navigationFilters,
 }: SidebarLinkProps) {
-  const { showBlockingLoader } = useGlobalLoader();
-  const resolvedHref = buildDashboardHref(href, navigationFilters);
+  const resolvedHref = href.includes("?") ? href : buildDashboardHref(href, navigationFilters);
   const isCurrentTarget = pathname === href;
   const accessibleLabel = collapsed ? title ?? label : undefined;
 
@@ -96,16 +68,7 @@ function SidebarLink({
       onClick={(event) => {
         if (isCurrentTarget) {
           event.preventDefault();
-          return;
         }
-
-        if (!shouldHandleLinkNavigation(event)) {
-          return;
-        }
-
-        showBlockingLoader(`Loading ${loaderLabel.toLowerCase()}...`, {
-          autoHideOnRouteChange: true,
-        });
       }}
       className={cn(
         "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
@@ -133,12 +96,12 @@ function SidebarLink({
 export function DashboardSidebar({
   pathname,
   currentBranchId,
+  initialBranchId,
   collapsed,
   mobile,
   onToggleCollapsed,
   onCloseMobile,
 }: DashboardSidebarProps) {
-  const { showBlockingLoader } = useGlobalLoader();
   const searchParams = useSearchParams();
   const isDesktopCollapsed = collapsed && !mobile;
   const [expandedGroups, setExpandedGroups] = useState<string[]>(() => getActiveGroupLabels(pathname));
@@ -225,12 +188,20 @@ export function DashboardSidebar({
       <nav className="mt-4 flex-1 space-y-1 overflow-y-auto" aria-label="Dashboard modules">
         {dashboardNavigation.map((item) => {
           if (item.type === "link") {
+            const resolvedItemHref =
+              item.href === "/dashboard/expenses/new"
+                ? buildCanonicalExpenseCreateHref({
+                    currentBranchId,
+                    initialBranchId,
+                    type: "business",
+                  })
+                : item.href;
+
             return (
               <SidebarLink
                 key={item.label}
                 label={item.label}
-                href={item.href}
-                loaderLabel={item.label}
+                href={resolvedItemHref}
                 pathname={pathname}
                 collapsed={isDesktopCollapsed}
                 active={isDashboardRouteActive(pathname, item.href)}
@@ -249,7 +220,6 @@ export function DashboardSidebar({
                 key={item.label}
                 label={item.label}
                 href={fallbackItem.href}
-                loaderLabel={fallbackItem.label}
                 pathname={pathname}
                 collapsed
                 active={isGroupActive}
@@ -306,7 +276,14 @@ export function DashboardSidebar({
                 >
                   {item.children.map((child) => {
                     const childIsActive = isDashboardRouteActive(pathname, child.href);
-                    const resolvedHref = buildDashboardHref(child.href, navigationFilters);
+                    const resolvedHref =
+                      child.href === "/dashboard/expenses/new"
+                        ? buildCanonicalExpenseCreateHref({
+                            currentBranchId,
+                            initialBranchId,
+                            type: "business",
+                          })
+                        : buildDashboardHref(child.href, navigationFilters);
 
                     return (
                       <li key={child.label} className="list-none">
@@ -316,16 +293,7 @@ export function DashboardSidebar({
                           onClick={(event) => {
                             if (pathname === child.href) {
                               event.preventDefault();
-                              return;
                             }
-
-                            if (!shouldHandleLinkNavigation(event)) {
-                              return;
-                            }
-
-                            showBlockingLoader(`Loading ${child.label.toLowerCase()}...`, {
-                              autoHideOnRouteChange: true,
-                            });
                           }}
                           className={cn(
                             "flex min-h-10 items-center rounded-xl px-3 py-2 text-sm font-medium transition-colors",

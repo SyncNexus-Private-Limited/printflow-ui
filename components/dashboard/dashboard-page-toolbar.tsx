@@ -22,7 +22,6 @@ import type {
 } from "@/lib/dashboard/types";
 import { suggestCanonicalClasses, cn } from "@/lib/utils/cn";
 import { formatDateRangeLabel } from "@/lib/utils/format";
-import { useGlobalLoader } from "@/lib/ui/global-loader-context";
 
 type DashboardPageToolbarProps = {
   currentPath: string;
@@ -96,7 +95,6 @@ export function DashboardPageToolbar({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { showBlockingLoader } = useGlobalLoader();
   const moreActionsButtonId = useId();
   const moreActionsMenuId = `${moreActionsButtonId}-menu`;
   const moreActionsRef = useRef<HTMLDivElement | null>(null);
@@ -161,14 +159,11 @@ export function DashboardPageToolbar({
     };
   }, [isMoreActionsOpen]);
 
-  const navigateToHref = (href: string, loaderMessage: string) => {
+  const navigateToHref = (href: string) => {
     if (isSameHref(href, currentHref)) {
       return;
     }
 
-    showBlockingLoader(loaderMessage, {
-      autoHideOnRouteChange: true,
-    });
     router.push(href);
   };
 
@@ -181,7 +176,7 @@ export function DashboardPageToolbar({
     });
     const nextHref = buildDashboardDateRangeHref(currentPath, currentFilters, nextDateRange);
 
-    navigateToHref(nextHref, "Updating date range...");
+    navigateToHref(nextHref);
   };
 
   const handleClearDateRange = () => {
@@ -192,7 +187,7 @@ export function DashboardPageToolbar({
 
     setDraftFrom("");
     setDraftTo("");
-    navigateToHref(nextHref, "Resetting to current month...");
+    navigateToHref(nextHref);
   };
 
   const handleToolbarAction = (action: DashboardPageToolbarAction | DashboardPageToolbarMenuAction | undefined) => {
@@ -200,7 +195,7 @@ export function DashboardPageToolbar({
       return;
     }
 
-    navigateToHref(action.href, action.loaderMessage ?? "Loading...");
+    navigateToHref(action.href);
   };
 
   if (isExpenseVariant) {

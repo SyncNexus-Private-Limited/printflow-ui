@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Fragment, useState, type MouseEvent } from "react";
+import { Fragment } from "react";
 import { cn } from "@/lib/utils/cn";
-import { useGlobalLoader } from "@/lib/ui/global-loader-context";
 
 export type MetricCardAccent = "blue" | "emerald" | "amber" | "violet" | "rose" | "orange";
 
@@ -34,60 +33,14 @@ const accentClasses: Record<MetricCardAccent, string> = {
     "border-[rgb(var(--metric-orange)/0.12)] bg-[linear-gradient(180deg,rgb(var(--card)/0.98)_0%,rgb(var(--metric-orange-soft)/0.86)_100%)] text-[rgb(var(--metric-orange-ink))] shadow-[0_24px_52px_-42px_rgb(var(--metric-orange)/0.18)]",
 };
 
-function shouldShowLoaderForNavigation(event: MouseEvent<HTMLAnchorElement>) {
-  if (event.defaultPrevented) {
-    return false;
-  }
-
-  if (event.button !== 0) {
-    return false;
-  }
-
-  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
-    return false;
-  }
-
-  const currentTarget = event.currentTarget;
-
-  if (currentTarget.target && currentTarget.target !== "_self") {
-    return false;
-  }
-
-  if (currentTarget.hasAttribute("download")) {
-    return false;
-  }
-
-  return true;
-}
-
 export function MetricCard({ title, value, href, accent, meta }: MetricCardProps) {
-  const { showBlockingLoader } = useGlobalLoader();
-  const [isNavigating, setIsNavigating] = useState(false);
-
   return (
     <Link
       href={href}
-      onClick={(event) => {
-        if (isNavigating) {
-          event.preventDefault();
-          return;
-        }
-
-        if (!shouldShowLoaderForNavigation(event)) {
-          return;
-        }
-
-        setIsNavigating(true);
-        showBlockingLoader(`Loading ${title.toLowerCase()}...`, {
-          autoHideOnRouteChange: true,
-        });
-      }}
-      aria-disabled={isNavigating}
       className={cn(
         "group block rounded-3xl border p-4 transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 sm:p-5",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
         "hover:shadow-[0_28px_54px_-42px_rgb(var(--shadow)/0.24)]",
-        isNavigating && "pointer-events-none",
         accentClasses[accent],
       )}
     >

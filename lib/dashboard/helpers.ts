@@ -1,6 +1,21 @@
 import type { BranchFilterState, DashboardSummary } from "@/lib/dashboard/types";
 import type { LowStockRow, RecentExpenseRow, RecentOrderRow } from "@/lib/dashboard/types";
 
+type BranchOptionLike = {
+  value: string;
+};
+
+type CanonicalExpenseCreateHrefOptions = {
+  currentBranchId?: string | null;
+  initialBranchId?: string | null;
+  branchOptions?: BranchOptionLike[];
+  type?: "business" | "employee";
+};
+
+function isCanonicalExpenseBranchId(value: string | null | undefined): value is string {
+  return Boolean(value) && value !== "all" && value !== "__branch-placeholder__" && value !== "unavailable";
+}
+
 export function buildBranchFilterOptions(context: BranchFilterState) {
   const branchOptions = context.branches.map((branch) => ({
     label: branch.name,
@@ -46,6 +61,41 @@ export function buildBranchScopedHref(
   const queryString = searchParams.toString();
 
   return queryString.length > 0 ? `${path}?${queryString}` : path;
+}
+
+export function resolveCanonicalExpenseBranchId({
+  currentBranchId,
+  initialBranchId,
+  branchOptions = [],
+}: Omit<CanonicalExpenseCreateHrefOptions, "type">) {
+  if (isCanonicalExpenseBranchId(currentBranchId)) {
+    return currentBranchId;
+  }
+
+  if (isCanonicalExpenseBranchId(initialBranchId)) {
+    return initialBranchId;
+  }
+
+  const firstValidBranchOption = branchOptions.find((branchOption) => isCanonicalExpenseBranchId(branchOption.value));
+
+  return firstValidBranchOption?.value ?? null;
+}
+
+export function buildCanonicalExpenseCreateHref({
+  currentBranchId,
+  initialBranchId,
+  branchOptions,
+  type = "business",
+}: CanonicalExpenseCreateHrefOptions) {
+  const resolvedBranchId = resolveCanonicalExpenseBranchId({
+    currentBranchId,
+    initialBranchId,
+    branchOptions,
+  });
+
+  return buildBranchScopedHref("/dashboard/expenses/new", resolvedBranchId ?? "", {
+    type,
+  });
 }
 
 export function hasDashboardData(

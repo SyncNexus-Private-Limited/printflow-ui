@@ -195,6 +195,7 @@ export function DashboardShell({
                 <DashboardSidebar
                   pathname={pathname}
                   currentBranchId={currentBranchId}
+                  initialBranchId={initialBranchId}
                   collapsed={false}
                   mobile
                   onCloseMobile={closeMobileSidebar}
@@ -209,6 +210,7 @@ export function DashboardShell({
             <DashboardSidebar
               pathname={pathname}
               currentBranchId={currentBranchId}
+              initialBranchId={initialBranchId}
               collapsed={isDesktopSidebarCollapsed}
               mobile={false}
               onToggleCollapsed={() =>

@@ -5,6 +5,7 @@ import type { LucideIcon } from "lucide-react";
 import { Boxes, ChevronDown, Plus, Receipt, ShoppingBag, Truck, UserRound, Users, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { buildCanonicalExpenseCreateHref } from "@/lib/dashboard/helpers";
 import { cn } from "@/lib/utils/cn";
 
 type CreateAction = {
@@ -19,6 +20,11 @@ type CreateAction = {
 
 type CreateMenuProps = {
   currentBranchValue: string | null;
+  initialBranchId: string | null;
+  branchOptions: Array<{
+    label: string;
+    value: string;
+  }>;
 };
 
 function buildCreateActionHref(path: string, currentBranchValue: string | null, extraSearchParams?: Record<string, string>) {
@@ -57,7 +63,14 @@ function isSameHref(leftHref: string, rightHref: string) {
   return normalizeHref(leftHref) === normalizeHref(rightHref);
 }
 
-function getCreateActions(currentBranchValue: string | null): CreateAction[] {
+function getCreateActions(
+  currentBranchValue: string | null,
+  initialBranchId: string | null,
+  branchOptions: Array<{
+    label: string;
+    value: string;
+  }>,
+): CreateAction[] {
   return [
     {
       key: "order",
@@ -81,7 +94,12 @@ function getCreateActions(currentBranchValue: string | null): CreateAction[] {
       key: "expense",
       label: "Add Expense",
       shortLabel: "Expense",
-      href: buildCreateActionHref("/dashboard/expenses/new", currentBranchValue, { type: "business" }),
+      href: buildCanonicalExpenseCreateHref({
+        currentBranchId: currentBranchValue,
+        initialBranchId,
+        branchOptions,
+        type: "business",
+      }),
       icon: Receipt,
     },
     {
@@ -139,7 +157,7 @@ function useIsDesktopViewport() {
   return isDesktopViewport;
 }
 
-export function CreateMenu({ currentBranchValue }: CreateMenuProps) {
+export function CreateMenu({ currentBranchValue, initialBranchId, branchOptions }: CreateMenuProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -153,7 +171,10 @@ export function CreateMenu({ currentBranchValue }: CreateMenuProps) {
   const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const focusTargetIndexRef = useRef<number | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const actions = useMemo(() => getCreateActions(currentBranchValue), [currentBranchValue]);
+  const actions = useMemo(
+    () => getCreateActions(currentBranchValue, initialBranchId, branchOptions),
+    [branchOptions, currentBranchValue, initialBranchId],
+  );
   const focusableActionIndices = useMemo(() => getFocusableActionIndices(actions), [actions]);
   const currentHref = useMemo(() => `${pathname}?${searchParams.toString()}`, [pathname, searchParams]);
   const activePanelId = isDesktopViewport ? desktopMenuId : mobileSheetId;

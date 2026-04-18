@@ -5,6 +5,7 @@ import { ChevronDown, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { buildCanonicalExpenseCreateHref } from "@/lib/dashboard/helpers";
 import {
   buildDashboardHref,
   dashboardNavigation,
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils/cn";
 type DashboardSidebarProps = {
   pathname: string;
   currentBranchId: string | null;
+  initialBranchId: string | null;
   collapsed: boolean;
   mobile: boolean;
   onToggleCollapsed?: () => void;
@@ -52,7 +54,7 @@ function SidebarLink({
   icon: Icon,
   navigationFilters,
 }: SidebarLinkProps) {
-  const resolvedHref = buildDashboardHref(href, navigationFilters);
+  const resolvedHref = href.includes("?") ? href : buildDashboardHref(href, navigationFilters);
   const isCurrentTarget = pathname === href;
   const accessibleLabel = collapsed ? title ?? label : undefined;
 
@@ -94,6 +96,7 @@ function SidebarLink({
 export function DashboardSidebar({
   pathname,
   currentBranchId,
+  initialBranchId,
   collapsed,
   mobile,
   onToggleCollapsed,
@@ -185,11 +188,20 @@ export function DashboardSidebar({
       <nav className="mt-4 flex-1 space-y-1 overflow-y-auto" aria-label="Dashboard modules">
         {dashboardNavigation.map((item) => {
           if (item.type === "link") {
+            const resolvedItemHref =
+              item.href === "/dashboard/expenses/new"
+                ? buildCanonicalExpenseCreateHref({
+                    currentBranchId,
+                    initialBranchId,
+                    type: "business",
+                  })
+                : item.href;
+
             return (
               <SidebarLink
                 key={item.label}
                 label={item.label}
-                href={item.href}
+                href={resolvedItemHref}
                 pathname={pathname}
                 collapsed={isDesktopCollapsed}
                 active={isDashboardRouteActive(pathname, item.href)}
@@ -264,7 +276,14 @@ export function DashboardSidebar({
                 >
                   {item.children.map((child) => {
                     const childIsActive = isDashboardRouteActive(pathname, child.href);
-                    const resolvedHref = buildDashboardHref(child.href, navigationFilters);
+                    const resolvedHref =
+                      child.href === "/dashboard/expenses/new"
+                        ? buildCanonicalExpenseCreateHref({
+                            currentBranchId,
+                            initialBranchId,
+                            type: "business",
+                          })
+                        : buildDashboardHref(child.href, navigationFilters);
 
                     return (
                       <li key={child.label} className="list-none">

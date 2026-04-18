@@ -142,7 +142,11 @@ export function TopNavbar({
             hideLabel
             id="dashboard-navbar-branch-filter"
           />
-          <CreateMenu currentBranchValue={currentBranchValue} />
+          <CreateMenu
+            currentBranchValue={currentBranchValue}
+            initialBranchId={initialBranchId}
+            branchOptions={resolvedBranchControl.options}
+          />
           <ThemeToggleButton />
           <LogoutButton iconOnly title="Sign out" />
         </div>

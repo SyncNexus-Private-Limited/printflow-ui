@@ -6,14 +6,12 @@ import { Boxes, ChevronDown, Plus, Receipt, ShoppingBag, Truck, UserRound, Users
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
-import { useGlobalLoader } from "@/lib/ui/global-loader-context";
 
 type CreateAction = {
   key: string;
   label: string;
   shortLabel?: string;
   href: string;
-  loaderMessage: string;
   icon: LucideIcon;
   disabled?: boolean;
   disabledReason?: string;
@@ -66,7 +64,6 @@ function getCreateActions(currentBranchValue: string | null): CreateAction[] {
       label: "Add Order",
       shortLabel: "Order",
       href: buildCreateActionHref("/dashboard/orders/new", currentBranchValue),
-      loaderMessage: "Opening add order...",
       icon: ShoppingBag,
       disabled: true,
       disabledReason: "Coming soon",
@@ -76,7 +73,6 @@ function getCreateActions(currentBranchValue: string | null): CreateAction[] {
       label: "Add Customer",
       shortLabel: "Customer",
       href: buildCreateActionHref("/dashboard/customers/new", currentBranchValue),
-      loaderMessage: "Opening add customer...",
       icon: UserRound,
       disabled: true,
       disabledReason: "Coming soon",
@@ -86,7 +82,6 @@ function getCreateActions(currentBranchValue: string | null): CreateAction[] {
       label: "Add Expense",
       shortLabel: "Expense",
       href: buildCreateActionHref("/dashboard/expenses/new", currentBranchValue, { type: "business" }),
-      loaderMessage: "Opening add expense...",
       icon: Receipt,
     },
     {
@@ -94,7 +89,6 @@ function getCreateActions(currentBranchValue: string | null): CreateAction[] {
       label: "Add Item",
       shortLabel: "Item",
       href: buildCreateActionHref("/dashboard/inventory/new", currentBranchValue),
-      loaderMessage: "Opening add item...",
       icon: Boxes,
       disabled: true,
       disabledReason: "Coming soon",
@@ -104,7 +98,6 @@ function getCreateActions(currentBranchValue: string | null): CreateAction[] {
       label: "Add Vendor",
       shortLabel: "Vendor",
       href: buildCreateActionHref("/dashboard/vendors/new", currentBranchValue),
-      loaderMessage: "Opening add vendor...",
       icon: Truck,
       disabled: true,
       disabledReason: "Coming soon",
@@ -114,7 +107,6 @@ function getCreateActions(currentBranchValue: string | null): CreateAction[] {
       label: "Add Staff Account",
       shortLabel: "Staff",
       href: buildCreateActionHref("/dashboard/users/new", currentBranchValue),
-      loaderMessage: "Opening add staff account...",
       icon: Users,
       disabled: true,
       disabledReason: "Coming soon",
@@ -152,7 +144,6 @@ export function CreateMenu({ currentBranchValue }: CreateMenuProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isDesktopViewport = useIsDesktopViewport();
-  const { showBlockingLoader } = useGlobalLoader();
   const baseId = useId();
   const desktopMenuId = `${baseId}-desktop-menu`;
   const mobileSheetId = `${baseId}-mobile-sheet`;
@@ -207,9 +198,6 @@ export function CreateMenu({ currentBranchValue }: CreateMenuProps) {
     }
 
     setIsOpen(false);
-    showBlockingLoader(action.loaderMessage, {
-      autoHideOnRouteChange: true,
-    });
     router.push(action.href);
   };
 

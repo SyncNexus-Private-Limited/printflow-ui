@@ -5,7 +5,6 @@ import { ChevronsUpDown } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils/cn";
-import { useGlobalLoader } from "@/lib/ui/global-loader-context";
 
 type BranchFilterOption = {
   label: string;
@@ -36,7 +35,6 @@ export function BranchFilter({
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { showBlockingLoader } = useGlobalLoader();
   const [isPending, startTransition] = useTransition();
   const isDisabled = disabled || isPending;
   const selectedOption = options.find((option) => option.value === value);
@@ -62,9 +60,6 @@ export function BranchFilter({
           onChange={(event) => {
             const nextSearchParams = new URLSearchParams(searchParams.toString());
             nextSearchParams.set("branchId", event.target.value);
-            showBlockingLoader("Updating branch...", {
-              autoHideOnRouteChange: true,
-            });
 
             startTransition(() => {
               router.replace(`${pathname}?${nextSearchParams.toString()}`);

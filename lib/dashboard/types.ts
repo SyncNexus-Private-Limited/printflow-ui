@@ -38,7 +38,6 @@ export type PaginatedListResult<T> = {
 export type DashboardPageToolbarAction = {
   label: string;
   href?: string;
-  loaderMessage?: string;
   disabled?: boolean;
   disabledReason?: string;
 };

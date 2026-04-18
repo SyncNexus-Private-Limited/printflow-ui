@@ -17,7 +17,6 @@ import {
   buildDashboardPaginationHref,
 } from "@/lib/dashboard/page-filters";
 import type { DashboardPageFilterState, DashboardPaginationState } from "@/lib/dashboard/types";
-import { useGlobalLoader } from "@/lib/ui/global-loader-context";
 
 type DashboardPaginationProps<TFilters extends DashboardPageFilterState = DashboardPageFilterState> = {
   currentPath: string;
@@ -67,7 +66,6 @@ export function DashboardPagination<TFilters extends DashboardPageFilterState = 
   variant = "default",
 }: DashboardPaginationProps<TFilters>) {
   const router = useRouter();
-  const { showBlockingLoader } = useGlobalLoader();
   const isExpenseVariant = variant === "expense";
   const resolvePageHref = (path: string, filters: TFilters) =>
     isExpenseVariant
@@ -98,14 +96,11 @@ export function DashboardPagination<TFilters extends DashboardPageFilterState = 
   const startItem = (pagination.page - 1) * pagination.pageSize + 1;
   const endItem = Math.min(pagination.page * pagination.pageSize, pagination.totalItems);
 
-  const navigateToPagination = (href: string, loaderMessage: string) => {
+  const navigateToPagination = (href: string) => {
     if (isSameHref(href, currentHref)) {
       return;
     }
 
-    showBlockingLoader(loaderMessage, {
-      autoHideOnRouteChange: true,
-    });
     router.push(href);
   };
 
@@ -135,7 +130,7 @@ export function DashboardPagination<TFilters extends DashboardPageFilterState = 
                       pageSize: nextPageSize,
                     });
 
-                    navigateToPagination(nextHref, "Updating page size...");
+                    navigateToPagination(nextHref);
                   }}
                 >
                   {DASHBOARD_PAGE_SIZE_OPTIONS.map((pageSize) => (
@@ -174,7 +169,6 @@ export function DashboardPagination<TFilters extends DashboardPageFilterState = 
                   resolvePaginationHref(currentPath, currentFilters, {
                     page: pagination.page - 1,
                   }),
-                  "Loading previous page...",
                 )
               }
               title="Previous page"
@@ -198,7 +192,6 @@ export function DashboardPagination<TFilters extends DashboardPageFilterState = 
                   resolvePaginationHref(currentPath, currentFilters, {
                     page: pagination.page + 1,
                   }),
-                  "Loading next page...",
                 )
               }
               title="Next page"
@@ -250,7 +243,7 @@ export function DashboardPagination<TFilters extends DashboardPageFilterState = 
                 pageSize: nextPageSize,
               });
 
-              navigateToPagination(nextHref, "Updating page size...");
+              navigateToPagination(nextHref);
             }}
           >
             {DASHBOARD_PAGE_SIZE_OPTIONS.map((pageSize) => (
@@ -273,7 +266,6 @@ export function DashboardPagination<TFilters extends DashboardPageFilterState = 
               resolvePaginationHref(currentPath, currentFilters, {
                 page: pagination.page - 1,
               }),
-              "Loading previous page...",
             )
           }
           title="Previous page"
@@ -304,7 +296,6 @@ export function DashboardPagination<TFilters extends DashboardPageFilterState = 
                         resolvePaginationHref(currentPath, currentFilters, {
                           page: pageNumber,
                         }),
-                        `Loading page ${pageNumber}...`,
                       )
                     }
                     aria-current={pageNumber === pagination.page ? "page" : undefined}
@@ -335,7 +326,6 @@ export function DashboardPagination<TFilters extends DashboardPageFilterState = 
               resolvePaginationHref(currentPath, currentFilters, {
                 page: pagination.page + 1,
               }),
-              "Loading next page...",
             )
           }
           title="Next page"

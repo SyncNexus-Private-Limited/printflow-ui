@@ -9,7 +9,6 @@ import { ThemeToggleButton } from "@/components/dashboard/theme-toggle-button";
 import { Button } from "@/components/ui/button";
 import { useDashboardChrome } from "@/components/dashboard/dashboard-chrome-context";
 import { cn } from "@/lib/utils/cn";
-import { useGlobalLoader } from "@/lib/ui/global-loader-context";
 
 type TopNavbarProps = {
   onOpenMobileMenu: () => void;
@@ -72,7 +71,6 @@ export function TopNavbar({
 }: TopNavbarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { showBlockingLoader } = useGlobalLoader();
   const { branchControl } = useDashboardChrome();
   const branchIdFromSearchParams = searchParams.get("branchId");
   const resolvedBranchControl =
@@ -93,9 +91,6 @@ export function TopNavbar({
       return;
     }
 
-    showBlockingLoader("Loading dashboard...", {
-      autoHideOnRouteChange: true,
-    });
     router.push(homeHref);
   };
 

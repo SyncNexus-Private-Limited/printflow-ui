@@ -1,5 +1,5 @@
-import { CreateFormSkeleton } from '../../create-form-skeleton';
+import { RouteLoading } from "@/components/ui/route-loading";
 
 export default function AddExpenseLoading() {
-	return <CreateFormSkeleton showTypeSelector titleWidth='w-44' />;
+  return <RouteLoading message="Loading expense form..." />;
 }

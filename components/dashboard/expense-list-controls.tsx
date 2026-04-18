@@ -34,7 +34,6 @@ import type { ExpenseCategoryOption, ExpenseEmployeeOption, ExpenseVendorOption 
 import { getPaymentModeLabel, paymentModeValues } from "@/lib/expenses/types";
 import { cn, suggestCanonicalClasses } from "@/lib/utils/cn";
 import { formatDateRangeLabel } from "@/lib/utils/format";
-import { useGlobalLoader } from "@/lib/ui/global-loader-context";
 
 type ExpenseListControlsProps = {
   kind: ExpensePageKind;
@@ -290,7 +289,6 @@ export function ExpenseListControls({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { showBlockingLoader } = useGlobalLoader();
   const baseId = useId();
   const filterPanelId = `${baseId}-filter-panel`;
   const filterTitleId = `${baseId}-filter-title`;
@@ -372,7 +370,7 @@ export function ExpenseListControls({
     previousOpenPanelRef.current = openPanel;
   }, [openPanel]);
 
-  const navigateToHref = (href: string, loaderMessage: string) => {
+  const navigateToHref = (href: string) => {
     if (isSameHref(href, currentHref)) {
       setOpenPanel(null);
       return;
@@ -384,9 +382,6 @@ export function ExpenseListControls({
       });
     }
 
-    showBlockingLoader(loaderMessage, {
-      autoHideOnRouteChange: true,
-    });
     router.push(href);
   };
 
@@ -422,7 +417,7 @@ export function ExpenseListControls({
       page: 1,
     });
 
-    navigateToHref(nextHref, "Applying expense filters...");
+    navigateToHref(nextHref);
   };
 
   const handleResetFilters = () => {
@@ -458,7 +453,7 @@ export function ExpenseListControls({
       sort: normalizeExpenseSortForKind(kind, "expense-date-desc"),
     }));
 
-    navigateToHref(nextHref, "Resetting expense filters...");
+    navigateToHref(nextHref);
   };
 
   const filterSheet = openPanel === "filter" ? (

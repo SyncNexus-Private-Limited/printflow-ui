@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { ChevronsUpDown } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Select } from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils/cn";
 
 type BranchFilterOption = {
@@ -55,6 +56,7 @@ export function BranchFilter({
           id={id}
           value={resolvedValue}
           disabled={isDisabled}
+          aria-busy={isPending}
           title={selectedLabel}
           aria-label={selectedLabel}
           onChange={(event) => {
@@ -94,8 +96,13 @@ export function BranchFilter({
           <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[rgb(var(--foreground))]">{selectedLabel}</span>
         </div>
         <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[rgb(var(--muted-foreground))]">
-          <ChevronsUpDown className="h-4 w-4" aria-hidden="true" strokeWidth={1.8} />
+          {isPending ? (
+            <Spinner size="xs" ariaHidden className="text-[rgb(var(--muted-foreground))]" />
+          ) : (
+            <ChevronsUpDown className="h-4 w-4" aria-hidden="true" strokeWidth={1.8} />
+          )}
         </span>
+        {isPending ? <span className="sr-only">Updating branch</span> : null}
       </div>
     </div>
   );

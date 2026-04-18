@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useTransition,
 } from "react";
 import { flushSync } from "react-dom";
 import {
@@ -19,6 +20,7 @@ import { DataPill, getExpenseCategoryTone, getExpensePaymentModeTone, type DataP
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
 import {
   buildExpensePageHref,
   expenseQuickDatePresetValues,
@@ -300,6 +302,8 @@ export function ExpenseListControls({
   const [openPanel, setOpenPanel] = useState<ExpenseControlPanel>(null);
   const [draftFilters, setDraftFilters] = useState<ExpensePageFilterState>(currentFilters);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"apply" | null>(null);
+  const [isPending, startTransition] = useTransition();
   const currentHref = useMemo(() => buildExpensePageHref(currentPath, currentFilters), [currentFilters, currentPath]);
   const activeFilterCount = useMemo(() => getActiveFilterCount(kind, currentFilters), [currentFilters, kind]);
   const primaryFilterSummary = useMemo(() => buildPrimaryFilterSummary(currentFilters), [currentFilters]);
@@ -335,6 +339,12 @@ export function ExpenseListControls({
   useEffect(() => {
     setOpenPanel(null);
   }, [routeSignature]);
+
+  useEffect(() => {
+    if (!isPending) {
+      setPendingAction(null);
+    }
+  }, [isPending]);
 
   useEffect(() => {
     if (openPanel !== "filter") {
@@ -373,7 +383,7 @@ export function ExpenseListControls({
   const navigateToHref = (href: string) => {
     if (isSameHref(href, currentHref)) {
       setOpenPanel(null);
-      return;
+      return false;
     }
 
     if (openPanel === "filter") {
@@ -383,6 +393,7 @@ export function ExpenseListControls({
     }
 
     router.push(href);
+    return true;
   };
 
   const updateDraftFilters = (updater: (currentValue: ExpensePageFilterState) => ExpensePageFilterState) => {
@@ -417,7 +428,14 @@ export function ExpenseListControls({
       page: 1,
     });
 
-    navigateToHref(nextHref);
+    setPendingAction("apply");
+    startTransition(() => {
+      const didNavigate = navigateToHref(nextHref);
+
+      if (!didNavigate) {
+        setPendingAction(null);
+      }
+    });
   };
 
   const handleResetFilters = () => {
@@ -455,6 +473,8 @@ export function ExpenseListControls({
 
     navigateToHref(nextHref);
   };
+
+  const isApplyPending = isPending && pendingAction === "apply";
 
   const filterSheet = openPanel === "filter" ? (
     <div id={filterPanelId} role="dialog" aria-modal="true" aria-labelledby={filterTitleId} className="fixed inset-0 z-50">
@@ -740,12 +760,31 @@ export function ExpenseListControls({
 
           <div className="border-t border-[rgb(var(--border)/0.62)] bg-[rgb(var(--card)/0.98)] px-4 py-4 sm:px-5">
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
-              <Button type="button" variant="secondary" className="h-11 rounded-2xl px-4 shadow-none" onClick={handleResetFilters}>
+              <Button
+                type="button"
+                variant="secondary"
+                className="h-11 rounded-2xl px-4 shadow-none"
+                onClick={handleResetFilters}
+                disabled={isApplyPending}
+              >
                 <Undo2 className="mr-2 h-4 w-4" aria-hidden="true" strokeWidth={1.9} />
                 Reset all
               </Button>
-              <Button type="button" className="h-11 rounded-2xl px-5" onClick={handleApplyFilters}>
-                Apply filters
+              <Button
+                type="button"
+                className="h-11 min-w-34 rounded-2xl px-5"
+                onClick={handleApplyFilters}
+                disabled={isApplyPending}
+                aria-busy={isApplyPending}
+              >
+                {isApplyPending ? (
+                  <>
+                    <Spinner size="xs" ariaHidden className="mr-2" />
+                    Applying...
+                  </>
+                ) : (
+                  "Apply filters"
+                )}
               </Button>
             </div>
           </div>
@@ -755,7 +794,7 @@ export function ExpenseListControls({
   ) : null;
 
   return (
-    <div className="relative">
+    <div className="relative" aria-busy={isApplyPending}>
       <div className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 flex-1">
@@ -783,13 +822,19 @@ export function ExpenseListControls({
               ref={filterButtonRef}
               type="button"
               variant="secondary"
-              className="h-11 rounded-2xl px-4"
+              className="h-11 min-w-28 rounded-2xl px-4"
               aria-haspopup="dialog"
               aria-expanded={openPanel === "filter"}
               aria-controls={filterPanelId}
               onClick={handleFilterToggle}
+              disabled={isApplyPending}
+              aria-busy={isApplyPending}
             >
-              <Filter className="mr-2 h-4 w-4" aria-hidden="true" strokeWidth={1.9} />
+              {isApplyPending ? (
+                <Spinner size="xs" ariaHidden className="mr-2" />
+              ) : (
+                <Filter className="mr-2 h-4 w-4" aria-hidden="true" strokeWidth={1.9} />
+              )}
               Filter
               {activeFilterCount > 0 ? (
                 <span className="ml-2 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[rgb(var(--primary-soft))] px-2 text-xs font-semibold text-[rgb(var(--primary-soft-foreground))]">

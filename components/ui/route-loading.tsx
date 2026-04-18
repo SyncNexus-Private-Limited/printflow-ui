@@ -7,7 +7,7 @@ type RouteLoadingProps = {
 };
 
 export function RouteLoading({
-  message = "Loading dashboard content...",
+  message = "Loading content...",
   fullHeight = false,
   className,
 }: RouteLoadingProps) {

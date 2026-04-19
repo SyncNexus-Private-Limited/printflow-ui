@@ -138,6 +138,13 @@ export type OrderDetailRow = {
   paidAmount: number;
   paymentStatus: string;
   orderDate: string;
+  outstandingAmount: number;
+  createdAt: string;
+  branchName: string | null;
+  createdByName: string | null;
+  paymentModeSummary: string | null;
+  vendorCount: number;
+  itemCount: number;
 };
 
 export type CustomerDetailRow = {
@@ -191,8 +198,52 @@ export type BusinessExpenseDetailRow = ExpenseCategorySummary & {
   branchName: string | null;
 };
 
+export type OrdersPageSummary = {
+  totalOrders: number;
+  pendingOrders: number;
+  completedOrders: number;
+  totalPayableAmount: number;
+  totalPaidAmount: number;
+  totalOutstandingAmount: number;
+};
+
+export type OrderCustomerOption = {
+  id: string;
+  name: string;
+};
+
+export type OrderCreatorOption = {
+  id: string;
+  fullName: string;
+  branchName: string | null;
+};
+
+export type OrderVendorOption = {
+  id: string;
+  name: string;
+};
+
+export type OrderInventoryOption = {
+  id: string;
+  name: string;
+  sku: string;
+};
+
+export type OrderOfferItemOption = {
+  id: string;
+  itemName: string;
+};
+
+export type OrderFilterOptions = {
+  customers: OrderCustomerOption[];
+  creators: OrderCreatorOption[];
+  vendors: OrderVendorOption[];
+  inventoryItems: OrderInventoryOption[];
+  offerItems: OrderOfferItemOption[];
+};
+
 export type OrdersPageData = {
-  summary: OrdersSummary;
+  summary: OrdersPageSummary;
   result: PaginatedListResult<OrderDetailRow>;
 };
 

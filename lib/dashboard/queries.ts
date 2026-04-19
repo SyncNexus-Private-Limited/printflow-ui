@@ -3,6 +3,7 @@ import { getActiveUserWindowMinutes } from "@/lib/auth/session";
 import type { AuthenticatedUser } from "@/lib/auth/current-user";
 import { getPool } from "@/lib/db/postgres";
 import type { ExpensePageFilterState } from "@/lib/dashboard/expense-page-filters";
+import type { OrderPageFilterState } from "@/lib/dashboard/order-page-filters";
 import {
   type ActiveUserRow,
   type BranchFilterState,
@@ -20,9 +21,16 @@ import {
   type ExpenseRangeSummary,
   type InventoryDetailRow,
   type LowStockRow,
+  type OrderCustomerOption,
+  type OrderCreatorOption,
   type OrderDetailRow,
+  type OrderFilterOptions,
+  type OrderInventoryOption,
+  type OrderOfferItemOption,
   type OrdersPageData,
+  type OrdersPageSummary,
   type OrdersSummary,
+  type OrderVendorOption,
   type RecentExpenseRow,
   type RecentOrderRow,
 } from "@/lib/dashboard/types";
@@ -515,37 +523,210 @@ function buildBusinessExpensesQueryParts(branchId: string | null, filters: Expen
   };
 }
 
-export async function getOrdersPageData(branchId: string | null, filters: DashboardPageFilterState): Promise<OrdersPageData> {
-  const db = getPool();
-  const dateRange = {
-    from: filters.from,
-    to: filters.to,
+type OrderQueryParts = {
+  joins: string;
+  whereClause: string;
+  values: Array<number | string | null>;
+  orderByClause: string;
+};
+
+function getOrdersOrderByClause(filters: OrderPageFilterState): string {
+  switch (filters.sort) {
+    case "order-date-asc":
+      return "o.order_date ASC, o.created_at ASC";
+    case "created-at-desc":
+      return "o.created_at DESC, o.order_date DESC";
+    case "created-at-asc":
+      return "o.created_at ASC, o.order_date ASC";
+    case "order-code-asc":
+      return "LOWER(o.order_code) ASC, o.order_date DESC, o.created_at DESC";
+    case "order-code-desc":
+      return "LOWER(o.order_code) DESC, o.order_date DESC, o.created_at DESC";
+    case "payable-desc":
+      return "o.payable_amount DESC, o.order_date DESC, o.created_at DESC";
+    case "payable-asc":
+      return "o.payable_amount ASC, o.order_date DESC, o.created_at DESC";
+    case "paid-desc":
+      return "o.paid_amount DESC, o.order_date DESC, o.created_at DESC";
+    case "paid-asc":
+      return "o.paid_amount ASC, o.order_date DESC, o.created_at DESC";
+    case "outstanding-desc":
+      return "(o.payable_amount - o.paid_amount) DESC, o.order_date DESC, o.created_at DESC";
+    case "outstanding-asc":
+      return "(o.payable_amount - o.paid_amount) ASC, o.order_date DESC, o.created_at DESC";
+    case "customer-asc":
+      return "LOWER(c.name) ASC, o.order_date DESC, o.created_at DESC";
+    case "customer-desc":
+      return "LOWER(c.name) DESC, o.order_date DESC, o.created_at DESC";
+    case "status-asc":
+      return "LOWER(o.status::text) ASC, o.order_date DESC, o.created_at DESC";
+    case "status-desc":
+      return "LOWER(o.status::text) DESC, o.order_date DESC, o.created_at DESC";
+    case "payment-status-asc":
+      return "LOWER(o.payment_status::text) ASC, o.order_date DESC, o.created_at DESC";
+    case "payment-status-desc":
+      return "LOWER(o.payment_status::text) DESC, o.order_date DESC, o.created_at DESC";
+    case "order-date-desc":
+    default:
+      return "o.order_date DESC, o.created_at DESC";
+  }
+}
+
+function buildOrdersQueryParts(
+  branchId: string | null,
+  filters: OrderPageFilterState,
+): OrderQueryParts {
+  const values: Array<number | string | null> = [branchId];
+  const whereParts = ["($1::uuid IS NULL OR o.branch_id = $1::uuid)"];
+  const joins = [
+    "JOIN customers c ON c.id = o.customer_id",
+    "LEFT JOIN users u ON u.id = o.created_by",
+    "LEFT JOIN branches b ON b.id = o.branch_id",
+  ];
+
+  const dateColExpression =
+    filters.dateField === "created" ? "o.created_at::date" : "o.order_date::date";
+
+  if (filters.from) {
+    values.push(filters.from);
+    whereParts.push(`${dateColExpression} >= $${values.length}::date`);
+  }
+
+  if (filters.to) {
+    values.push(filters.to);
+    whereParts.push(`${dateColExpression} <= $${values.length}::date`);
+  }
+
+  if (filters.status) {
+    values.push(filters.status);
+    whereParts.push(`o.status::text = $${values.length}`);
+  }
+
+  if (filters.paymentStatus) {
+    values.push(filters.paymentStatus);
+    whereParts.push(`o.payment_status::text = $${values.length}`);
+  }
+
+  if (filters.customerId) {
+    values.push(filters.customerId);
+    whereParts.push(`o.customer_id = $${values.length}::uuid`);
+  }
+
+  if (filters.createdBy) {
+    values.push(filters.createdBy);
+    whereParts.push(`o.created_by = $${values.length}::uuid`);
+  }
+
+  if (filters.orderCode) {
+    values.push(filters.orderCode);
+    whereParts.push(`o.order_code ILIKE '%' || $${values.length} || '%'`);
+  }
+
+  if (filters.paymentMode) {
+    values.push(filters.paymentMode);
+    whereParts.push(
+      `EXISTS (SELECT 1 FROM payments p WHERE p.order_id = o.id AND p.mode::text = $${values.length})`,
+    );
+  }
+
+  if (filters.vendorId) {
+    values.push(filters.vendorId);
+    whereParts.push(
+      `EXISTS (SELECT 1 FROM order_vendors ov WHERE ov.order_id = o.id AND ov.vendor_id = $${values.length}::uuid)`,
+    );
+  }
+
+  if (filters.inventoryId) {
+    values.push(filters.inventoryId);
+    whereParts.push(
+      `EXISTS (SELECT 1 FROM order_items oi WHERE oi.order_id = o.id AND oi.inventory_id = $${values.length}::uuid)`,
+    );
+  }
+
+  if (filters.offerItemId) {
+    values.push(filters.offerItemId);
+    whereParts.push(
+      `EXISTS (SELECT 1 FROM order_offer_items ooi WHERE ooi.order_id = o.id AND ooi.offer_item_id = $${values.length}::uuid)`,
+    );
+  }
+
+  if (filters.txnReference) {
+    values.push(filters.txnReference);
+    whereParts.push(
+      `EXISTS (SELECT 1 FROM payments p WHERE p.order_id = o.id AND p.txn_reference ILIKE '%' || $${values.length} || '%')`,
+    );
+  }
+
+  if (filters.payableMin) {
+    values.push(filters.payableMin);
+    whereParts.push(`o.payable_amount >= $${values.length}::numeric`);
+  }
+
+  if (filters.payableMax) {
+    values.push(filters.payableMax);
+    whereParts.push(`o.payable_amount <= $${values.length}::numeric`);
+  }
+
+  if (filters.paidMin) {
+    values.push(filters.paidMin);
+    whereParts.push(`o.paid_amount >= $${values.length}::numeric`);
+  }
+
+  if (filters.paidMax) {
+    values.push(filters.paidMax);
+    whereParts.push(`o.paid_amount <= $${values.length}::numeric`);
+  }
+
+  if (filters.outstandingMin) {
+    values.push(filters.outstandingMin);
+    whereParts.push(`(o.payable_amount - o.paid_amount) >= $${values.length}::numeric`);
+  }
+
+  if (filters.outstandingMax) {
+    values.push(filters.outstandingMax);
+    whereParts.push(`(o.payable_amount - o.paid_amount) <= $${values.length}::numeric`);
+  }
+
+  return {
+    joins: joins.join("\n      "),
+    whereClause: whereParts.join("\n        AND "),
+    values,
+    orderByClause: getOrdersOrderByClause(filters),
   };
-  const summaryDateFilter = buildDashboardDateFilterClause("o.order_date", dateRange, 2);
-  const { rows: summaryRows } = await db.query<OrdersSummary>(
+}
+
+export async function getOrdersPageData(
+  branchId: string | null,
+  filters: OrderPageFilterState,
+): Promise<OrdersPageData> {
+  const db = getPool();
+  const queryParts = buildOrdersQueryParts(branchId, filters);
+
+  const { rows: summaryRows } = await db.query<OrdersPageSummary>(
     `
       SELECT
         COUNT(*)::int AS "totalOrders",
-        COUNT(*) FILTER (WHERE o.status = 'pending')::int AS "pendingOrders",
-        COUNT(*) FILTER (WHERE o.status = 'completed')::int AS "completedOrders",
-        COALESCE(SUM(o.payable_amount), 0)::double precision AS "totalPayableAmount"
+        COUNT(*) FILTER (WHERE o.status::text = 'pending')::int AS "pendingOrders",
+        COUNT(*) FILTER (WHERE o.status::text = 'completed')::int AS "completedOrders",
+        COALESCE(SUM(o.payable_amount), 0)::double precision AS "totalPayableAmount",
+        COALESCE(SUM(o.paid_amount), 0)::double precision AS "totalPaidAmount",
+        COALESCE(SUM(o.payable_amount - o.paid_amount), 0)::double precision AS "totalOutstandingAmount"
       FROM orders o
-      WHERE ($1::uuid IS NULL OR o.branch_id = $1::uuid)
-      ${summaryDateFilter.clause}
+      ${queryParts.joins}
+      WHERE ${queryParts.whereClause}
     `,
-    [branchId, ...summaryDateFilter.values],
+    queryParts.values,
   );
   const summary = summaryRows[0];
   const pagination = buildPaginationState(summary.totalOrders, filters);
-  const listDateFilter = buildDashboardDateFilterClause("o.order_date", dateRange, 2);
   const listQueryParams = [
-    branchId,
-    ...listDateFilter.values,
+    ...queryParts.values,
     pagination.pageSize,
     (pagination.page - 1) * pagination.pageSize,
   ];
-  const limitParameterIndex = listDateFilter.nextParameterIndex;
-  const offsetParameterIndex = listDateFilter.nextParameterIndex + 1;
+  const limitParameterIndex = queryParts.values.length + 1;
+  const offsetParameterIndex = queryParts.values.length + 2;
+
   const { rows } = await db.query<OrderDetailRow>(
     `
       SELECT
@@ -556,12 +737,29 @@ export async function getOrdersPageData(branchId: string | null, filters: Dashbo
         o.payable_amount::double precision AS "payableAmount",
         o.paid_amount::double precision AS "paidAmount",
         o.payment_status::text AS "paymentStatus",
-        o.order_date::text AS "orderDate"
+        o.order_date::text AS "orderDate",
+        (o.payable_amount - o.paid_amount)::double precision AS "outstandingAmount",
+        o.created_at::text AS "createdAt",
+        b.name AS "branchName",
+        u.full_name AS "createdByName",
+        (
+          SELECT STRING_AGG(DISTINCT p.mode::text, ', ' ORDER BY p.mode::text)
+          FROM payments p
+          WHERE p.order_id = o.id
+        ) AS "paymentModeSummary",
+        (
+          SELECT COUNT(*)::int
+          FROM order_vendors ov
+          WHERE ov.order_id = o.id
+        ) AS "vendorCount",
+        (
+          (SELECT COUNT(*)::int FROM order_items oi WHERE oi.order_id = o.id) +
+          (SELECT COUNT(*)::int FROM order_offer_items ooi WHERE ooi.order_id = o.id)
+        ) AS "itemCount"
       FROM orders o
-      JOIN customers c ON c.id = o.customer_id
-      WHERE ($1::uuid IS NULL OR o.branch_id = $1::uuid)
-      ${listDateFilter.clause}
-      ORDER BY o.order_date DESC, o.order_code DESC
+      ${queryParts.joins}
+      WHERE ${queryParts.whereClause}
+      ORDER BY ${queryParts.orderByClause}
       LIMIT $${limitParameterIndex}
       OFFSET $${offsetParameterIndex}
     `,
@@ -574,6 +772,89 @@ export async function getOrdersPageData(branchId: string | null, filters: Dashbo
       items: rows,
       pagination,
     },
+  };
+}
+
+export async function getOrderFilterOptions(branchId: string | null): Promise<OrderFilterOptions> {
+  const db = getPool();
+
+  const [customersResult, creatorsResult, vendorsResult, inventoryResult, offerItemsResult] =
+    await Promise.all([
+      db.query<OrderCustomerOption>(
+        `
+          SELECT c.id::text AS id, c.name
+          FROM customers c
+          WHERE (
+            $1::uuid IS NULL
+            OR EXISTS (
+              SELECT 1 FROM orders o
+              WHERE o.customer_id = c.id AND o.branch_id = $1::uuid
+            )
+          )
+          ORDER BY c.name ASC
+        `,
+        [branchId],
+      ),
+      db.query<OrderCreatorOption>(
+        `
+          SELECT DISTINCT u.id::text AS id, u.full_name AS "fullName", b.name AS "branchName"
+          FROM users u
+          LEFT JOIN branches b ON b.id = u.branch_id
+          WHERE EXISTS (
+            SELECT 1 FROM orders o
+            WHERE o.created_by = u.id
+              AND ($1::uuid IS NULL OR o.branch_id = $1::uuid)
+          )
+          ORDER BY u.full_name ASC
+        `,
+        [branchId],
+      ),
+      db.query<OrderVendorOption>(
+        `
+          SELECT DISTINCT v.id::text AS id, v.name
+          FROM vendors v
+          WHERE EXISTS (
+            SELECT 1 FROM order_vendors ov
+            JOIN orders o ON o.id = ov.order_id
+            WHERE ov.vendor_id = v.id
+              AND ($1::uuid IS NULL OR o.branch_id = $1::uuid)
+          )
+          ORDER BY v.name ASC
+        `,
+        [branchId],
+      ),
+      db.query<OrderInventoryOption>(
+        `
+          SELECT DISTINCT i.id::text AS id, i.name, i.sku
+          FROM inventory i
+          WHERE EXISTS (
+            SELECT 1 FROM order_items oi
+            JOIN orders o ON o.id = oi.order_id
+            WHERE oi.inventory_id = i.id
+              AND ($1::uuid IS NULL OR o.branch_id = $1::uuid)
+          )
+          ORDER BY i.name ASC
+        `,
+        [branchId],
+      ),
+      db.query<OrderOfferItemOption>(
+        `
+          SELECT id::text AS id, item_name AS "itemName"
+          FROM offer_items
+          WHERE ($1::uuid IS NULL OR branch_id = $1::uuid)
+            AND is_active = true
+          ORDER BY item_name ASC
+        `,
+        [branchId],
+      ),
+    ]);
+
+  return {
+    customers: customersResult.rows,
+    creators: creatorsResult.rows,
+    vendors: vendorsResult.rows,
+    inventoryItems: inventoryResult.rows,
+    offerItems: offerItemsResult.rows,
   };
 }
 

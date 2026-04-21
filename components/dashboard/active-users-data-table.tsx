@@ -2,26 +2,26 @@
 
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ChevronsUpDown } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { DataPill, type DataPillTone } from "@/components/dashboard/data-pill";
+import { DataPill, getActiveUserRoleTone } from "@/components/dashboard/data-pill";
 import { TableScrollArea } from "@/components/dashboard/table-scroll-area";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import {
-  buildOrderPageHref,
-  buildOrderPaginationHref,
-  type OrderPageFilterState,
-  type OrderSortValue,
-} from "@/lib/dashboard/order-page-filters";
-import type { DashboardPaginationState, OrderDetailRow } from "@/lib/dashboard/types";
-import { cn, suggestCanonicalClasses } from "@/lib/utils/cn";
-import { formatCurrency, formatDate } from "@/lib/utils/format";
+  buildActiveUsersPageHref,
+  buildActiveUsersPaginationHref,
+  type ActiveUserPageFilterState,
+  type ActiveUserSortValue,
+} from "@/lib/dashboard/active-users-page-filters";
 import { DASHBOARD_PAGE_SIZE_OPTIONS } from "@/lib/dashboard/page-filters";
+import type { ActiveUserRow, DashboardPaginationState } from "@/lib/dashboard/types";
+import { cn, suggestCanonicalClasses } from "@/lib/utils/cn";
+import { formatDateTime } from "@/lib/utils/format";
 
-type OrderDataTableProps = {
-  items: OrderDetailRow[];
+type ActiveUsersDataTableProps = {
+  items: ActiveUserRow[];
   emptyMessage: string;
   currentPath: string;
-  currentFilters: OrderPageFilterState;
+  currentFilters: ActiveUserPageFilterState;
   pagination: DashboardPaginationState;
   showBranch?: boolean;
 };
@@ -29,15 +29,14 @@ type OrderDataTableProps = {
 type SortDirection = "asc" | "desc";
 
 type HeaderSortConfig = {
-  asc: OrderSortValue;
-  desc: OrderSortValue;
+  asc: ActiveUserSortValue;
+  desc: ActiveUserSortValue;
   defaultDirection: SortDirection;
 };
 
 type HeaderConfig = {
   key: string;
   label: string;
-  align?: "left" | "right";
   sort?: HeaderSortConfig;
 };
 
@@ -51,87 +50,25 @@ const tableBodyCellClassName = suggestCanonicalClasses(
 
 const baseHeaderConfigs: HeaderConfig[] = [
   {
-    key: "order-code",
-    label: "Order code",
+    key: "name",
+    label: "Full name",
     sort: {
-      asc: "order-code-asc",
-      desc: "order-code-desc",
+      asc: "name-asc",
+      desc: "name-desc",
       defaultDirection: "asc",
     },
   },
   {
-    key: "customer",
-    label: "Customer",
+    key: "username",
+    label: "Username",
+  },
+  {
+    key: "role",
+    label: "Role",
     sort: {
-      asc: "customer-asc",
-      desc: "customer-desc",
+      asc: "role-asc",
+      desc: "role-desc",
       defaultDirection: "asc",
-    },
-  },
-  {
-    key: "status",
-    label: "Status",
-    sort: {
-      asc: "status-asc",
-      desc: "status-desc",
-      defaultDirection: "asc",
-    },
-  },
-  {
-    key: "payment-status",
-    label: "Payment",
-    sort: {
-      asc: "payment-status-asc",
-      desc: "payment-status-desc",
-      defaultDirection: "asc",
-    },
-  },
-  {
-    key: "payable",
-    label: "Payable",
-    align: "right",
-    sort: {
-      asc: "payable-asc",
-      desc: "payable-desc",
-      defaultDirection: "desc",
-    },
-  },
-  {
-    key: "paid",
-    label: "Paid",
-    align: "right",
-    sort: {
-      asc: "paid-asc",
-      desc: "paid-desc",
-      defaultDirection: "desc",
-    },
-  },
-  {
-    key: "outstanding",
-    label: "Outstanding",
-    align: "right",
-    sort: {
-      asc: "outstanding-asc",
-      desc: "outstanding-desc",
-      defaultDirection: "desc",
-    },
-  },
-  {
-    key: "order-date",
-    label: "Order date",
-    sort: {
-      asc: "order-date-asc",
-      desc: "order-date-desc",
-      defaultDirection: "desc",
-    },
-  },
-  {
-    key: "created-at",
-    label: "Created",
-    sort: {
-      asc: "created-at-asc",
-      desc: "created-at-desc",
-      defaultDirection: "desc",
     },
   },
   {
@@ -139,97 +76,72 @@ const baseHeaderConfigs: HeaderConfig[] = [
     label: "Branch",
   },
   {
-    key: "created-by",
-    label: "Created by",
+    key: "last-seen",
+    label: "Last seen",
+    sort: {
+      asc: "last-seen-asc",
+      desc: "last-seen-desc",
+      defaultDirection: "desc",
+    },
+  },
+  {
+    key: "session-created",
+    label: "Session started",
+    sort: {
+      asc: "session-created-asc",
+      desc: "session-created-desc",
+      defaultDirection: "desc",
+    },
   },
 ];
 
 function getHeaderConfigs(showBranch: boolean): HeaderConfig[] {
-  return showBranch
-    ? baseHeaderConfigs
-    : baseHeaderConfigs.filter((h) => h.key !== "branch");
-}
-
-function getTableHeaderCellClassName(align: "left" | "right" = "left") {
-  return cn(tableHeaderCellClassName, align === "right" && "text-right");
-}
-
-function getTableBodyCellClassName(align: "left" | "right" = "left") {
-  return cn(tableBodyCellClassName, align === "right" && "text-right");
+  return showBranch ? baseHeaderConfigs : baseHeaderConfigs.filter((h) => h.key !== "branch");
 }
 
 function getSortDirection(
-  currentSort: OrderSortValue,
+  currentSort: ActiveUserSortValue,
   sortConfig: HeaderSortConfig,
 ): SortDirection | null {
-  if (currentSort === sortConfig.asc) return "asc";
-  if (currentSort === sortConfig.desc) return "desc";
+  if (currentSort === sortConfig.asc) {
+    return "asc";
+  }
+
+  if (currentSort === sortConfig.desc) {
+    return "desc";
+  }
+
   return null;
 }
 
-function getNextSortValue(currentSort: OrderSortValue, sortConfig: HeaderSortConfig): OrderSortValue {
+function getNextSortValue(currentSort: ActiveUserSortValue, sortConfig: HeaderSortConfig): ActiveUserSortValue {
   const activeDirection = getSortDirection(currentSort, sortConfig);
 
-  if (activeDirection === "asc") return sortConfig.desc;
-  if (activeDirection === "desc") return sortConfig.asc;
+  if (activeDirection === "asc") {
+    return sortConfig.desc;
+  }
+
+  if (activeDirection === "desc") {
+    return sortConfig.asc;
+  }
 
   return sortConfig.defaultDirection === "desc" ? sortConfig.desc : sortConfig.asc;
 }
 
-function getNextSortDirectionLabel(
-  currentSort: OrderSortValue,
-  sortConfig: HeaderSortConfig,
-): string {
+function getNextSortDirectionLabel(currentSort: ActiveUserSortValue, sortConfig: HeaderSortConfig): string {
   const nextSortValue = getNextSortValue(currentSort, sortConfig);
 
   return nextSortValue === sortConfig.asc ? "ascending" : "descending";
-}
-
-function getOrderStatusTone(status: string): DataPillTone {
-  switch (status) {
-    case "pending":    return "amber";
-    case "processing": return "blue";
-    case "completed":  return "emerald";
-    case "delivered":  return "violet";
-    case "cancelled":  return "rose";
-    default:           return "neutral";
-  }
-}
-
-function getOrderPaymentStatusTone(status: string): DataPillTone {
-  switch (status) {
-    case "paid":    return "emerald";
-    case "partial": return "amber";
-    case "pending": return "rose";
-    default:        return "neutral";
-  }
-}
-
-function getOrderStatusLabel(status: string): string {
-  switch (status) {
-    case "pending":    return "Pending";
-    case "processing": return "Processing";
-    case "completed":  return "Completed";
-    case "delivered":  return "Delivered";
-    case "cancelled":  return "Cancelled";
-    default:           return status.charAt(0).toUpperCase() + status.slice(1);
-  }
-}
-
-function getPaymentStatusLabel(status: string): string {
-  switch (status) {
-    case "paid":    return "Paid";
-    case "partial": return "Partial";
-    case "pending": return "Unpaid";
-    default:        return status.charAt(0).toUpperCase() + status.slice(1);
-  }
 }
 
 function normalizeHref(href: string) {
   const url = new URL(href, "https://printflow.local");
   const normalizedSearchParams = Array.from(url.searchParams.entries()).sort(
     ([leftKey, leftValue], [rightKey, rightValue]) => {
-      if (leftKey === rightKey) return leftValue.localeCompare(rightValue);
+      if (leftKey === rightKey) {
+        return leftValue.localeCompare(rightValue);
+      }
+
       return leftKey.localeCompare(rightKey);
     },
   );
@@ -242,19 +154,29 @@ function isSameHref(leftHref: string, rightHref: string) {
   return normalizeHref(leftHref) === normalizeHref(rightHref);
 }
 
-export function OrderDataTable({
+function renderRolePill(role: string) {
+  const label = role.charAt(0).toUpperCase() + role.slice(1);
+
+  return (
+    <DataPill tone={getActiveUserRoleTone(role)} appearance="outline" className="max-w-full">
+      {label}
+    </DataPill>
+  );
+}
+
+export function ActiveUsersDataTable({
   items,
   emptyMessage,
   currentPath,
   currentFilters,
   pagination,
   showBranch = false,
-}: OrderDataTableProps) {
+}: ActiveUsersDataTableProps) {
   const router = useRouter();
   const headerConfigs = getHeaderConfigs(showBranch);
 
-  const handleSortChange = (sortValue: OrderSortValue) => {
-    const nextHref = buildOrderPageHref(currentPath, currentFilters, {
+  const handleSortChange = (sortValue: ActiveUserSortValue) => {
+    const nextHref = buildActiveUsersPageHref(currentPath, currentFilters, {
       page: 1,
       sort: sortValue,
     });
@@ -263,7 +185,7 @@ export function OrderDataTable({
   };
 
   const navigateToPagination = (href: string) => {
-    const currentHref = buildOrderPageHref(currentPath, currentFilters);
+    const currentHref = buildActiveUsersPageHref(currentPath, currentFilters);
 
     if (isSameHref(href, currentHref)) {
       return;
@@ -291,21 +213,16 @@ export function OrderDataTable({
         <table
           className={cn(
             "w-max min-w-full border-collapse text-left text-sm",
-            showBranch ? "min-w-360" : "min-w-7xl",
+            showBranch ? "min-w-288" : "min-w-248",
           )}
         >
           <colgroup>
+            <col className="w-48" />
             <col className="w-36" />
-            <col className="w-44" />
-            <col className="w-32" />
-            <col className="w-32" />
-            <col className="w-32" />
-            <col className="w-32" />
-            <col className="w-36" />
-            <col className="w-36" />
-            <col className="w-36" />
+            <col className="w-28" />
             {showBranch && <col className="w-40" />}
-            <col className="w-40" />
+            <col className="w-44" />
+            <col className="w-44" />
           </colgroup>
 
           <thead>
@@ -326,25 +243,20 @@ export function OrderDataTable({
                     key={headerConfig.key}
                     scope="col"
                     aria-sort={headerConfig.sort ? ariaSortValue : undefined}
-                    className={getTableHeaderCellClassName(headerConfig.align)}
+                    className={tableHeaderCellClassName}
                   >
                     {headerConfig.sort ? (
                       <button
                         type="button"
                         className={cn(
-                          "flex w-full items-center gap-3 rounded-xl transition-colors",
+                          "flex w-full items-center justify-between gap-3 rounded-xl text-left transition-colors",
                           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
-                          headerConfig.align === "right"
-                            ? "justify-end text-right"
-                            : "justify-between text-left",
                           activeDirection
                             ? "text-[rgb(var(--card-foreground))]"
                             : "hover:text-[rgb(var(--foreground))]",
                         )}
                         onClick={() =>
-                          handleSortChange(
-                            getNextSortValue(currentFilters.sort, headerConfig.sort!),
-                          )
+                          handleSortChange(getNextSortValue(currentFilters.sort, headerConfig.sort!))
                         }
                         aria-label={`Sort ${headerConfig.label} ${getNextSortDirectionLabel(currentFilters.sort, headerConfig.sort!)}`}
                         title={`Sort ${headerConfig.label} ${getNextSortDirectionLabel(currentFilters.sort, headerConfig.sort!)}`}
@@ -381,77 +293,37 @@ export function OrderDataTable({
           </thead>
 
           <tbody>
-            {items.map((order) => (
+            {items.map((activeUser) => (
               <tr
-                key={order.id}
+                key={activeUser.sessionId}
                 className="border-b border-[rgb(var(--border)/0.58)] transition-colors hover:bg-[rgb(var(--muted)/0.28)] last:border-b-0"
               >
-                <td className={getTableBodyCellClassName()}>
-                  <p className="whitespace-nowrap font-semibold leading-6 text-[rgb(var(--card-foreground))]">
-                    {order.orderCode}
+                <td className={tableBodyCellClassName}>
+                  <p className="wrap-break-word font-semibold leading-6 text-[rgb(var(--card-foreground))]">
+                    {activeUser.fullName}
                   </p>
                 </td>
-                <td className={getTableBodyCellClassName()}>
-                  <p className="wrap-break-word leading-6 text-[rgb(var(--card-foreground))]">
-                    {order.customerName}
+                <td className={tableBodyCellClassName}>
+                  <p className="whitespace-nowrap text-[rgb(var(--foreground)/0.76)]">
+                    {activeUser.username}
                   </p>
                 </td>
-                <td className={getTableBodyCellClassName()}>
-                  <DataPill tone={getOrderStatusTone(order.status)} className="max-w-full">
-                    {getOrderStatusLabel(order.status)}
-                  </DataPill>
-                </td>
-                <td className={getTableBodyCellClassName()}>
-                  <DataPill
-                    tone={getOrderPaymentStatusTone(order.paymentStatus)}
-                    appearance="outline"
-                    className="max-w-full"
-                  >
-                    {getPaymentStatusLabel(order.paymentStatus)}
-                  </DataPill>
-                </td>
-                <td className={getTableBodyCellClassName("right")}>
-                  <p className="whitespace-nowrap text-base font-semibold tabular-nums text-[rgb(var(--card-foreground))]">
-                    {formatCurrency(order.payableAmount)}
-                  </p>
-                </td>
-                <td className={getTableBodyCellClassName("right")}>
-                  <p className="whitespace-nowrap font-medium tabular-nums text-[rgb(var(--card-foreground))]">
-                    {formatCurrency(order.paidAmount)}
-                  </p>
-                </td>
-                <td className={getTableBodyCellClassName("right")}>
-                  <p
-                    className={cn(
-                      "whitespace-nowrap font-medium tabular-nums",
-                      order.outstandingAmount > 0
-                        ? "text-[rgb(var(--metric-rose-ink))]"
-                        : "text-[rgb(var(--foreground)/0.6)]",
-                    )}
-                  >
-                    {formatCurrency(order.outstandingAmount)}
-                  </p>
-                </td>
-                <td className={getTableBodyCellClassName()}>
-                  <p className="whitespace-nowrap font-medium text-[rgb(var(--card-foreground))]">
-                    {formatDate(order.orderDate)}
-                  </p>
-                </td>
-                <td className={getTableBodyCellClassName()}>
-                  <p className="whitespace-nowrap font-medium text-[rgb(var(--card-foreground))]">
-                    {formatDate(order.createdAt)}
-                  </p>
-                </td>
+                <td className={tableBodyCellClassName}>{renderRolePill(activeUser.role)}</td>
                 {showBranch && (
-                  <td className={getTableBodyCellClassName()}>
+                  <td className={tableBodyCellClassName}>
                     <p className="max-w-40 wrap-break-word font-medium leading-6 text-[rgb(var(--foreground)/0.76)]">
-                      {order.branchName ?? "—"}
+                      {activeUser.branchName ?? "—"}
                     </p>
                   </td>
                 )}
-                <td className={getTableBodyCellClassName()}>
-                  <p className="max-w-36 wrap-break-word text-sm leading-6 text-[rgb(var(--foreground)/0.68)]">
-                    {order.createdByName ?? "—"}
+                <td className={tableBodyCellClassName}>
+                  <p className="whitespace-nowrap font-medium text-[rgb(var(--card-foreground))]">
+                    {formatDateTime(activeUser.lastSeenAt)}
+                  </p>
+                </td>
+                <td className={tableBodyCellClassName}>
+                  <p className="whitespace-nowrap font-medium text-[rgb(var(--foreground)/0.68)]">
+                    {formatDateTime(activeUser.sessionCreatedAt)}
                   </p>
                 </td>
               </tr>
@@ -483,7 +355,7 @@ export function OrderDataTable({
                     title={`Rows per page: ${pagination.pageSize}`}
                     onChange={(event) => {
                       const nextPageSize = Number.parseInt(event.target.value, 10);
-                      const nextHref = buildOrderPaginationHref(currentPath, currentFilters, {
+                      const nextHref = buildActiveUsersPaginationHref(currentPath, currentFilters, {
                         page: 1,
                         pageSize: nextPageSize,
                       });
@@ -524,7 +396,7 @@ export function OrderDataTable({
                 disabled={pagination.page <= 1}
                 onClick={() =>
                   navigateToPagination(
-                    buildOrderPaginationHref(currentPath, currentFilters, {
+                    buildActiveUsersPaginationHref(currentPath, currentFilters, {
                       page: pagination.page - 1,
                     }),
                   )
@@ -553,7 +425,7 @@ export function OrderDataTable({
                 disabled={pagination.page >= pagination.totalPages}
                 onClick={() =>
                   navigateToPagination(
-                    buildOrderPaginationHref(currentPath, currentFilters, {
+                    buildActiveUsersPaginationHref(currentPath, currentFilters, {
                       page: pagination.page + 1,
                     }),
                   )

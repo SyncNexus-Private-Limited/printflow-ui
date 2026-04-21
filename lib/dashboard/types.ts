@@ -261,3 +261,18 @@ export type BusinessExpensesPageData = {
   summary: ExpenseRangeSummary;
   result: PaginatedListResult<BusinessExpenseDetailRow>;
 };
+
+export type ActiveUserRoleOption = {
+  role: string;
+};
+
+export type ActiveUsersPageSummary = {
+  totalActiveUsers: number;
+  adminActiveUsers: number;
+  staffActiveUsers: number;
+};
+
+export type ActiveUsersPageData = {
+  summary: ActiveUsersPageSummary;
+  result: PaginatedListResult<ActiveUserRow>;
+};

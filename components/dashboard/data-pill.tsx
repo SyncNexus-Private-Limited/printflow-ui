@@ -95,6 +95,17 @@ export function getExpensePaymentModeTone(value: string): DataPillTone {
   }
 }
 
+export function getActiveUserRoleTone(role: string): DataPillTone {
+  switch (role.toLowerCase()) {
+    case "admin":
+      return "violet";
+    case "staff":
+      return "emerald";
+    default:
+      return expenseCategoryTones[hashCategoryKey(role.toLowerCase()) % expenseCategoryTones.length];
+  }
+}
+
 export function getExpenseCategoryTone(categoryKey: string): DataPillTone {
   const normalizedCategoryKey = categoryKey.trim().toUpperCase();
 

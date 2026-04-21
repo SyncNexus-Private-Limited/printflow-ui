@@ -4,8 +4,12 @@ import type { AuthenticatedUser } from "@/lib/auth/current-user";
 import { getPool } from "@/lib/db/postgres";
 import type { ExpensePageFilterState } from "@/lib/dashboard/expense-page-filters";
 import type { OrderPageFilterState } from "@/lib/dashboard/order-page-filters";
+import type { ActiveUserPageFilterState, ActiveUserSortValue } from "@/lib/dashboard/active-users-page-filters";
 import {
   type ActiveUserRow,
+  type ActiveUserRoleOption,
+  type ActiveUsersPageData,
+  type ActiveUsersPageSummary,
   type BranchFilterState,
   type BranchOption,
   type BusinessExpenseDetailRow,
@@ -1212,6 +1216,123 @@ export async function getInventoryDetails(branchId: string | null) {
       JOIN branches b ON b.id = i.branch_id
       WHERE ($1::uuid IS NULL OR i.branch_id = $1::uuid)
       ORDER BY i.name ASC
+    `,
+    [branchId],
+  );
+
+  return rows;
+}
+
+function getActiveUsersOrderByClause(sort: ActiveUserSortValue): string {
+  switch (sort) {
+    case "last-seen-asc":
+      return "s.last_seen_at ASC";
+    case "session-created-desc":
+      return "s.created_at DESC, s.last_seen_at DESC";
+    case "session-created-asc":
+      return "s.created_at ASC, s.last_seen_at ASC";
+    case "name-asc":
+      return "LOWER(u.full_name) ASC, s.last_seen_at DESC";
+    case "name-desc":
+      return "LOWER(u.full_name) DESC, s.last_seen_at DESC";
+    case "role-asc":
+      return "LOWER(u.role::text) ASC, s.last_seen_at DESC";
+    case "role-desc":
+      return "LOWER(u.role::text) DESC, s.last_seen_at DESC";
+    case "last-seen-desc":
+    default:
+      return "s.last_seen_at DESC";
+  }
+}
+
+export async function getActiveUsersPageData(
+  branchId: string | null,
+  filters: ActiveUserPageFilterState,
+): Promise<ActiveUsersPageData> {
+  const db = getPool();
+  const activeWindowMinutes = getActiveUserWindowMinutes();
+  const queryValues: Array<number | string | null> = [branchId, activeWindowMinutes];
+  const whereParts = [
+    "s.is_revoked = false",
+    "s.expires_at > now()",
+    "s.last_seen_at >= now() - make_interval(mins => $2::int)",
+    "u.is_active = true",
+    "($1::uuid IS NULL OR COALESCE(s.branch_id, u.branch_id) = $1::uuid)",
+  ];
+
+  if (filters.role) {
+    queryValues.push(filters.role);
+    whereParts.push(`u.role::text = $${queryValues.length}`);
+  }
+
+  const whereClause = whereParts.join("\n      AND ");
+
+  const { rows: summaryRows } = await db.query<ActiveUsersPageSummary>(
+    `
+      SELECT
+        COUNT(*)::int AS "totalActiveUsers",
+        COUNT(*) FILTER (WHERE u.role::text = 'admin')::int AS "adminActiveUsers",
+        COUNT(*) FILTER (WHERE u.role::text != 'admin')::int AS "staffActiveUsers"
+      FROM app_sessions s
+      JOIN users u ON u.id = s.user_id
+      WHERE ${whereClause}
+    `,
+    queryValues,
+  );
+
+  const summary = summaryRows[0];
+  const totalPages = Math.max(1, Math.ceil(summary.totalActiveUsers / filters.pageSize));
+  const page = Math.min(Math.max(filters.page, 1), totalPages);
+  const orderByClause = getActiveUsersOrderByClause(filters.sort);
+  const listQueryValues = [...queryValues, filters.pageSize, (page - 1) * filters.pageSize];
+  const limitIdx = queryValues.length + 1;
+  const offsetIdx = queryValues.length + 2;
+
+  const { rows } = await db.query<ActiveUserRow>(
+    `
+      SELECT
+        s.id::text AS "sessionId",
+        u.full_name AS "fullName",
+        ua.username,
+        u.role::text AS role,
+        b.name AS "branchName",
+        s.last_seen_at::text AS "lastSeenAt",
+        s.created_at::text AS "sessionCreatedAt"
+      FROM app_sessions s
+      JOIN users u ON u.id = s.user_id
+      LEFT JOIN user_auth ua ON ua.user_id = u.id
+      LEFT JOIN branches b ON b.id = COALESCE(s.branch_id, u.branch_id)
+      WHERE ${whereClause}
+      ORDER BY ${orderByClause}
+      LIMIT $${limitIdx}
+      OFFSET $${offsetIdx}
+    `,
+    listQueryValues,
+  );
+
+  return {
+    summary,
+    result: {
+      items: rows,
+      pagination: {
+        page,
+        pageSize: filters.pageSize,
+        totalItems: summary.totalActiveUsers,
+        totalPages,
+      },
+    },
+  };
+}
+
+export async function getActiveUserRoleOptions(branchId: string | null): Promise<ActiveUserRoleOption[]> {
+  const db = getPool();
+  const { rows } = await db.query<ActiveUserRoleOption>(
+    `
+      SELECT DISTINCT u.role::text AS role
+      FROM users u
+      WHERE u.is_active = true
+        AND ($1::uuid IS NULL OR u.branch_id = $1::uuid)
+      ORDER BY u.role::text ASC
     `,
     [branchId],
   );

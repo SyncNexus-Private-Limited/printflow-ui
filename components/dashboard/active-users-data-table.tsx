@@ -213,7 +213,7 @@ export function ActiveUsersDataTable({
         <table
           className={cn(
             "w-max min-w-full border-collapse text-left text-sm",
-            showBranch ? "min-w-288" : "min-w-248",
+            showBranch ? "min-w-6xl" : "min-w-248",
           )}
         >
           <colgroup>

@@ -2,6 +2,7 @@ import "server-only";
 import { getActiveUserWindowMinutes } from "@/lib/auth/session";
 import type { AuthenticatedUser } from "@/lib/auth/current-user";
 import { getPool } from "@/lib/db/postgres";
+import type { CustomerPageFilterState } from "@/lib/dashboard/customer-page-filters";
 import type { ExpensePageFilterState } from "@/lib/dashboard/expense-page-filters";
 import type { OrderPageFilterState } from "@/lib/dashboard/order-page-filters";
 import type { ActiveUserPageFilterState, ActiveUserSortValue } from "@/lib/dashboard/active-users-page-filters";
@@ -18,7 +19,6 @@ import {
   type CustomersPageData,
   type CustomersPageSummary,
   type DashboardSummary,
-  type DashboardDateRange,
   type DashboardPageFilterState,
   type EmployeeExpenseDetailRow,
   type EmployeeExpensesPageData,
@@ -279,39 +279,6 @@ export async function getDashboardSummary(branchId: string | null): Promise<Dash
   };
 }
 
-type DashboardDateFilterClause = {
-  clause: string;
-  values: string[];
-  nextParameterIndex: number;
-};
-
-function buildDashboardDateFilterClause(
-  columnExpression: string,
-  dateRange: DashboardDateRange,
-  startingParameterIndex: number,
-): DashboardDateFilterClause {
-  const filters: string[] = [];
-  const values: string[] = [];
-  let parameterIndex = startingParameterIndex;
-
-  if (dateRange.from) {
-    filters.push(`${columnExpression} >= $${parameterIndex}::date`);
-    values.push(dateRange.from);
-    parameterIndex += 1;
-  }
-
-  if (dateRange.to) {
-    filters.push(`${columnExpression} <= $${parameterIndex}::date`);
-    values.push(dateRange.to);
-    parameterIndex += 1;
-  }
-
-  return {
-    clause: filters.length > 0 ? ` AND ${filters.join(" AND ")}` : "",
-    values,
-    nextParameterIndex: parameterIndex,
-  };
-}
 
 function buildPaginationState(totalItems: number, filters: DashboardPageFilterState) {
   const totalPages = Math.max(1, Math.ceil(totalItems / filters.pageSize));
@@ -862,67 +829,346 @@ export async function getOrderFilterOptions(branchId: string | null): Promise<Or
   };
 }
 
+type CustomerQueryParts = {
+  whereClause: string;
+  values: Array<number | string | null>;
+  orderByClause: string;
+};
+
+function getCustomerOrderByClause(filters: CustomerPageFilterState): string {
+  switch (filters.sort) {
+    case "created-asc":
+      return "c.created_at ASC, c.name ASC";
+    case "updated-desc":
+      return "c.updated_at DESC, c.created_at DESC";
+    case "updated-asc":
+      return "c.updated_at ASC, c.created_at ASC";
+    case "name-asc":
+      return "LOWER(c.name) ASC, c.created_at DESC";
+    case "name-desc":
+      return "LOWER(c.name) DESC, c.created_at DESC";
+    case "type-asc":
+      return "LOWER(c.type::text) ASC, c.created_at DESC";
+    case "type-desc":
+      return "LOWER(c.type::text) DESC, c.created_at DESC";
+    case "phone-asc":
+      return "c.phone ASC, c.created_at DESC";
+    case "phone-desc":
+      return "c.phone DESC, c.created_at DESC";
+    case "studio-name-asc":
+      return "CASE WHEN c.studio_name IS NULL THEN 1 ELSE 0 END ASC, LOWER(COALESCE(c.studio_name, '')) ASC, c.created_at DESC";
+    case "studio-name-desc":
+      return "CASE WHEN c.studio_name IS NULL THEN 1 ELSE 0 END ASC, LOWER(COALESCE(c.studio_name, '')) DESC, c.created_at DESC";
+    case "customer-code-asc":
+      return "CASE WHEN c.customer_code IS NULL THEN 1 ELSE 0 END ASC, LOWER(COALESCE(c.customer_code, '')) ASC, c.created_at DESC";
+    case "customer-code-desc":
+      return "CASE WHEN c.customer_code IS NULL THEN 1 ELSE 0 END ASC, LOWER(COALESCE(c.customer_code, '')) DESC, c.created_at DESC";
+    case "order-count-desc":
+      return "ord_agg.order_count DESC, c.created_at DESC";
+    case "order-count-asc":
+      return "ord_agg.order_count ASC, c.created_at DESC";
+    case "total-payable-desc":
+      return "ord_agg.total_payable DESC, c.created_at DESC";
+    case "total-payable-asc":
+      return "ord_agg.total_payable ASC, c.created_at DESC";
+    case "outstanding-desc":
+      return "ord_agg.total_outstanding DESC, c.created_at DESC";
+    case "outstanding-asc":
+      return "ord_agg.total_outstanding ASC, c.created_at DESC";
+    case "last-order-date-desc":
+      return "ord_agg.last_order_date DESC NULLS LAST, c.created_at DESC";
+    case "last-order-date-asc":
+      return "ord_agg.last_order_date ASC NULLS LAST, c.created_at DESC";
+    case "created-desc":
+    default:
+      return "c.created_at DESC, c.name ASC";
+  }
+}
+
+function buildCustomerQueryParts(
+  branchId: string | null,
+  filters: CustomerPageFilterState,
+): CustomerQueryParts {
+  const values: Array<number | string | null> = [branchId];
+  const whereParts: string[] = [];
+  const branchScope = `($1::uuid IS NULL OR o.branch_id = $1::uuid)`;
+
+  whereParts.push(`(
+        $1::uuid IS NULL
+        OR EXISTS (
+          SELECT 1 FROM orders o
+          WHERE o.customer_id = c.id
+            AND o.branch_id = $1::uuid
+        )
+      )`);
+
+  const dateCol =
+    filters.dateField === "updated" ? "c.updated_at::date" : "c.created_at::date";
+
+  if (filters.from) {
+    values.push(filters.from);
+    whereParts.push(`${dateCol} >= $${values.length}::date`);
+  }
+
+  if (filters.to) {
+    values.push(filters.to);
+    whereParts.push(`${dateCol} <= $${values.length}::date`);
+  }
+
+  if (filters.type) {
+    values.push(filters.type);
+    whereParts.push(`c.type::text = $${values.length}`);
+  }
+
+  if (filters.name) {
+    values.push(filters.name);
+    whereParts.push(`c.name ILIKE '%' || $${values.length} || '%'`);
+  }
+
+  if (filters.phone) {
+    values.push(filters.phone);
+    whereParts.push(`c.phone ILIKE '%' || $${values.length} || '%'`);
+  }
+
+  if (filters.alternatePhone) {
+    values.push(filters.alternatePhone);
+    whereParts.push(`c.alternate_phone ILIKE '%' || $${values.length} || '%'`);
+  }
+
+  if (filters.customerCode) {
+    values.push(filters.customerCode);
+    whereParts.push(`c.customer_code ILIKE '%' || $${values.length} || '%'`);
+  }
+
+  if (filters.customerNumericId) {
+    values.push(filters.customerNumericId);
+    whereParts.push(`c.customer_numeric_id::text ILIKE '%' || $${values.length} || '%'`);
+  }
+
+  if (filters.studioName) {
+    values.push(filters.studioName);
+    whereParts.push(`c.studio_name ILIKE '%' || $${values.length} || '%'`);
+  }
+
+  if (filters.address) {
+    values.push(filters.address);
+    whereParts.push(`c.address ILIKE '%' || $${values.length} || '%'`);
+  }
+
+  if (filters.hasAlternatePhone === "with") {
+    whereParts.push(`NULLIF(BTRIM(COALESCE(c.alternate_phone, '')), '') IS NOT NULL`);
+  } else if (filters.hasAlternatePhone === "without") {
+    whereParts.push(`NULLIF(BTRIM(COALESCE(c.alternate_phone, '')), '') IS NULL`);
+  }
+
+  if (filters.hasStudioName === "with") {
+    whereParts.push(`NULLIF(BTRIM(COALESCE(c.studio_name, '')), '') IS NOT NULL`);
+  } else if (filters.hasStudioName === "without") {
+    whereParts.push(`NULLIF(BTRIM(COALESCE(c.studio_name, '')), '') IS NULL`);
+  }
+
+  if (filters.hasAddress === "with") {
+    whereParts.push(`NULLIF(BTRIM(COALESCE(c.address, '')), '') IS NOT NULL`);
+  } else if (filters.hasAddress === "without") {
+    whereParts.push(`NULLIF(BTRIM(COALESCE(c.address, '')), '') IS NULL`);
+  }
+
+  if (filters.hasAvatar === "with") {
+    whereParts.push(`c.avatar IS NOT NULL`);
+  } else if (filters.hasAvatar === "without") {
+    whereParts.push(`c.avatar IS NULL`);
+  }
+
+  if (filters.hasOrders === "yes") {
+    whereParts.push(`EXISTS (
+        SELECT 1 FROM orders o
+        WHERE o.customer_id = c.id AND ${branchScope}
+      )`);
+  } else if (filters.hasOrders === "no") {
+    whereParts.push(`NOT EXISTS (
+        SELECT 1 FROM orders o
+        WHERE o.customer_id = c.id AND ${branchScope}
+      )`);
+  }
+
+  if (filters.orderCountMin) {
+    values.push(filters.orderCountMin);
+    whereParts.push(`(
+        SELECT COUNT(*) FROM orders o
+        WHERE o.customer_id = c.id AND ${branchScope}
+      ) >= $${values.length}::int`);
+  }
+
+  if (filters.orderCountMax) {
+    values.push(filters.orderCountMax);
+    whereParts.push(`(
+        SELECT COUNT(*) FROM orders o
+        WHERE o.customer_id = c.id AND ${branchScope}
+      ) <= $${values.length}::int`);
+  }
+
+  if (filters.lastOrderDateFrom) {
+    values.push(filters.lastOrderDateFrom);
+    whereParts.push(`(
+        SELECT MAX(o.order_date::date) FROM orders o
+        WHERE o.customer_id = c.id AND ${branchScope}
+      ) >= $${values.length}::date`);
+  }
+
+  if (filters.lastOrderDateTo) {
+    values.push(filters.lastOrderDateTo);
+    whereParts.push(`(
+        SELECT MAX(o.order_date::date) FROM orders o
+        WHERE o.customer_id = c.id AND ${branchScope}
+      ) <= $${values.length}::date`);
+  }
+
+  if (filters.totalPayableMin) {
+    values.push(filters.totalPayableMin);
+    whereParts.push(`(
+        SELECT COALESCE(SUM(o.payable_amount), 0) FROM orders o
+        WHERE o.customer_id = c.id AND ${branchScope}
+      ) >= $${values.length}::numeric`);
+  }
+
+  if (filters.totalPayableMax) {
+    values.push(filters.totalPayableMax);
+    whereParts.push(`(
+        SELECT COALESCE(SUM(o.payable_amount), 0) FROM orders o
+        WHERE o.customer_id = c.id AND ${branchScope}
+      ) <= $${values.length}::numeric`);
+  }
+
+  if (filters.outstandingMin) {
+    values.push(filters.outstandingMin);
+    whereParts.push(`(
+        SELECT COALESCE(SUM(o.payable_amount - o.paid_amount), 0) FROM orders o
+        WHERE o.customer_id = c.id AND ${branchScope}
+      ) >= $${values.length}::numeric`);
+  }
+
+  if (filters.outstandingMax) {
+    values.push(filters.outstandingMax);
+    whereParts.push(`(
+        SELECT COALESCE(SUM(o.payable_amount - o.paid_amount), 0) FROM orders o
+        WHERE o.customer_id = c.id AND ${branchScope}
+      ) <= $${values.length}::numeric`);
+  }
+
+  if (filters.lastOrderStatus) {
+    values.push(filters.lastOrderStatus);
+    whereParts.push(`(
+        SELECT o.status::text FROM orders o
+        WHERE o.customer_id = c.id AND ${branchScope}
+        ORDER BY o.order_date DESC, o.created_at DESC
+        LIMIT 1
+      ) = $${values.length}`);
+  }
+
+  if (filters.lastPaymentStatus) {
+    values.push(filters.lastPaymentStatus);
+    whereParts.push(`(
+        SELECT o.payment_status::text FROM orders o
+        WHERE o.customer_id = c.id AND ${branchScope}
+        ORDER BY o.order_date DESC, o.created_at DESC
+        LIMIT 1
+      ) = $${values.length}`);
+  }
+
+  return {
+    whereClause: whereParts.join("\n        AND "),
+    values,
+    orderByClause: getCustomerOrderByClause(filters),
+  };
+}
+
 export async function getCustomersPageData(
   branchId: string | null,
-  filters: DashboardPageFilterState,
+  filters: CustomerPageFilterState,
 ): Promise<CustomersPageData> {
   const db = getPool();
-  const dateRange = {
-    from: filters.from,
-    to: filters.to,
-  };
-  const summaryDateFilter = buildDashboardDateFilterClause("c.created_at::date", dateRange, 2);
+  const queryParts = buildCustomerQueryParts(branchId, filters);
+
   const { rows: summaryRows } = await db.query<CustomersPageSummary>(
     `
       SELECT
         COUNT(*)::int AS "totalCustomersInRange",
-        COUNT(*) FILTER (WHERE LOWER(c.type::text) = 'studio')::int AS "studioCustomersInRange"
+        COUNT(*) FILTER (WHERE LOWER(c.type::text) = 'studio')::int AS "studioCustomersInRange",
+        COUNT(*) FILTER (WHERE ord_agg.order_count > 0)::int AS "customersWithOrders",
+        COALESCE(SUM(ord_agg.total_payable), 0)::double precision AS "totalPayable",
+        COALESCE(SUM(ord_agg.total_outstanding), 0)::double precision AS "totalOutstanding"
       FROM customers c
-      WHERE (
-        $1::uuid IS NULL
-        OR EXISTS (
-          SELECT 1
-          FROM orders o
-          WHERE o.customer_id = c.id
-            AND o.branch_id = $1::uuid
-        )
-      )
-      ${summaryDateFilter.clause}
+      LEFT JOIN LATERAL (
+        SELECT
+          COUNT(*) AS order_count,
+          COALESCE(SUM(o.payable_amount), 0) AS total_payable,
+          COALESCE(SUM(o.payable_amount - o.paid_amount), 0) AS total_outstanding
+        FROM orders o
+        WHERE o.customer_id = c.id
+          AND ($1::uuid IS NULL OR o.branch_id = $1::uuid)
+      ) ord_agg ON true
+      WHERE ${queryParts.whereClause}
     `,
-    [branchId, ...summaryDateFilter.values],
+    queryParts.values,
   );
   const summary = summaryRows[0];
   const pagination = buildPaginationState(summary.totalCustomersInRange, filters);
-  const listDateFilter = buildDashboardDateFilterClause("c.created_at::date", dateRange, 2);
   const listQueryParams = [
-    branchId,
-    ...listDateFilter.values,
+    ...queryParts.values,
     pagination.pageSize,
     (pagination.page - 1) * pagination.pageSize,
   ];
-  const limitParameterIndex = listDateFilter.nextParameterIndex;
-  const offsetParameterIndex = listDateFilter.nextParameterIndex + 1;
+  const limitParameterIndex = queryParts.values.length + 1;
+  const offsetParameterIndex = queryParts.values.length + 2;
+
   const { rows } = await db.query<CustomerDetailRow>(
     `
       SELECT
         c.id::text AS id,
-        c.name,
-        c.phone,
+        c.customer_numeric_id AS "customerNumericId",
+        c.customer_code AS "customerCode",
         c.type::text AS type,
+        c.name,
+        c.avatar,
         c.studio_name AS "studioName",
-        c.created_at::text AS "createdAt"
+        c.phone,
+        c.alternate_phone AS "alternatePhone",
+        c.address,
+        c.created_at::text AS "createdAt",
+        c.updated_at::text AS "updatedAt",
+        ord_agg.order_count::int AS "orderCount",
+        ord_agg.last_order_date::text AS "lastOrderDate",
+        ord_agg.total_payable::double precision AS "totalPayable",
+        ord_agg.total_outstanding::double precision AS "totalOutstanding",
+        ord_agg.last_order_status AS "lastOrderStatus",
+        ord_agg.last_payment_status AS "lastPaymentStatus"
       FROM customers c
-      WHERE (
-        $1::uuid IS NULL
-        OR EXISTS (
-          SELECT 1
-          FROM orders o
-          WHERE o.customer_id = c.id
-            AND o.branch_id = $1::uuid
-        )
-      )
-      ${listDateFilter.clause}
-      ORDER BY c.created_at DESC, c.name ASC
+      LEFT JOIN LATERAL (
+        SELECT
+          COUNT(*) AS order_count,
+          COALESCE(SUM(o.payable_amount), 0) AS total_payable,
+          COALESCE(SUM(o.payable_amount - o.paid_amount), 0) AS total_outstanding,
+          MAX(o.order_date::date) AS last_order_date,
+          (
+            SELECT o2.status::text FROM orders o2
+            WHERE o2.customer_id = c.id
+              AND ($1::uuid IS NULL OR o2.branch_id = $1::uuid)
+            ORDER BY o2.order_date DESC, o2.created_at DESC
+            LIMIT 1
+          ) AS last_order_status,
+          (
+            SELECT o2.payment_status::text FROM orders o2
+            WHERE o2.customer_id = c.id
+              AND ($1::uuid IS NULL OR o2.branch_id = $1::uuid)
+            ORDER BY o2.order_date DESC, o2.created_at DESC
+            LIMIT 1
+          ) AS last_payment_status
+        FROM orders o
+        WHERE o.customer_id = c.id
+          AND ($1::uuid IS NULL OR o.branch_id = $1::uuid)
+      ) ord_agg ON true
+      WHERE ${queryParts.whereClause}
+      ORDER BY ${queryParts.orderByClause}
       LIMIT $${limitParameterIndex}
       OFFSET $${offsetParameterIndex}
     `,
@@ -1177,17 +1423,52 @@ export async function getCustomerDetails(branchId: string | null) {
     `
       SELECT
         c.id::text AS id,
-        c.name,
-        c.phone,
+        c.customer_numeric_id AS "customerNumericId",
+        c.customer_code AS "customerCode",
         c.type::text AS type,
+        c.name,
+        c.avatar,
         c.studio_name AS "studioName",
-        c.created_at::text AS "createdAt"
+        c.phone,
+        c.alternate_phone AS "alternatePhone",
+        c.address,
+        c.created_at::text AS "createdAt",
+        c.updated_at::text AS "updatedAt",
+        ord_agg.order_count::int AS "orderCount",
+        ord_agg.last_order_date::text AS "lastOrderDate",
+        ord_agg.total_payable::double precision AS "totalPayable",
+        ord_agg.total_outstanding::double precision AS "totalOutstanding",
+        ord_agg.last_order_status AS "lastOrderStatus",
+        ord_agg.last_payment_status AS "lastPaymentStatus"
       FROM customers c
+      LEFT JOIN LATERAL (
+        SELECT
+          COUNT(*) AS order_count,
+          COALESCE(SUM(o.payable_amount), 0) AS total_payable,
+          COALESCE(SUM(o.payable_amount - o.paid_amount), 0) AS total_outstanding,
+          MAX(o.order_date::date) AS last_order_date,
+          (
+            SELECT o2.status::text FROM orders o2
+            WHERE o2.customer_id = c.id
+              AND ($1::uuid IS NULL OR o2.branch_id = $1::uuid)
+            ORDER BY o2.order_date DESC, o2.created_at DESC
+            LIMIT 1
+          ) AS last_order_status,
+          (
+            SELECT o2.payment_status::text FROM orders o2
+            WHERE o2.customer_id = c.id
+              AND ($1::uuid IS NULL OR o2.branch_id = $1::uuid)
+            ORDER BY o2.order_date DESC, o2.created_at DESC
+            LIMIT 1
+          ) AS last_payment_status
+        FROM orders o
+        WHERE o.customer_id = c.id
+          AND ($1::uuid IS NULL OR o.branch_id = $1::uuid)
+      ) ord_agg ON true
       WHERE (
         $1::uuid IS NULL
         OR EXISTS (
-          SELECT 1
-          FROM orders o
+          SELECT 1 FROM orders o
           WHERE o.customer_id = c.id
             AND o.branch_id = $1::uuid
         )

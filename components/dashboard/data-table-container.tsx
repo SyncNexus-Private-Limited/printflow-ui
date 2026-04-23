@@ -10,7 +10,7 @@ export function DataTableContainer({ children, className }: DataTableContainerPr
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-3xl border border-[rgb(var(--border)/0.72)] bg-[rgb(var(--card)/0.98)]",
+        "overflow-hidden rounded-3xl border border-[rgb(var(--border)/0.78)] bg-[rgb(var(--card)/0.92)] backdrop-blur-lg",
         className,
       )}
     >

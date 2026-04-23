@@ -13,9 +13,11 @@ type TableScrollAreaProps = {
   children: ReactNode;
   className?: string;
   viewportClassName?: string;
+  /** Total width (px) of all left-sticky columns. When set, a shadow appears at the boundary once the user scrolls. */
+  stickyLeftWidth?: number;
 };
 
-export function TableScrollArea({ children, className, viewportClassName }: TableScrollAreaProps) {
+export function TableScrollArea({ children, className, viewportClassName, stickyLeftWidth }: TableScrollAreaProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [scrollState, setScrollState] = useState<ScrollState>({
     canScrollLeft: false,
@@ -80,6 +82,14 @@ export function TableScrollArea({ children, className, viewportClassName }: Tabl
       <div ref={viewportRef} className={cn("dashboard-scrollbar overflow-x-auto pb-2", viewportClassName)}>
         {children}
       </div>
+
+      {scrollState.canScrollLeft && stickyLeftWidth ? (
+        <div
+          className="pointer-events-none absolute inset-y-0 w-8 bg-linear-to-r from-[rgb(var(--shadow)/0.14)] via-[rgb(var(--shadow)/0.05)] to-transparent"
+          style={{ left: stickyLeftWidth }}
+          aria-hidden="true"
+        />
+      ) : null}
 
       {scrollState.canScrollRight ? (
         <>

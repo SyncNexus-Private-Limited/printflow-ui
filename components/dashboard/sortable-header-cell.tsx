@@ -11,6 +11,11 @@ import {
   getNextSortValue,
   getNextSortDirectionLabel,
 } from "@/lib/dashboard/sortable-header-utils";
+import {
+  type StickySpec,
+  getStickyHeaderCellClass,
+  getStickyHeaderCellStyle,
+} from "@/lib/dashboard/sticky-column-utils";
 
 type SortableHeaderCellProps<TSortValue extends string> = {
   label: string;
@@ -18,6 +23,8 @@ type SortableHeaderCellProps<TSortValue extends string> = {
   sortConfig: HeaderSortConfig<TSortValue>;
   currentSort: TSortValue;
   onSort: (nextSortValue: TSortValue) => void;
+  /** Optional sticky spec produced by computeStickySpecs(). */
+  stickySpec?: StickySpec;
 };
 
 export function SortableHeaderCell<TSortValue extends string>({
@@ -26,17 +33,24 @@ export function SortableHeaderCell<TSortValue extends string>({
   sortConfig,
   currentSort,
   onSort,
+  stickySpec,
 }: SortableHeaderCellProps<TSortValue>) {
   const activeDirection = getSortDirection(currentSort, sortConfig);
   const ariaSortValue =
     activeDirection === "asc" ? "ascending" : activeDirection === "desc" ? "descending" : "none";
   const nextDirectionLabel = getNextSortDirectionLabel(currentSort, sortConfig);
+  const resolvedStickySpec = stickySpec ?? null;
 
   return (
     <th
       scope="col"
       aria-sort={ariaSortValue}
-      className={cn(TABLE_HEADER_CELL_CLASS, align === "right" && "text-right")}
+      className={cn(
+        TABLE_HEADER_CELL_CLASS,
+        align === "right" && "text-right",
+        getStickyHeaderCellClass(resolvedStickySpec),
+      )}
+      style={getStickyHeaderCellStyle(resolvedStickySpec)}
     >
       <button
         type="button"

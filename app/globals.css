@@ -118,6 +118,24 @@ textarea {
   scrollbar-color: rgb(var(--border)) transparent;
 }
 
+/*
+ * Sticky table body cells require a fully opaque base background so scrolled
+ * column content cannot bleed through. On row hover, a semi-transparent muted
+ * overlay is composited on top via background-image (which always layers above
+ * background-color), producing the same visual as the row hover tint while
+ * keeping the cell fully opaque. The parent <tr> must carry the `group` class.
+ */
+.table-sticky-body-cell {
+  background-color: rgb(var(--card));
+}
+
+.group:hover .table-sticky-body-cell {
+  background-image: linear-gradient(
+    rgb(var(--muted) / 0.28),
+    rgb(var(--muted) / 0.28)
+  );
+}
+
 .dashboard-scrollbar::-webkit-scrollbar {
   height: 10px;
 }

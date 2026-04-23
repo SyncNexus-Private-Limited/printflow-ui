@@ -20,6 +20,16 @@ import {
 } from "@/lib/dashboard/order-page-filters";
 import { TABLE_BODY_CELL_CLASS, TABLE_HEADER_CELL_CLASS } from "@/lib/dashboard/list-page-classes";
 import { type HeaderSortConfig } from "@/lib/dashboard/sortable-header-utils";
+import {
+  type ColumnStickyDef,
+  type StickySpec,
+  computeStickySpecs,
+  getStickyBodyCellClass,
+  getStickyBodyCellStyle,
+  getStickyEdgeTotalWidth,
+  getStickyHeaderCellClass,
+  getStickyHeaderCellStyle,
+} from "@/lib/dashboard/sticky-column-utils";
 import type { DashboardPaginationState, OrderDetailRow } from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils/cn";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
@@ -39,12 +49,14 @@ type HeaderConfig = {
   align?: "left" | "right";
   sort?: HeaderSortConfig<OrderSortValue>;
   conditional?: boolean;
-};
+} & ColumnStickyDef;
 
 const baseHeaderConfigs: HeaderConfig[] = [
   {
     key: "order-code",
     label: "Order code",
+    sticky: "left",
+    width: 144, // matches <col className="w-36">
     sort: { asc: "order-code-asc", desc: "order-code-desc", defaultDirection: "asc" },
   },
   {
@@ -122,6 +134,9 @@ export function OrderDataTable({
     return <TableEmptyState message={emptyMessage} />;
   }
 
+  const stickySpecs = computeStickySpecs(headerConfigs);
+  const stickyLeftWidth = getStickyEdgeTotalWidth(headerConfigs, "left") || undefined;
+
   const handleSortChange = (sortValue: OrderSortValue) => {
     const nextHref = buildOrderPageHref(currentPath, currentFilters, {
       page: 1,
@@ -133,7 +148,7 @@ export function OrderDataTable({
 
   return (
     <DataTableContainer>
-      <TableScrollArea className="bg-[rgb(var(--card)/0.98)]" viewportClassName="pb-0">
+      <TableScrollArea className="bg-[rgb(var(--card)/0.98)]" viewportClassName="pb-0" stickyLeftWidth={stickyLeftWidth}>
         <table
           className={cn(
             "w-max min-w-full border-collapse text-left text-sm",
@@ -156,7 +171,7 @@ export function OrderDataTable({
 
           <thead>
             <tr>
-              {headerConfigs.map((headerConfig) =>
+              {headerConfigs.map((headerConfig, index) =>
                 headerConfig.sort ? (
                   <SortableHeaderCell
                     key={headerConfig.key}
@@ -165,6 +180,7 @@ export function OrderDataTable({
                     sortConfig={headerConfig.sort}
                     currentSort={currentFilters.sort}
                     onSort={handleSortChange}
+                    stickySpec={stickySpecs[index] ?? undefined}
                   />
                 ) : (
                   <th
@@ -173,7 +189,9 @@ export function OrderDataTable({
                     className={cn(
                       TABLE_HEADER_CELL_CLASS,
                       headerConfig.align === "right" && "text-right",
+                      getStickyHeaderCellClass(stickySpecs[index]),
                     )}
+                    style={getStickyHeaderCellStyle(stickySpecs[index])}
                   >
                     {headerConfig.label}
                   </th>
@@ -186,9 +204,12 @@ export function OrderDataTable({
             {items.map((order) => (
               <tr
                 key={order.id}
-                className="border-b border-[rgb(var(--border)/0.58)] transition-colors hover:bg-[rgb(var(--muted)/0.28)] last:border-b-0"
+                className="group border-b border-[rgb(var(--border)/0.58)] transition-colors hover:bg-[rgb(var(--muted)/0.28)] last:border-b-0"
               >
-                <td className={TABLE_BODY_CELL_CLASS}>
+                <td
+                  className={cn(TABLE_BODY_CELL_CLASS, getStickyBodyCellClass(stickySpecs[0]))}
+                  style={getStickyBodyCellStyle(stickySpecs[0])}
+                >
                   <p className="whitespace-nowrap font-semibold leading-6 text-[rgb(var(--card-foreground))]">
                     {order.orderCode}
                   </p>

@@ -14,6 +14,15 @@ import {
 } from "@/lib/dashboard/customer-page-filters";
 import { TABLE_BODY_CELL_CLASS, TABLE_HEADER_CELL_CLASS } from "@/lib/dashboard/list-page-classes";
 import { type HeaderSortConfig } from "@/lib/dashboard/sortable-header-utils";
+import {
+  type ColumnStickyDef,
+  computeStickySpecs,
+  getStickyBodyCellClass,
+  getStickyBodyCellStyle,
+  getStickyEdgeTotalWidth,
+  getStickyHeaderCellClass,
+  getStickyHeaderCellStyle,
+} from "@/lib/dashboard/sticky-column-utils";
 import type { CustomerDetailRow, DashboardPaginationState } from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils/cn";
 import { formatCompactNumber, formatCurrency, formatDate, formatEnumLabel } from "@/lib/utils/format";
@@ -31,12 +40,14 @@ type HeaderConfig = {
   label: string;
   align?: "left" | "right";
   sort?: HeaderSortConfig<CustomerSortValue>;
-};
+} & ColumnStickyDef;
 
 const headerConfigs: HeaderConfig[] = [
   {
     key: "customer",
     label: "Customer",
+    sticky: "left",
+    width: 224, // matches <col className="w-56">
     sort: { asc: "name-asc", desc: "name-desc", defaultDirection: "asc" },
   },
   {
@@ -96,6 +107,9 @@ export function CustomerDataTable({
     return <TableEmptyState message={emptyMessage} />;
   }
 
+  const stickySpecs = computeStickySpecs(headerConfigs);
+  const stickyLeftWidth = getStickyEdgeTotalWidth(headerConfigs, "left") || undefined;
+
   const handleSortChange = (sortValue: CustomerSortValue) => {
     const nextHref = buildCustomerPageHref(currentPath, currentFilters, {
       page: 1,
@@ -107,7 +121,7 @@ export function CustomerDataTable({
 
   return (
     <DataTableContainer>
-      <TableScrollArea className="bg-[rgb(var(--card)/0.98)]" viewportClassName="pb-0">
+      <TableScrollArea className="bg-[rgb(var(--card)/0.98)]" viewportClassName="pb-0" stickyLeftWidth={stickyLeftWidth}>
         <table className="w-max min-w-full border-collapse text-left text-sm">
           <colgroup>
             <col className="w-56" />
@@ -123,7 +137,7 @@ export function CustomerDataTable({
 
           <thead>
             <tr>
-              {headerConfigs.map((headerConfig) =>
+              {headerConfigs.map((headerConfig, index) =>
                 headerConfig.sort ? (
                   <SortableHeaderCell
                     key={headerConfig.key}
@@ -132,6 +146,7 @@ export function CustomerDataTable({
                     sortConfig={headerConfig.sort}
                     currentSort={currentFilters.sort}
                     onSort={handleSortChange}
+                    stickySpec={stickySpecs[index] ?? undefined}
                   />
                 ) : (
                   <th
@@ -140,7 +155,9 @@ export function CustomerDataTable({
                     className={cn(
                       TABLE_HEADER_CELL_CLASS,
                       headerConfig.align === "right" && "text-right",
+                      getStickyHeaderCellClass(stickySpecs[index]),
                     )}
+                    style={getStickyHeaderCellStyle(stickySpecs[index])}
                   >
                     {headerConfig.label}
                   </th>
@@ -153,9 +170,12 @@ export function CustomerDataTable({
             {items.map((customer) => (
               <tr
                 key={customer.id}
-                className="border-b border-[rgb(var(--border)/0.58)] transition-colors hover:bg-[rgb(var(--muted)/0.28)] last:border-b-0"
+                className="group border-b border-[rgb(var(--border)/0.58)] transition-colors hover:bg-[rgb(var(--muted)/0.28)] last:border-b-0"
               >
-                <td className={TABLE_BODY_CELL_CLASS}>
+                <td
+                  className={cn(TABLE_BODY_CELL_CLASS, getStickyBodyCellClass(stickySpecs[0]))}
+                  style={getStickyBodyCellStyle(stickySpecs[0])}
+                >
                   <div className="space-y-0.5">
                     <p className="wrap-break-word font-semibold leading-6 text-[rgb(var(--card-foreground))]">
                       {customer.name}

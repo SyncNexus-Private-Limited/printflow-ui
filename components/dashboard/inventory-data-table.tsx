@@ -14,6 +14,15 @@ import {
 } from "@/lib/dashboard/inventory-page-filters";
 import { TABLE_BODY_CELL_CLASS, TABLE_HEADER_CELL_CLASS } from "@/lib/dashboard/list-page-classes";
 import { type HeaderSortConfig } from "@/lib/dashboard/sortable-header-utils";
+import {
+  type ColumnStickyDef,
+  computeStickySpecs,
+  getStickyBodyCellClass,
+  getStickyBodyCellStyle,
+  getStickyEdgeTotalWidth,
+  getStickyHeaderCellClass,
+  getStickyHeaderCellStyle,
+} from "@/lib/dashboard/sticky-column-utils";
 import type { DashboardPaginationState, InventoryPageDetailRow } from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils/cn";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
@@ -34,12 +43,14 @@ type HeaderConfig = {
   align?: "left" | "right";
   sort?: HeaderSortConfig<InventorySortValue>;
   conditional?: boolean;
-};
+} & ColumnStickyDef;
 
 const headerConfigs: HeaderConfig[] = [
   {
     key: "name",
     label: "Item name",
+    sticky: "left",
+    width: 224, // matches <col className="w-56">
     sort: { asc: "name-asc", desc: "name-desc", defaultDirection: "asc" },
   },
   {
@@ -147,6 +158,9 @@ export function InventoryDataTable({
     return <TableEmptyState message={emptyMessage} />;
   }
 
+  const stickySpecs = computeStickySpecs(visibleHeaders);
+  const stickyLeftWidth = getStickyEdgeTotalWidth(visibleHeaders, "left") || undefined;
+
   const handleSortChange = (sortValue: InventorySortValue) => {
     const nextHref = buildInventoryPageHref(currentPath, currentFilters, {
       page: 1,
@@ -158,7 +172,7 @@ export function InventoryDataTable({
 
   return (
     <DataTableContainer>
-      <TableScrollArea className="bg-[rgb(var(--card)/0.98)]" viewportClassName="pb-0">
+      <TableScrollArea className="bg-[rgb(var(--card)/0.98)]" viewportClassName="pb-0" stickyLeftWidth={stickyLeftWidth}>
         <table
           className={cn(
             "w-max min-w-full border-collapse text-left text-sm",
@@ -180,7 +194,7 @@ export function InventoryDataTable({
 
           <thead>
             <tr>
-              {visibleHeaders.map((headerConfig) =>
+              {visibleHeaders.map((headerConfig, index) =>
                 headerConfig.sort ? (
                   <SortableHeaderCell
                     key={headerConfig.key}
@@ -189,6 +203,7 @@ export function InventoryDataTable({
                     sortConfig={headerConfig.sort}
                     currentSort={currentFilters.sort}
                     onSort={handleSortChange}
+                    stickySpec={stickySpecs[index] ?? undefined}
                   />
                 ) : (
                   <th
@@ -197,7 +212,9 @@ export function InventoryDataTable({
                     className={cn(
                       TABLE_HEADER_CELL_CLASS,
                       headerConfig.align === "right" && "text-right",
+                      getStickyHeaderCellClass(stickySpecs[index]),
                     )}
+                    style={getStickyHeaderCellStyle(stickySpecs[index])}
                   >
                     {headerConfig.label}
                   </th>
@@ -210,9 +227,12 @@ export function InventoryDataTable({
             {items.map((item) => (
               <tr
                 key={item.id}
-                className="border-b border-[rgb(var(--border)/0.58)] transition-colors hover:bg-[rgb(var(--muted)/0.28)] last:border-b-0"
+                className="group border-b border-[rgb(var(--border)/0.58)] transition-colors hover:bg-[rgb(var(--muted)/0.28)] last:border-b-0"
               >
-                <td className={TABLE_BODY_CELL_CLASS}>
+                <td
+                  className={cn(TABLE_BODY_CELL_CLASS, getStickyBodyCellClass(stickySpecs[0]))}
+                  style={getStickyBodyCellStyle(stickySpecs[0])}
+                >
                   <p className="wrap-break-word font-semibold leading-6 text-[rgb(var(--card-foreground))]">
                     {item.name}
                   </p>

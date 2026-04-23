@@ -14,6 +14,15 @@ import {
 } from "@/lib/dashboard/active-users-page-filters";
 import { TABLE_BODY_CELL_CLASS, TABLE_HEADER_CELL_CLASS } from "@/lib/dashboard/list-page-classes";
 import { type HeaderSortConfig } from "@/lib/dashboard/sortable-header-utils";
+import {
+  type ColumnStickyDef,
+  computeStickySpecs,
+  getStickyBodyCellClass,
+  getStickyBodyCellStyle,
+  getStickyEdgeTotalWidth,
+  getStickyHeaderCellClass,
+  getStickyHeaderCellStyle,
+} from "@/lib/dashboard/sticky-column-utils";
 import type { ActiveUserRow, DashboardPaginationState } from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils/cn";
 import { formatDateTime } from "@/lib/utils/format";
@@ -31,12 +40,14 @@ type HeaderConfig = {
   key: string;
   label: string;
   sort?: HeaderSortConfig<ActiveUserSortValue>;
-};
+} & ColumnStickyDef;
 
 const baseHeaderConfigs: HeaderConfig[] = [
   {
     key: "name",
     label: "Full name",
+    sticky: "left",
+    width: 192, // matches <col className="w-48">
     sort: { asc: "name-asc", desc: "name-desc", defaultDirection: "asc" },
   },
   {
@@ -93,6 +104,9 @@ export function ActiveUsersDataTable({
     return <TableEmptyState message={emptyMessage} />;
   }
 
+  const stickySpecs = computeStickySpecs(headerConfigs);
+  const stickyLeftWidth = getStickyEdgeTotalWidth(headerConfigs, "left") || undefined;
+
   const handleSortChange = (sortValue: ActiveUserSortValue) => {
     const nextHref = buildActiveUsersPageHref(currentPath, currentFilters, {
       page: 1,
@@ -104,7 +118,7 @@ export function ActiveUsersDataTable({
 
   return (
     <DataTableContainer>
-      <TableScrollArea className="bg-[rgb(var(--card)/0.98)]" viewportClassName="pb-0">
+      <TableScrollArea className="bg-[rgb(var(--card)/0.98)]" viewportClassName="pb-0" stickyLeftWidth={stickyLeftWidth}>
         <table
           className={cn(
             "w-max min-w-full border-collapse text-left text-sm",
@@ -122,7 +136,7 @@ export function ActiveUsersDataTable({
 
           <thead>
             <tr>
-              {headerConfigs.map((headerConfig) =>
+              {headerConfigs.map((headerConfig, index) =>
                 headerConfig.sort ? (
                   <SortableHeaderCell
                     key={headerConfig.key}
@@ -130,9 +144,15 @@ export function ActiveUsersDataTable({
                     sortConfig={headerConfig.sort}
                     currentSort={currentFilters.sort}
                     onSort={handleSortChange}
+                    stickySpec={stickySpecs[index] ?? undefined}
                   />
                 ) : (
-                  <th key={headerConfig.key} scope="col" className={TABLE_HEADER_CELL_CLASS}>
+                  <th
+                    key={headerConfig.key}
+                    scope="col"
+                    className={cn(TABLE_HEADER_CELL_CLASS, getStickyHeaderCellClass(stickySpecs[index]))}
+                    style={getStickyHeaderCellStyle(stickySpecs[index])}
+                  >
                     {headerConfig.label}
                   </th>
                 ),
@@ -144,9 +164,12 @@ export function ActiveUsersDataTable({
             {items.map((activeUser) => (
               <tr
                 key={activeUser.sessionId}
-                className="border-b border-[rgb(var(--border)/0.58)] transition-colors hover:bg-[rgb(var(--muted)/0.28)] last:border-b-0"
+                className="group border-b border-[rgb(var(--border)/0.58)] transition-colors hover:bg-[rgb(var(--muted)/0.28)] last:border-b-0"
               >
-                <td className={TABLE_BODY_CELL_CLASS}>
+                <td
+                  className={cn(TABLE_BODY_CELL_CLASS, getStickyBodyCellClass(stickySpecs[0]))}
+                  style={getStickyBodyCellStyle(stickySpecs[0])}
+                >
                   <p className="wrap-break-word font-semibold leading-6 text-[rgb(var(--card-foreground))]">
                     {activeUser.fullName}
                   </p>

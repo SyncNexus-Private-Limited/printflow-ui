@@ -108,6 +108,8 @@ const businessHeaderConfigs: HeaderConfig[] = [
   {
     key: "category",
     label: "Category",
+    sticky: "left",
+    width: 176, // matches <col className="w-44">
     sort: { asc: "category-asc", desc: "category-desc", defaultDirection: "asc" },
   },
   {
@@ -213,13 +215,20 @@ function renderEmployeeRows(
   ));
 }
 
-function renderBusinessRows(items: BusinessExpenseDetailRow[], fallbackBranchName: string) {
+function renderBusinessRows(
+  items: BusinessExpenseDetailRow[],
+  fallbackBranchName: string,
+  stickySpecs: (StickySpec | null)[],
+) {
   return items.map((expense) => (
     <tr
       key={expense.id}
-      className="border-b border-[rgb(var(--border)/0.58)] transition-colors hover:bg-[rgb(var(--muted)/0.28)] last:border-b-0"
+      className="group border-b border-[rgb(var(--border)/0.58)] transition-colors hover:bg-[rgb(var(--muted)/0.28)] last:border-b-0"
     >
-      <td className={TABLE_BODY_CELL_CLASS}>
+      <td
+        className={cn(TABLE_BODY_CELL_CLASS, getStickyBodyCellClass(stickySpecs[0]))}
+        style={getStickyBodyCellStyle(stickySpecs[0])}
+      >
         <DataPill tone={getExpenseCategoryTone(expense.categoryCode)} className="max-w-full">
           {expense.category}
         </DataPill>
@@ -352,7 +361,7 @@ export function ExpenseDataTable({
           <tbody>
             {kind === "employee"
               ? renderEmployeeRows(items, stickySpecs)
-              : renderBusinessRows(items, fallbackBranchName ?? "Branch")}
+              : renderBusinessRows(items, fallbackBranchName ?? "Branch", stickySpecs)}
           </tbody>
         </table>
       </TableScrollArea>

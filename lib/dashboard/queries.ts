@@ -7,6 +7,11 @@ import type { ExpensePageFilterState } from "@/lib/dashboard/expense-page-filter
 import type { OrderPageFilterState } from "@/lib/dashboard/order-page-filters";
 import type { ActiveUserPageFilterState, ActiveUserSortValue } from "@/lib/dashboard/active-users-page-filters";
 import {
+  INVENTORY_LOW_STOCK_THRESHOLD,
+  type InventoryPageFilterState,
+  type InventorySortValue,
+} from "@/lib/dashboard/inventory-page-filters";
+import {
   type ActiveUserRow,
   type ActiveUserRoleOption,
   type ActiveUsersPageData,
@@ -24,6 +29,10 @@ import {
   type EmployeeExpensesPageData,
   type ExpenseRangeSummary,
   type InventoryDetailRow,
+  type InventoryPageData,
+  type InventoryPageDetailRow,
+  type InventoryPageSummary,
+  type InventoryVendorOption,
   type LowStockRow,
   type OrderCustomerOption,
   type OrderCreatorOption,
@@ -1497,6 +1506,257 @@ export async function getInventoryDetails(branchId: string | null) {
       JOIN branches b ON b.id = i.branch_id
       WHERE ($1::uuid IS NULL OR i.branch_id = $1::uuid)
       ORDER BY i.name ASC
+    `,
+    [branchId],
+  );
+
+  return rows;
+}
+
+// ---------------------------------------------------------------------------
+// Inventory page queries
+// ---------------------------------------------------------------------------
+
+type InventoryQueryParts = {
+  joins: string;
+  whereClause: string;
+  values: Array<number | string | null>;
+  orderByClause: string;
+};
+
+function getInventoryOrderByClause(sort: InventorySortValue): string {
+  const t = INVENTORY_LOW_STOCK_THRESHOLD;
+
+  switch (sort) {
+    case "name-asc":
+      return "LOWER(i.name) ASC, i.updated_at DESC";
+    case "name-desc":
+      return "LOWER(i.name) DESC, i.updated_at DESC";
+    case "sku-asc":
+      return "LOWER(i.sku) ASC, LOWER(i.name) ASC";
+    case "sku-desc":
+      return "LOWER(i.sku) DESC, LOWER(i.name) ASC";
+    case "quantity-asc":
+      return "i.quantity ASC, LOWER(i.name) ASC";
+    case "quantity-desc":
+      return "i.quantity DESC, LOWER(i.name) ASC";
+    case "unit-asc":
+      return "LOWER(i.unit::text) ASC, LOWER(i.name) ASC";
+    case "unit-desc":
+      return "LOWER(i.unit::text) DESC, LOWER(i.name) ASC";
+    case "active-asc":
+      return "i.is_active ASC, LOWER(i.name) ASC";
+    case "active-desc":
+      return "i.is_active DESC, LOWER(i.name) ASC";
+    case "purchase-rate-asc":
+      return "CASE WHEN i.last_purchase_rate IS NULL THEN 1 ELSE 0 END ASC, i.last_purchase_rate ASC NULLS LAST, LOWER(i.name) ASC";
+    case "purchase-rate-desc":
+      return "CASE WHEN i.last_purchase_rate IS NULL THEN 1 ELSE 0 END ASC, i.last_purchase_rate DESC NULLS LAST, LOWER(i.name) ASC";
+    case "vendor-asc":
+      return "CASE WHEN v.name IS NULL THEN 1 ELSE 0 END ASC, LOWER(v.name) ASC NULLS LAST, LOWER(i.name) ASC";
+    case "vendor-desc":
+      return "CASE WHEN v.name IS NULL THEN 1 ELSE 0 END ASC, LOWER(v.name) DESC NULLS LAST, LOWER(i.name) ASC";
+    case "stock-state-asc":
+      // out-of-stock (0) first, then low-stock (1), then in-stock (2)
+      return `CASE WHEN i.quantity = 0 THEN 0 WHEN i.quantity <= ${t} THEN 1 ELSE 2 END ASC, LOWER(i.name) ASC`;
+    case "stock-state-desc":
+      return `CASE WHEN i.quantity = 0 THEN 0 WHEN i.quantity <= ${t} THEN 1 ELSE 2 END DESC, LOWER(i.name) ASC`;
+    case "created-at-asc":
+      return "i.created_at ASC, LOWER(i.name) ASC";
+    case "created-at-desc":
+      return "i.created_at DESC, LOWER(i.name) ASC";
+    case "updated-at-asc":
+      return "i.updated_at ASC, LOWER(i.name) ASC";
+    case "updated-at-desc":
+    default:
+      return "i.updated_at DESC, LOWER(i.name) ASC";
+  }
+}
+
+function buildInventoryQueryParts(
+  branchId: string | null,
+  filters: InventoryPageFilterState,
+): InventoryQueryParts {
+  const t = INVENTORY_LOW_STOCK_THRESHOLD;
+  const values: Array<number | string | null> = [branchId];
+  const whereParts = ["($1::uuid IS NULL OR i.branch_id = $1::uuid)"];
+  const joins = [
+    "LEFT JOIN vendors v ON v.id = i.last_vendor_id",
+    "LEFT JOIN branches b ON b.id = i.branch_id",
+  ];
+
+  // Date filter — only applied when explicitly set (inventory has no default date range)
+  if (filters.from || filters.to) {
+    const dateCol =
+      filters.dateField === "created" ? "i.created_at::date" : "i.updated_at::date";
+
+    if (filters.from) {
+      values.push(filters.from);
+      whereParts.push(`${dateCol} >= $${values.length}::date`);
+    }
+
+    if (filters.to) {
+      values.push(filters.to);
+      whereParts.push(`${dateCol} <= $${values.length}::date`);
+    }
+  }
+
+  if (filters.name) {
+    values.push(filters.name);
+    whereParts.push(`i.name ILIKE '%' || $${values.length} || '%'`);
+  }
+
+  if (filters.sku) {
+    values.push(filters.sku);
+    whereParts.push(`i.sku ILIKE '%' || $${values.length} || '%'`);
+  }
+
+  if (filters.unit) {
+    values.push(filters.unit);
+    whereParts.push(`i.unit::text ILIKE '%' || $${values.length} || '%'`);
+  }
+
+  if (filters.isActive === "active") {
+    whereParts.push("i.is_active = true");
+  } else if (filters.isActive === "inactive") {
+    whereParts.push("i.is_active = false");
+  }
+
+  if (filters.stockState === "out-of-stock") {
+    whereParts.push("i.quantity = 0");
+  } else if (filters.stockState === "low-stock") {
+    whereParts.push(`i.quantity > 0 AND i.quantity <= ${t}`);
+  } else if (filters.stockState === "in-stock") {
+    whereParts.push(`i.quantity > ${t}`);
+  }
+
+  if (filters.quantityMin) {
+    values.push(filters.quantityMin);
+    whereParts.push(`i.quantity >= $${values.length}::numeric`);
+  }
+
+  if (filters.quantityMax) {
+    values.push(filters.quantityMax);
+    whereParts.push(`i.quantity <= $${values.length}::numeric`);
+  }
+
+  if (filters.lastVendorId) {
+    values.push(filters.lastVendorId);
+    whereParts.push(`i.last_vendor_id = $${values.length}::uuid`);
+  }
+
+  if (filters.purchaseRateMin) {
+    values.push(filters.purchaseRateMin);
+    whereParts.push(`i.last_purchase_rate >= $${values.length}::numeric`);
+  }
+
+  if (filters.purchaseRateMax) {
+    values.push(filters.purchaseRateMax);
+    whereParts.push(`i.last_purchase_rate <= $${values.length}::numeric`);
+  }
+
+  if (filters.hasLastPurchaseRate === "with") {
+    whereParts.push("i.last_purchase_rate IS NOT NULL");
+  } else if (filters.hasLastPurchaseRate === "without") {
+    whereParts.push("i.last_purchase_rate IS NULL");
+  }
+
+  if (filters.hasImage === "with") {
+    whereParts.push("i.image IS NOT NULL");
+  } else if (filters.hasImage === "without") {
+    whereParts.push("i.image IS NULL");
+  }
+
+  return {
+    joins: joins.join("\n      "),
+    whereClause: whereParts.join("\n        AND "),
+    values,
+    orderByClause: getInventoryOrderByClause(filters.sort),
+  };
+}
+
+export async function getInventoryPageData(
+  branchId: string | null,
+  filters: InventoryPageFilterState,
+): Promise<InventoryPageData> {
+  const db = getPool();
+  const t = INVENTORY_LOW_STOCK_THRESHOLD;
+  const queryParts = buildInventoryQueryParts(branchId, filters);
+
+  const { rows: summaryRows } = await db.query<InventoryPageSummary>(
+    `
+      SELECT
+        COUNT(*)::int AS "totalItemsInRange",
+        COUNT(*) FILTER (WHERE i.quantity > 0 AND i.quantity <= ${t})::int AS "lowStockItemsInRange",
+        COUNT(*) FILTER (WHERE i.quantity = 0)::int AS "outOfStockItemsInRange",
+        COALESCE(SUM(i.quantity), 0)::double precision AS "totalStockQuantityInRange"
+      FROM inventory i
+      ${queryParts.joins}
+      WHERE ${queryParts.whereClause}
+    `,
+    queryParts.values,
+  );
+
+  const summary = summaryRows[0];
+  const pagination = buildPaginationState(summary.totalItemsInRange, filters);
+  const listQueryParams = [
+    ...queryParts.values,
+    pagination.pageSize,
+    (pagination.page - 1) * pagination.pageSize,
+  ];
+  const limitParameterIndex = queryParts.values.length + 1;
+  const offsetParameterIndex = queryParts.values.length + 2;
+
+  const { rows } = await db.query<InventoryPageDetailRow>(
+    `
+      SELECT
+        i.id::text AS id,
+        i.name,
+        i.sku,
+        i.quantity::double precision AS quantity,
+        i.unit::text AS unit,
+        i.is_active AS "isActive",
+        COALESCE(b.name, '') AS "branchName",
+        i.last_purchase_rate::double precision AS "lastPurchaseRate",
+        v.name AS "lastVendorName",
+        i.created_at::text AS "createdAt",
+        i.updated_at::text AS "updatedAt",
+        i.image,
+        CASE
+          WHEN i.quantity = 0 THEN 'out-of-stock'
+          WHEN i.quantity <= ${t} THEN 'low-stock'
+          ELSE 'in-stock'
+        END AS "stockState"
+      FROM inventory i
+      ${queryParts.joins}
+      WHERE ${queryParts.whereClause}
+      ORDER BY ${queryParts.orderByClause}
+      LIMIT $${limitParameterIndex}
+      OFFSET $${offsetParameterIndex}
+    `,
+    listQueryParams,
+  );
+
+  return {
+    summary,
+    result: {
+      items: rows,
+      pagination,
+    },
+  };
+}
+
+export async function getInventoryVendorOptions(
+  branchId: string | null,
+): Promise<InventoryVendorOption[]> {
+  const db = getPool();
+  const { rows } = await db.query<InventoryVendorOption>(
+    `
+      SELECT DISTINCT v.id::text AS id, v.name
+      FROM vendors v
+      INNER JOIN inventory i ON i.last_vendor_id = v.id
+      WHERE ($1::uuid IS NULL OR i.branch_id = $1::uuid)
+      ORDER BY v.name ASC
     `,
     [branchId],
   );

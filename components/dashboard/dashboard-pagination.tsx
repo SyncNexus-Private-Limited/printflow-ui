@@ -17,6 +17,11 @@ import {
   type ExpensePageFilterState,
 } from "@/lib/dashboard/expense-page-filters";
 import {
+  buildInventoryPageHref,
+  buildInventoryPaginationHref,
+  type InventoryPageFilterState,
+} from "@/lib/dashboard/inventory-page-filters";
+import {
   DASHBOARD_PAGE_SIZE_OPTIONS,
   buildDashboardPageHref,
   buildDashboardPaginationHref,
@@ -27,7 +32,7 @@ type DashboardPaginationProps<TFilters extends DashboardPageFilterState = Dashbo
   currentPath: string;
   currentFilters: TFilters;
   pagination: DashboardPaginationState;
-  variant?: "default" | "expense" | "customer";
+  variant?: "default" | "expense" | "customer" | "inventory";
 };
 
 function normalizeHref(href: string) {
@@ -73,10 +78,12 @@ export function DashboardPagination<TFilters extends DashboardPageFilterState = 
   const router = useRouter();
   const isExpenseVariant = variant === "expense";
   const isCustomerVariant = variant === "customer";
-  const isInlineVariant = isExpenseVariant || isCustomerVariant;
+  const isInventoryVariant = variant === "inventory";
+  const isInlineVariant = isExpenseVariant || isCustomerVariant || isInventoryVariant;
   const resolvePageHref = (path: string, filters: TFilters) => {
     if (isExpenseVariant) return buildExpensePageHref(path, filters as unknown as ExpensePageFilterState);
     if (isCustomerVariant) return buildCustomerPageHref(path, filters as unknown as CustomerPageFilterState);
+    if (isInventoryVariant) return buildInventoryPageHref(path, filters as unknown as InventoryPageFilterState);
     return buildDashboardPageHref(path, filters);
   };
   const resolvePaginationHref = (
@@ -89,6 +96,7 @@ export function DashboardPagination<TFilters extends DashboardPageFilterState = 
   ) => {
     if (isExpenseVariant) return buildExpensePaginationHref(path, filters as unknown as ExpensePageFilterState, nextPagination);
     if (isCustomerVariant) return buildCustomerPaginationHref(path, filters as unknown as CustomerPageFilterState, nextPagination);
+    if (isInventoryVariant) return buildInventoryPaginationHref(path, filters as unknown as InventoryPageFilterState, nextPagination);
     return buildDashboardPaginationHref(path, filters, nextPagination);
   };
   const currentHref = useMemo(() => resolvePageHref(currentPath, currentFilters), [currentFilters, currentPath, resolvePageHref]);

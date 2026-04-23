@@ -8,6 +8,7 @@ export const FILTER_AWARE_DASHBOARD_PATHS = [
   "/dashboard/customers",
   "/dashboard/employee-expenses",
   "/dashboard/business-expenses",
+  "/dashboard/inventory",
 ] as const;
 
 type DashboardSearchParam = string | string[] | undefined;

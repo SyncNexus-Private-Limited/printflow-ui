@@ -1,15 +1,21 @@
 import { redirect } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
+import { InventoryDataTable } from "@/components/dashboard/inventory-data-table";
+import { InventoryListControls } from "@/components/dashboard/inventory-list-controls";
+import { ListStatCard } from "@/components/dashboard/list-stat-card";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { parseInventoryPageFilters } from "@/lib/dashboard/inventory-page-filters";
 import { buildBranchFilterOptions } from "@/lib/dashboard/helpers";
-import { getDashboardContext, getDashboardSummary, getInventoryDetails } from "@/lib/dashboard/queries";
-import { formatCompactNumber } from "@/lib/utils/format";
+import {
+  getDashboardContext,
+  getInventoryPageData,
+  getInventoryVendorOptions,
+} from "@/lib/dashboard/queries";
+import { formatCompactNumber, formatDateRangeLabel } from "@/lib/utils/format";
 
 type InventoryPageProps = {
-  searchParams?: Promise<{
-    branchId?: string | string[];
-  }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export default async function InventoryPage({ searchParams }: InventoryPageProps) {
@@ -22,12 +28,27 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
 
   try {
-    const context = await getDashboardContext(currentUser, resolvedSearchParams?.branchId);
-    const [summary, inventory] = await Promise.all([
-      getDashboardSummary(context.selectedBranchId),
-      getInventoryDetails(context.selectedBranchId),
+    const filters = parseInventoryPageFilters(resolvedSearchParams);
+    const context = await getDashboardContext(currentUser, filters.branchId ?? undefined);
+    const currentFilters = {
+      ...filters,
+      branchId: context.selectedBranchValue,
+    };
+    const [pageData, vendorOptions] = await Promise.all([
+      getInventoryPageData(context.selectedBranchId, currentFilters),
+      getInventoryVendorOptions(context.selectedBranchId),
     ]);
     const branchOptions = buildBranchFilterOptions(context);
+    const hasDateFilter = !!(currentFilters.from || currentFilters.to);
+    const dateFieldLabel =
+      currentFilters.dateField === "created" ? "created date" : "updated date";
+    const dateRangeLabel = hasDateFilter
+      ? formatDateRangeLabel(currentFilters.from, currentFilters.to)
+      : null;
+    const contextMeta = hasDateFilter
+      ? `By ${dateFieldLabel}: ${dateRangeLabel}`
+      : `All inventory for ${context.selectedBranchName}`;
+    const showBranchColumn = context.selectedBranchId === null;
 
     return (
       <main className="min-h-screen px-4 py-8">
@@ -39,59 +60,48 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
             branchFilterDisabled={!context.canSelectAll}
           />
 
-          <section className="grid gap-4 md:grid-cols-3">
-            <div className="rounded-[22px] border border-[rgb(var(--border))] bg-[rgb(var(--card)/0.92)] p-5 shadow-[0_18px_48px_-38px_rgb(var(--shadow)/0.28)]">
-              <p className="text-sm text-slate-500">Inventory items</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-950">
-                {formatCompactNumber(summary.inventory.totalInventoryItems)}
-              </p>
-            </div>
-            <div className="rounded-[22px] border border-[rgb(var(--border))] bg-[rgb(var(--card)/0.92)] p-5 shadow-[0_18px_48px_-38px_rgb(var(--shadow)/0.28)]">
-              <p className="text-sm text-slate-500">Low stock items</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-950">
-                {formatCompactNumber(summary.inventory.lowStockItems)}
-              </p>
-            </div>
-            <div className="rounded-[22px] border border-[rgb(var(--border))] bg-[rgb(var(--card)/0.92)] p-5 shadow-[0_18px_48px_-38px_rgb(var(--shadow)/0.28)]">
-              <p className="text-sm text-slate-500">Total stock quantity</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-950">
-                {formatCompactNumber(summary.inventory.totalStockQuantity)}
-              </p>
-            </div>
+          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <ListStatCard
+              label="Items in view"
+              value={formatCompactNumber(pageData.summary.totalItemsInRange)}
+              meta={contextMeta}
+              accent="blue"
+            />
+            <ListStatCard
+              label="Low stock"
+              value={formatCompactNumber(pageData.summary.lowStockItemsInRange)}
+              meta={`Qty ≤ 10 · ${context.selectedBranchName}`}
+              accent="amber"
+            />
+            <ListStatCard
+              label="Out of stock"
+              value={formatCompactNumber(pageData.summary.outOfStockItemsInRange)}
+              meta={`Qty = 0 · ${context.selectedBranchName}`}
+              accent="violet"
+            />
+            <ListStatCard
+              label="Total quantity"
+              value={formatCompactNumber(pageData.summary.totalStockQuantityInRange)}
+              meta={`Units across filtered items`}
+              accent="emerald"
+            />
           </section>
 
-          <SectionCard title="Inventory list" description={`Showing inventory for ${context.selectedBranchName.toLowerCase()}.`}>
-            {inventory.length === 0 ? (
-              <p className="text-sm text-slate-600">No inventory found for this branch.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-left text-sm">
-                  <thead className="text-slate-500">
-                    <tr>
-                      <th className="pb-3 font-medium">Name</th>
-                      <th className="pb-3 font-medium">SKU</th>
-                      <th className="pb-3 font-medium">Quantity</th>
-                      <th className="pb-3 font-medium">Unit</th>
-                      <th className="pb-3 font-medium">Branch</th>
-                      <th className="pb-3 font-medium">Active</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {inventory.map((item) => (
-                      <tr key={item.id} className={item.quantity <= 10 ? "bg-amber-50" : undefined}>
-                        <td className="py-3 font-medium text-slate-900">{item.name}</td>
-                        <td className="py-3 text-slate-700">{item.sku}</td>
-                        <td className="py-3 text-slate-700">{formatCompactNumber(item.quantity)}</td>
-                        <td className="py-3 text-slate-700 capitalize">{item.unit}</td>
-                        <td className="py-3 text-slate-700">{item.branchName}</td>
-                        <td className="py-3 text-slate-700">{item.isActive ? "Yes" : "No"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </SectionCard>
+          <InventoryListControls
+            currentPath="/dashboard/inventory"
+            currentFilters={currentFilters}
+            vendorOptions={vendorOptions}
+          />
+
+          <InventoryDataTable
+            emptyMessage="No inventory items match the current filters."
+            items={pageData.result.items}
+            currentPath="/dashboard/inventory"
+            currentFilters={currentFilters}
+            pagination={pageData.result.pagination}
+            showBranchColumn={showBranchColumn}
+            fallbackBranchName={context.selectedBranchName}
+          />
         </div>
       </main>
     );
@@ -103,11 +113,16 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
             title="Inventory"
-            branchOptions={[{ label: currentUser.branchName ?? "Branch", value: currentUser.branchId ?? "all" }]}
+            branchOptions={[
+              {
+                label: currentUser.branchName ?? "Branch",
+                value: currentUser.branchId ?? "all",
+              },
+            ]}
             selectedBranchValue={currentUser.branchId ?? "all"}
             branchFilterDisabled
           />
-          <SectionCard title="Unable to load dashboard data right now.">
+          <SectionCard title="Unable to load inventory data right now.">
             <p className="text-sm text-slate-600">Please try again shortly.</p>
           </SectionCard>
         </div>

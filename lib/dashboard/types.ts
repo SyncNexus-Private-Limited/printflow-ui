@@ -61,6 +61,9 @@ export type CustomersSummary = {
 export type CustomersPageSummary = {
   totalCustomersInRange: number;
   studioCustomersInRange: number;
+  customersWithOrders: number;
+  totalPayable: number;
+  totalOutstanding: number;
 };
 
 export type InventorySummary = {
@@ -149,11 +152,23 @@ export type OrderDetailRow = {
 
 export type CustomerDetailRow = {
   id: string;
-  name: string;
-  phone: string;
+  customerNumericId: number | null;
+  customerCode: string | null;
   type: string;
+  name: string;
+  avatar: string | null;
   studioName: string | null;
+  phone: string;
+  alternatePhone: string | null;
+  address: string | null;
   createdAt: string;
+  updatedAt: string;
+  orderCount: number;
+  lastOrderDate: string | null;
+  totalPayable: number;
+  totalOutstanding: number;
+  lastOrderStatus: string | null;
+  lastPaymentStatus: string | null;
 };
 
 export type InventoryDetailRow = {

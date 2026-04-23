@@ -22,7 +22,7 @@ export function SectionCard({
     <section
       className={cn(
         suggestCanonicalClasses(
-          "rounded-[24px] border border-[rgb(var(--border)/0.72)] bg-[rgb(var(--card)/0.94)] p-5 shadow-[0_22px_50px_-42px_rgb(var(--shadow)/0.16)] backdrop-blur-[10px]",
+          "rounded-3xl border border-[rgb(var(--border)/0.72)] bg-[rgb(var(--card)/0.94)] p-5 shadow-[0_22px_50px_-42px_rgb(var(--shadow)/0.16)] backdrop-blur-[10px]",
         ),
         className,
       )}

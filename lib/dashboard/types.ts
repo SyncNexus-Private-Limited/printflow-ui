@@ -24,11 +24,13 @@ export type DashboardPaginationState = {
   totalPages: number;
 };
 
-export type DashboardPageFilterState = DashboardDateRange & {
+export type DashboardBaseFilterState = {
   branchId: string | null;
   page: number;
   pageSize: number;
 };
+
+export type DashboardPageFilterState = DashboardBaseFilterState & DashboardDateRange;
 
 export type PaginatedListResult<T> = {
   items: T[];

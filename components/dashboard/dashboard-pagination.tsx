@@ -22,36 +22,29 @@ import {
   type InventoryPageFilterState,
 } from "@/lib/dashboard/inventory-page-filters";
 import {
+  buildOrderPageHref,
+  buildOrderPaginationHref,
+  type OrderPageFilterState,
+} from "@/lib/dashboard/order-page-filters";
+import {
+  buildActiveUsersPageHref,
+  buildActiveUsersPaginationHref,
+  type ActiveUserPageFilterState,
+} from "@/lib/dashboard/active-users-page-filters";
+import {
   DASHBOARD_PAGE_SIZE_OPTIONS,
   buildDashboardPageHref,
   buildDashboardPaginationHref,
 } from "@/lib/dashboard/page-filters";
-import type { DashboardPageFilterState, DashboardPaginationState } from "@/lib/dashboard/types";
+import type { DashboardBaseFilterState, DashboardPageFilterState, DashboardPaginationState } from "@/lib/dashboard/types";
+import { isSameHref } from "@/lib/dashboard/href-utils";
 
-type DashboardPaginationProps<TFilters extends DashboardPageFilterState = DashboardPageFilterState> = {
+type DashboardPaginationProps<TFilters extends DashboardBaseFilterState = DashboardPageFilterState> = {
   currentPath: string;
   currentFilters: TFilters;
   pagination: DashboardPaginationState;
-  variant?: "default" | "expense" | "customer" | "inventory";
+  variant?: "default" | "expense" | "customer" | "inventory" | "order" | "active-users";
 };
-
-function normalizeHref(href: string) {
-  const url = new URL(href, "https://printflow.local");
-  const normalizedSearchParams = Array.from(url.searchParams.entries()).sort(([leftKey, leftValue], [rightKey, rightValue]) => {
-    if (leftKey === rightKey) {
-      return leftValue.localeCompare(rightValue);
-    }
-
-    return leftKey.localeCompare(rightKey);
-  });
-  const normalizedQuery = new URLSearchParams(normalizedSearchParams).toString();
-
-  return normalizedQuery ? `${url.pathname}?${normalizedQuery}` : url.pathname;
-}
-
-function isSameHref(leftHref: string, rightHref: string) {
-  return normalizeHref(leftHref) === normalizeHref(rightHref);
-}
 
 function getVisiblePageNumbers(page: number, totalPages: number) {
   if (totalPages <= 5) {
@@ -69,7 +62,7 @@ function getVisiblePageNumbers(page: number, totalPages: number) {
   return [1, page - 1, page, page + 1, totalPages];
 }
 
-export function DashboardPagination<TFilters extends DashboardPageFilterState = DashboardPageFilterState>({
+export function DashboardPagination<TFilters extends DashboardBaseFilterState = DashboardPageFilterState>({
   currentPath,
   currentFilters,
   pagination,
@@ -79,12 +72,17 @@ export function DashboardPagination<TFilters extends DashboardPageFilterState = 
   const isExpenseVariant = variant === "expense";
   const isCustomerVariant = variant === "customer";
   const isInventoryVariant = variant === "inventory";
-  const isInlineVariant = isExpenseVariant || isCustomerVariant || isInventoryVariant;
+  const isOrderVariant = variant === "order";
+  const isActiveUsersVariant = variant === "active-users";
+  const isInlineVariant =
+    isExpenseVariant || isCustomerVariant || isInventoryVariant || isOrderVariant || isActiveUsersVariant;
   const resolvePageHref = (path: string, filters: TFilters) => {
     if (isExpenseVariant) return buildExpensePageHref(path, filters as unknown as ExpensePageFilterState);
     if (isCustomerVariant) return buildCustomerPageHref(path, filters as unknown as CustomerPageFilterState);
     if (isInventoryVariant) return buildInventoryPageHref(path, filters as unknown as InventoryPageFilterState);
-    return buildDashboardPageHref(path, filters);
+    if (isOrderVariant) return buildOrderPageHref(path, filters as unknown as OrderPageFilterState);
+    if (isActiveUsersVariant) return buildActiveUsersPageHref(path, filters as unknown as ActiveUserPageFilterState);
+    return buildDashboardPageHref(path, filters as unknown as DashboardPageFilterState);
   };
   const resolvePaginationHref = (
     path: string,
@@ -97,7 +95,9 @@ export function DashboardPagination<TFilters extends DashboardPageFilterState = 
     if (isExpenseVariant) return buildExpensePaginationHref(path, filters as unknown as ExpensePageFilterState, nextPagination);
     if (isCustomerVariant) return buildCustomerPaginationHref(path, filters as unknown as CustomerPageFilterState, nextPagination);
     if (isInventoryVariant) return buildInventoryPaginationHref(path, filters as unknown as InventoryPageFilterState, nextPagination);
-    return buildDashboardPaginationHref(path, filters, nextPagination);
+    if (isOrderVariant) return buildOrderPaginationHref(path, filters as unknown as OrderPageFilterState, nextPagination);
+    if (isActiveUsersVariant) return buildActiveUsersPaginationHref(path, filters as unknown as ActiveUserPageFilterState, nextPagination);
+    return buildDashboardPaginationHref(path, filters as unknown as DashboardPageFilterState, nextPagination);
   };
   const currentHref = useMemo(() => resolvePageHref(currentPath, currentFilters), [currentFilters, currentPath, resolvePageHref]);
   const visiblePageNumbers = useMemo(

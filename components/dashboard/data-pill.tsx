@@ -115,3 +115,16 @@ export function getExpenseCategoryTone(categoryKey: string): DataPillTone {
 
   return expenseCategoryTones[hashCategoryKey(normalizedCategoryKey) % expenseCategoryTones.length];
 }
+
+export function getInventoryStockStateTone(stockState: string): DataPillTone {
+  switch (stockState) {
+    case "in-stock":
+      return "emerald";
+    case "low-stock":
+      return "amber";
+    case "out-of-stock":
+      return "rose";
+    default:
+      return "neutral";
+  }
+}

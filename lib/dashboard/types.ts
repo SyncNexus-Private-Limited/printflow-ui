@@ -181,6 +181,41 @@ export type InventoryDetailRow = {
   isActive: boolean;
 };
 
+export type InventoryStockState = "in-stock" | "low-stock" | "out-of-stock";
+
+export type InventoryPageDetailRow = {
+  id: string;
+  name: string;
+  sku: string;
+  quantity: number;
+  unit: string;
+  isActive: boolean;
+  branchName: string;
+  lastPurchaseRate: number | null;
+  lastVendorName: string | null;
+  createdAt: string;
+  updatedAt: string;
+  image: string | null;
+  stockState: InventoryStockState;
+};
+
+export type InventoryPageSummary = {
+  totalItemsInRange: number;
+  lowStockItemsInRange: number;
+  outOfStockItemsInRange: number;
+  totalStockQuantityInRange: number;
+};
+
+export type InventoryVendorOption = {
+  id: string;
+  name: string;
+};
+
+export type InventoryPageData = {
+  summary: InventoryPageSummary;
+  result: PaginatedListResult<InventoryPageDetailRow>;
+};
+
 export type ActiveUserRow = {
   sessionId: string;
   fullName: string;

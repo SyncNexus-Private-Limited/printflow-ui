@@ -115,3 +115,25 @@ npm run db:reset:dev -- --confirm printflow_dev
 ```bash
 npm run db:reset:dev --confirm printflow_dev
 ```
+
+## Dashboard frontend architecture
+All six list pages (orders, customers, inventory, employee-expenses, business-expenses, active-users) share a common set of primitives:
+
+**`lib/dashboard/`**
+- `href-utils.ts` — `normalizeHref`, `isSameHref`
+- `filter-utils.ts` — `normalizeAmountRange`
+- `list-page-classes.ts` — `TABLE_HEADER_CELL_CLASS`, `TABLE_BODY_CELL_CLASS`, `FILTER_FIELD_LABEL_CLASS`
+- `sortable-header-utils.ts` — generic sort helpers and `HeaderSortConfig<T>`
+- `sticky-column-utils.ts` — `ColumnStickyDef`, `StickySpec`, `computeStickySpecs`, sticky cell class/style helpers
+
+**`components/dashboard/`**
+- `filter-drawer-shell.tsx` — shared filter drawer overlay, header, and footer
+- `use-filter-drawer.ts` — state hook (open/close, draft filters, pending transition, focus management)
+- `applied-filter-pills.tsx` — pill row renderer; branch name pill is always first
+- `filter-trigger-button.tsx` — filter button with active-count badge
+- `sortable-header-cell.tsx` — `<th>` with sort arrows and optional sticky spec
+- `data-table-container.tsx` — card wrapper with glass effect
+- `table-scroll-area.tsx` — horizontal scroll container with right/left shadow indicators
+- `table-empty-state.tsx` — empty-state card
+
+Page-specific files keep only: column definitions, `<colgroup>`, row rendering, `buildAppliedFilterSummaryItems`, `handleApplyFilters`, and `handleResetFilters`.

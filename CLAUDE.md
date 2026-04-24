@@ -67,6 +67,11 @@ lib/
     queries.ts          # All dashboard DB queries (server-only, parameterized SQL)
     types.ts            # Shared row types for dashboard queries
     *-page-filters.ts   # Filter/sort state parsers per page
+    href-utils.ts       # normalizeHref, isSameHref (shared by all list pages)
+    filter-utils.ts     # normalizeAmountRange
+    list-page-classes.ts        # TABLE_HEADER_CELL_CLASS, TABLE_BODY_CELL_CLASS, FILTER_FIELD_LABEL_CLASS
+    sortable-header-utils.ts    # getSortDirection, getNextSortValue, HeaderSortConfig<T>
+    sticky-column-utils.ts      # ColumnStickyDef, StickySpec, computeStickySpecs, sticky cell helpers
   expenses/
     schema.ts           # Zod discriminated union for expense creation
     types.ts / queries.ts / mutations.ts
@@ -233,6 +238,28 @@ These are local/test only. Do not run in production.
 - Server Component pages fetch data directly via `lib/dashboard/queries.ts`.
 - Do not import `server-only` modules into client components.
 - Use `lib/utils/cn.ts` for conditional class merging.
+
+### Dashboard list page conventions
+
+All six list pages share a common structure. Follow these patterns when editing or extending them:
+
+**Filter controls (`*-list-controls.tsx`)**
+- Use `useFilterDrawer` hook for open/close state, draft filters, pending transition, and focus management.
+- Render `<FilterDrawerShell>`, `<FilterTriggerButton>`, and `<AppliedFilterPills>` — do not re-implement the drawer shell or pill row.
+- `buildAppliedFilterSummaryItems` must always prepend `{ key: "branch", label: "Branch: [name]" }` as the first item using the `selectedBranchName` prop passed from the page. This branch pill appears above every table.
+- `handleApplyFilters` and `handleResetFilters` are page-specific and must stay in the page file.
+
+**Data tables (`*-data-table.tsx`)**
+- Use `DataTableContainer` (glass card wrapper) and `TableScrollArea` (horizontal scroll with shadow indicators).
+- Column definitions use the `ColumnStickyDef` mixin (`sticky?: "left" | "right"`, `width?`, `stickyOrder?`). Call `computeStickySpecs(columns)` once and pass the result through the header map and row render.
+- Sticky body `<td>` must use `getStickyBodyCellClass` + `getStickyBodyCellStyle` and the parent `<tr>` must carry the `group` Tailwind class for the hover overlay to work correctly.
+- Sticky header `<th>` must use `getStickyHeaderCellClass` + `getStickyHeaderCellStyle` (already handled inside `SortableHeaderCell` via the `stickySpec` prop).
+- Pass `stickyLeftWidth={getStickyEdgeTotalWidth(columns, "left") || undefined}` to `<TableScrollArea>` so the boundary shadow indicator appears when scrolled.
+- The `.table-sticky-body-cell` CSS class in `globals.css` handles the opaque background and hover overlay for sticky cells — do not override with Tailwind background utilities on those cells.
+
+**Pages**
+- Pass `selectedBranchName={context.selectedBranchName}` to every `*ListControls` component.
+- `context.selectedBranchName` is always a non-null string (e.g. "Mahabubabad Branch" or "All Branches") resolved by `getDashboardContext`.
 
 ---
 

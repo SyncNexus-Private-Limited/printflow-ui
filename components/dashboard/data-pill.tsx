@@ -80,6 +80,79 @@ export function DataPill({
   );
 }
 
+export function getOrderStatusTone(status: string): DataPillTone {
+  switch (status) {
+    case "pending":
+      return "amber";
+    case "processing":
+      return "blue";
+    case "completed":
+      return "emerald";
+    case "delivered":
+      return "violet";
+    case "cancelled":
+      return "rose";
+    default:
+      return "neutral";
+  }
+}
+
+export function getOrderStatusLabel(status: string): string {
+  switch (status) {
+    case "pending":
+      return "Pending";
+    case "processing":
+      return "Processing";
+    case "completed":
+      return "Completed";
+    case "delivered":
+      return "Delivered";
+    case "cancelled":
+      return "Cancelled";
+    default:
+      return status.charAt(0).toUpperCase() + status.slice(1);
+  }
+}
+
+export function getOrderPaymentStatusTone(status: string): DataPillTone {
+  switch (status) {
+    case "paid":
+      return "emerald";
+    case "partial":
+      return "amber";
+    case "pending":
+      return "rose";
+    default:
+      return "neutral";
+  }
+}
+
+export function getOrderPaymentStatusLabel(status: string): string {
+  switch (status) {
+    case "paid":
+      return "Paid";
+    case "partial":
+      return "Partial";
+    case "pending":
+      return "Unpaid";
+    default:
+      return status.charAt(0).toUpperCase() + status.slice(1);
+  }
+}
+
+export function getCustomerTypeTone(type: string): DataPillTone {
+  switch (type.toLowerCase()) {
+    case "studio":
+      return "blue";
+    case "amateur":
+      return "emerald";
+    case "employee":
+      return "violet";
+    default:
+      return "neutral";
+  }
+}
+
 export function getExpensePaymentModeTone(value: string): DataPillTone {
   switch (value) {
     case "cash":

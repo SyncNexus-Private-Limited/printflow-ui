@@ -71,6 +71,7 @@ export default async function BusinessExpensesPage({ searchParams }: BusinessExp
             currentFilters={currentFilters}
             categoryOptions={categoryOptions}
             vendorOptions={vendorOptions}
+            selectedBranchName={context.selectedBranchName}
           />
 
           <ExpenseDataTable

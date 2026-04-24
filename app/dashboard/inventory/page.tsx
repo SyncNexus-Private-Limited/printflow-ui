@@ -91,6 +91,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
             currentPath="/dashboard/inventory"
             currentFilters={currentFilters}
             vendorOptions={vendorOptions}
+            selectedBranchName={context.selectedBranchName}
           />
 
           <InventoryDataTable

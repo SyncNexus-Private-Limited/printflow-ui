@@ -73,6 +73,7 @@ export default async function ActiveUsersPage({ searchParams }: ActiveUsersPageP
             roleOptions={roleOptions}
             branchOptions={branchOptions}
             canSelectBranch={context.canSelectAll}
+            selectedBranchName={context.selectedBranchName}
           />
 
           <ActiveUsersDataTable

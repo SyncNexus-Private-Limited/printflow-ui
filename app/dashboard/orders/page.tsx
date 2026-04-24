@@ -78,6 +78,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
             currentPath="/dashboard/orders"
             currentFilters={currentFilters}
             filterOptions={filterOptions}
+            selectedBranchName={context.selectedBranchName}
           />
 
           <OrderDataTable

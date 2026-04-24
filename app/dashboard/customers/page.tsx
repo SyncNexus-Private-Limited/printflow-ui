@@ -69,6 +69,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
           <CustomerListControls
             currentPath="/dashboard/customers"
             currentFilters={currentFilters}
+            selectedBranchName={context.selectedBranchName}
           />
 
           <CustomerDataTable

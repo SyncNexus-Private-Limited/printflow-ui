@@ -27,6 +27,7 @@ type InventoryListControlsProps = {
   currentPath: string;
   currentFilters: InventoryPageFilterState;
   vendorOptions: InventoryVendorOption[];
+  selectedBranchName: string;
 };
 
 const summaryCurrencyFormatter = new Intl.NumberFormat("en-IN", {
@@ -111,11 +112,13 @@ function formatStockStateLabel(stockState: string): string {
 function buildAppliedFilterSummaryItems({
   filters,
   vendorOptions,
+  branchName,
 }: {
   filters: InventoryPageFilterState;
   vendorOptions: InventoryVendorOption[];
+  branchName: string;
 }): AppliedFilterSummaryItem[] {
-  const items: AppliedFilterSummaryItem[] = [];
+  const items: AppliedFilterSummaryItem[] = [{ key: "branch", label: `Branch: ${branchName}` }];
 
   if (filters.name) items.push({ key: "name", label: `Name: ${filters.name}` });
   if (filters.sku) items.push({ key: "sku", label: `SKU: ${filters.sku}` });
@@ -176,6 +179,7 @@ export function InventoryListControls({
   currentPath,
   currentFilters,
   vendorOptions,
+  selectedBranchName,
 }: InventoryListControlsProps) {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
@@ -186,8 +190,8 @@ export function InventoryListControls({
   const activeFilterCount = useMemo(() => getActiveFilterCount(currentFilters), [currentFilters]);
   const primaryFilterSummary = useMemo(() => buildPrimaryFilterSummary(currentFilters), [currentFilters]);
   const appliedFilterItems = useMemo(
-    () => buildAppliedFilterSummaryItems({ filters: currentFilters, vendorOptions }),
-    [currentFilters, vendorOptions],
+    () => buildAppliedFilterSummaryItems({ filters: currentFilters, vendorOptions, branchName: selectedBranchName }),
+    [currentFilters, vendorOptions, selectedBranchName],
   );
 
   const {

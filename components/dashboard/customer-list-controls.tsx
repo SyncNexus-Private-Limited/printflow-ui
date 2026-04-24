@@ -26,6 +26,7 @@ import { formatDateRangeLabel } from "@/lib/utils/format";
 type CustomerListControlsProps = {
   currentPath: string;
   currentFilters: CustomerPageFilterState;
+  selectedBranchName: string;
 };
 
 const summaryCurrencyFormatter = new Intl.NumberFormat("en-IN", {
@@ -132,8 +133,8 @@ function capitalizeFirst(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function buildAppliedFilterSummaryItems(filters: CustomerPageFilterState): AppliedFilterSummaryItem[] {
-  const items: AppliedFilterSummaryItem[] = [];
+function buildAppliedFilterSummaryItems(filters: CustomerPageFilterState, branchName: string): AppliedFilterSummaryItem[] {
+  const items: AppliedFilterSummaryItem[] = [{ key: "branch", label: `Branch: ${branchName}` }];
 
   if (filters.type) {
     const tone: DataPillTone =
@@ -213,7 +214,7 @@ function buildAppliedFilterSummaryItems(filters: CustomerPageFilterState): Appli
   return items;
 }
 
-export function CustomerListControls({ currentPath, currentFilters }: CustomerListControlsProps) {
+export function CustomerListControls({ currentPath, currentFilters, selectedBranchName }: CustomerListControlsProps) {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
   const currentHref = useMemo(
@@ -223,8 +224,8 @@ export function CustomerListControls({ currentPath, currentFilters }: CustomerLi
   const activeFilterCount = useMemo(() => getActiveFilterCount(currentFilters), [currentFilters]);
   const primaryFilterSummary = useMemo(() => buildPrimaryFilterSummary(currentFilters), [currentFilters]);
   const appliedFilterItems = useMemo(
-    () => buildAppliedFilterSummaryItems(currentFilters),
-    [currentFilters],
+    () => buildAppliedFilterSummaryItems(currentFilters, selectedBranchName),
+    [currentFilters, selectedBranchName],
   );
 
   const {

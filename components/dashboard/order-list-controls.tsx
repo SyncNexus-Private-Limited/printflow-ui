@@ -30,6 +30,7 @@ type OrderListControlsProps = {
   currentPath: string;
   currentFilters: OrderPageFilterState;
   filterOptions: OrderFilterOptions;
+  selectedBranchName: string;
 };
 
 const summaryCurrencyFormatter = new Intl.NumberFormat("en-IN", {
@@ -137,8 +138,9 @@ function buildPrimaryFilterSummary(filters: OrderPageFilterState): string {
 function buildAppliedFilterSummaryItems(
   filters: OrderPageFilterState,
   filterOptions: OrderFilterOptions,
+  branchName: string,
 ): AppliedFilterSummaryItem[] {
-  const items: AppliedFilterSummaryItem[] = [];
+  const items: AppliedFilterSummaryItem[] = [{ key: "branch", label: `Branch: ${branchName}` }];
 
   if (filters.status) {
     items.push({
@@ -231,6 +233,7 @@ export function OrderListControls({
   currentPath,
   currentFilters,
   filterOptions,
+  selectedBranchName,
 }: OrderListControlsProps) {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
@@ -241,8 +244,8 @@ export function OrderListControls({
   const activeFilterCount = useMemo(() => getActiveFilterCount(currentFilters), [currentFilters]);
   const primaryFilterSummary = useMemo(() => buildPrimaryFilterSummary(currentFilters), [currentFilters]);
   const appliedFilterItems = useMemo(
-    () => buildAppliedFilterSummaryItems(currentFilters, filterOptions),
-    [currentFilters, filterOptions],
+    () => buildAppliedFilterSummaryItems(currentFilters, filterOptions, selectedBranchName),
+    [currentFilters, filterOptions, selectedBranchName],
   );
 
   const {

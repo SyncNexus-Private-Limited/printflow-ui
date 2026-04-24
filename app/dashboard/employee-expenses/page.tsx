@@ -71,6 +71,7 @@ export default async function EmployeeExpensesPage({ searchParams }: EmployeeExp
             currentFilters={currentFilters}
             categoryOptions={categoryOptions}
             employeeOptions={employeeOptions}
+            selectedBranchName={context.selectedBranchName}
           />
 
           <ExpenseDataTable

@@ -21,6 +21,7 @@ type ActiveUsersListControlsProps = {
   roleOptions: ActiveUserRoleOption[];
   branchOptions: BranchOption[];
   canSelectBranch: boolean;
+  selectedBranchName: string;
 };
 
 type DraftFilterState = {
@@ -38,14 +39,15 @@ function getActiveFilterCount(filters: ActiveUserPageFilterState): number {
 
 function buildAppliedFilterSummaryItems(
   filters: ActiveUserPageFilterState,
+  branchName: string,
 ): AppliedFilterSummaryItem[] {
-  if (!filters.role) return [];
-  return [
-    {
-      key: "role",
-      label: `Role: ${filters.role.charAt(0).toUpperCase() + filters.role.slice(1)}`,
-    },
-  ];
+  const items: AppliedFilterSummaryItem[] = [{ key: "branch", label: `Branch: ${branchName}` }];
+
+  if (filters.role) {
+    items.push({ key: "role", label: `Role: ${filters.role.charAt(0).toUpperCase() + filters.role.slice(1)}` });
+  }
+
+  return items;
 }
 
 export function ActiveUsersListControls({
@@ -54,6 +56,7 @@ export function ActiveUsersListControls({
   roleOptions,
   branchOptions,
   canSelectBranch,
+  selectedBranchName,
 }: ActiveUsersListControlsProps) {
   const currentHref = useMemo(
     () => buildActiveUsersPageHref(currentPath, currentFilters),
@@ -61,8 +64,8 @@ export function ActiveUsersListControls({
   );
   const activeFilterCount = useMemo(() => getActiveFilterCount(currentFilters), [currentFilters]);
   const appliedFilterItems = useMemo(
-    () => buildAppliedFilterSummaryItems(currentFilters),
-    [currentFilters],
+    () => buildAppliedFilterSummaryItems(currentFilters, selectedBranchName),
+    [currentFilters, selectedBranchName],
   );
 
   const {

@@ -33,6 +33,7 @@ type ExpenseListControlsProps = {
   categoryOptions: ExpenseCategoryOption[];
   employeeOptions?: ExpenseEmployeeOption[];
   vendorOptions?: ExpenseVendorOption[];
+  selectedBranchName: string;
 };
 
 const summaryCurrencyFormatter = new Intl.NumberFormat("en-IN", {
@@ -112,6 +113,7 @@ function buildAppliedFilterSummaryItems({
   employeeOptions,
   vendorOptions,
   branchValue,
+  branchName,
 }: {
   kind: ExpensePageKind;
   filters: ExpensePageFilterState;
@@ -119,8 +121,9 @@ function buildAppliedFilterSummaryItems({
   employeeOptions: ExpenseEmployeeOption[];
   vendorOptions: ExpenseVendorOption[];
   branchValue: string | null;
+  branchName: string;
 }): AppliedFilterSummaryItem[] {
-  const items: AppliedFilterSummaryItem[] = [];
+  const items: AppliedFilterSummaryItem[] = [{ key: "branch", label: `Branch: ${branchName}` }];
 
   if (filters.categoryId) {
     const category = categoryOptions.find((option) => option.id === filters.categoryId);
@@ -189,6 +192,7 @@ export function ExpenseListControls({
   categoryOptions,
   employeeOptions = [],
   vendorOptions = [],
+  selectedBranchName,
 }: ExpenseListControlsProps) {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
@@ -213,8 +217,9 @@ export function ExpenseListControls({
         employeeOptions,
         vendorOptions,
         branchValue: currentFilters.branchId,
+        branchName: selectedBranchName,
       }),
-    [categoryOptions, currentFilters, employeeOptions, kind, vendorOptions],
+    [categoryOptions, currentFilters, employeeOptions, kind, selectedBranchName, vendorOptions],
   );
 
   const {

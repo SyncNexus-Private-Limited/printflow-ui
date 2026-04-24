@@ -261,6 +261,22 @@ All six list pages share a common structure. Follow these patterns when editing 
 - Pass `selectedBranchName={context.selectedBranchName}` to every `*ListControls` component.
 - `context.selectedBranchName` is always a non-null string (e.g. "Mahabubabad Branch" or "All Branches") resolved by `getDashboardContext`.
 
+### Dashboard shell and top nav conventions
+
+**`components/dashboard/top-navbar.tsx`**
+- The nav uses CSS `order` + `flex-wrap` to reposition the branch selector between breakpoints without duplicating it.
+- `md` (768px) is the single breakpoint where the layout transitions from two-row (mobile/sm) to single-row (tablet/desktop). Do not change this without updating all related breakpoint classes.
+- Two-row layout (< 768px): Row 1 = hamburger + brand + actions; Row 2 = BranchFilter full-width (`order-3 w-full`).
+- Single-row layout (≥ 768px): `md:flex-nowrap md:order-2 md:ml-auto` on BranchFilter pulls it back inline.
+- `NavActionsOverflow` (inline component in `top-navbar.tsx`) renders Theme toggle + Logout in a small dropdown on mobile. It is `md:hidden` — never visible at ≥ 768px. Theme and Logout are shown directly in the nav at `md+` via `hidden md:flex`.
+- Do not add new permanent controls to the nav without considering the responsive layout at all three tiers (mobile, tablet, desktop).
+
+**`components/dashboard/create-menu.tsx`**
+- The mobile bottom sheet is rendered via `createPortal(..., document.body)`. This is not optional — the nav's `sticky + z-index + backdrop-filter` combination promotes it to a compositing layer in some browsers, which traps `position: fixed` children relative to the nav box rather than the viewport. Without the portal, the sheet appears near the top of the screen instead of the bottom.
+- The desktop/mobile threshold in `useIsDesktopViewport` is `(min-width: 768px)`, matching the nav's `md` breakpoint. Below 768px → bottom sheet (portal). At 768px+ → anchored dropdown (absolute, no portal needed).
+- Do not revert `z-[70]` to `z-70` — `z-70` is not a standard Tailwind v4 class and generates no z-index CSS.
+- `onBlurCapture` on the wrapper div is guarded with `if (!isDesktopViewport) return` because the portal content is outside the wrapper's DOM subtree, so the blur check `wrapperRef.current?.contains(...)` would always fail for mobile and prematurely close the sheet.
+
 ---
 
 ## DB Schema Quick Reference

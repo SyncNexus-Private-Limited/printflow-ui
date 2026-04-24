@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 import type { LucideIcon } from "lucide-react";
 import { Boxes, ChevronDown, Plus, Receipt, ShoppingBag, Truck, UserRound, Users, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -140,7 +141,7 @@ function useIsDesktopViewport() {
   const [isDesktopViewport, setIsDesktopViewport] = useState(false);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(min-width: 640px)");
+    const mediaQuery = window.matchMedia("(min-width: 768px)");
 
     const handleChange = (event: MediaQueryListEvent) => {
       setIsDesktopViewport(event.matches);
@@ -337,6 +338,10 @@ export function CreateMenu({ currentBranchValue, initialBranchId, branchOptions 
       ref={wrapperRef}
       className="relative"
       onBlurCapture={(event) => {
+        // On mobile the sheet is a portal outside this wrapper — don't close on blur.
+        // The sheet closes via its own dismiss backdrop and X button.
+        if (!isDesktopViewport) return;
+
         const nextFocusedElement = event.relatedTarget;
 
         if (nextFocusedElement instanceof Node && wrapperRef.current?.contains(nextFocusedElement)) {
@@ -432,8 +437,10 @@ export function CreateMenu({ currentBranchValue, initialBranchId, branchOptions 
         </div>
       ) : null}
 
-      {isOpen && !isDesktopViewport ? (
-        <div className="fixed inset-0 z-70 sm:hidden">
+      {isOpen && !isDesktopViewport ? createPortal(
+        // Portal to document.body so `fixed inset-0` is always viewport-relative,
+        // escaping any stacking-context or compositing-layer ancestor in the nav.
+        <div className="fixed inset-0 z-70">
           <button
             type="button"
             className="absolute inset-0 bg-[rgb(var(--shadow)/0.26)] backdrop-blur-[2px]"
@@ -526,7 +533,8 @@ export function CreateMenu({ currentBranchValue, initialBranchId, branchOptions 
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       ) : null}
     </div>
   );

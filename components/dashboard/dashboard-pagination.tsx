@@ -118,7 +118,7 @@ export function DashboardPagination<TFilters extends DashboardBaseFilterState = 
       return;
     }
 
-    router.push(href);
+    router.replace(href, { scroll: false });
   };
 
   if (isInlineVariant) {

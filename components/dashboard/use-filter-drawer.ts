@@ -122,7 +122,7 @@ export function useFilterDrawer<TFilters, TDraft>({
       });
     }
 
-    router.push(href);
+    router.replace(href, { scroll: false });
     return true;
   };
 

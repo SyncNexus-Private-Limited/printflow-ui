@@ -143,7 +143,7 @@ export function OrderDataTable({
       sort: sortValue,
     });
 
-    router.push(nextHref);
+    router.replace(nextHref, { scroll: false });
   };
 
   return (

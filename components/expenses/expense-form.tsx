@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type Resolver } from "react-hook-form";
@@ -38,6 +38,7 @@ export function ExpenseForm(props: ExpenseFormProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { showBlockingLoader, hideBlockingLoader } = useGlobalLoader();
+  const [, startNavTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
   const defaultValues = useMemo(
     () => buildDefaultValues(props.selectedType, props.selectedBranchId),
@@ -74,7 +75,9 @@ export function ExpenseForm(props: ExpenseFormProps) {
       return;
     }
 
-    router.replace(nextHref);
+    startNavTransition(() => {
+      router.replace(nextHref, { scroll: false });
+    });
   };
 
   const onSubmit = handleSubmit(async (values) => {

@@ -137,3 +137,18 @@ All six list pages (orders, customers, inventory, employee-expenses, business-ex
 - `table-empty-state.tsx` — empty-state card
 
 Page-specific files keep only: column definitions, `<colgroup>`, row rendering, `buildAppliedFilterSummaryItems`, `handleApplyFilters`, and `handleResetFilters`.
+
+## Dashboard shell top nav
+
+The top nav (`components/dashboard/top-navbar.tsx`) uses a CSS `order` + `flex-wrap` trick to reposition the branch selector between breakpoints without rendering it twice.
+
+**Mobile / sm (< 768px) — two rows:**
+- Row 1: hamburger + brand (left) · Create + `NavActionsOverflow` (right)
+- Row 2: branch selector (full width)
+
+**md+ (≥ 768px) — single row:**
+- hamburger + brand · … auto gap … · branch selector · Create · Theme · Logout
+
+`NavActionsOverflow` is a small dropdown (⋯ button) that surfaces Theme toggle and Logout on screens below `md`. It is `md:hidden` and must not be rendered on larger screens.
+
+The Create menu (`components/dashboard/create-menu.tsx`) uses `createPortal` for its mobile bottom sheet. This is required because the nav's `sticky + z-40 + backdrop-filter` combination can create a compositing layer that traps `position: fixed` children relative to the nav rather than the viewport. The portal renders the sheet at `document.body`, guaranteeing correct bottom-of-screen placement at all times.

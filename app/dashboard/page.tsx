@@ -108,7 +108,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             branchFilterDisabled={!context.canSelectAll}
           />
 
-          <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {metricCards.map((card) => (
               <MetricCard key={card.title} {...card} />
             ))}

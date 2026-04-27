@@ -1,0 +1,42 @@
+{
+  "skill_name": "printflow-db-migration",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need to add a nullable `internal_notes` text column to the `orders` table so staff can leave internal comments that aren't visible to customers. Can you write the migration for this?",
+      "expected_output": "Scaffolds migration with `npm run db:new -- add_internal_notes_to_orders`, writes correct ALTER TABLE up/down SQL, flags the trigger surface on the orders table, runs dry-run before applying.",
+      "assertions": [
+        "Runs `npm run db:new -- add_internal_notes_to_orders` (or similar descriptive name) to scaffold the file",
+        "Up section contains `ALTER TABLE orders ADD COLUMN internal_notes text;`",
+        "Down section contains `ALTER TABLE orders DROP COLUMN internal_notes;`",
+        "Mentions or checks the trigger surface on the orders table before applying",
+        "Runs `npm run db:migrate -- --dry-run` before `npm run db:migrate`",
+        "Produces a handoff summary with file path, SQL summary, and commands run"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "We need to add a new value `store_credit` to the `payment_mode` enum in our database. Add it via a migration please.",
+      "expected_output": "Scaffolds migration, writes ALTER TYPE up SQL, explicitly warns the user that PostgreSQL does not support removing enum values so the down section cannot cleanly undo this change, produces handoff noting the caveat.",
+      "assertions": [
+        "Runs `npm run db:new` to scaffold the file — does not create the file manually",
+        "Up section contains `ALTER TYPE payment_mode ADD VALUE 'store_credit';`",
+        "Explicitly warns the user that PostgreSQL does not support removing enum values",
+        "Down section contains a comment explaining why rollback is not possible, not a fake DROP",
+        "Produces a handoff summary that calls out the enum rollback caveat under Risks"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "I accidentally applied a migration that added a `discount_notes` column with the wrong type — it should be `text` but I put `varchar(50)`. I want to fix it. What's the right approach?",
+      "expected_output": "Explains that the applied migration file must not be edited (checksum will mismatch). Offers to create a corrective migration that alters the column type. Does not touch the original file. Writes the new migration with ALTER COLUMN ... TYPE text.",
+      "assertions": [
+        "Does NOT modify the existing applied migration file",
+        "Explains why editing an applied migration would cause a checksum mismatch error",
+        "Offers to create a new corrective migration",
+        "New migration up section uses `ALTER TABLE t ALTER COLUMN discount_notes TYPE text`",
+        "Produces a handoff noting that the original migration was left unchanged"
+      ]
+    }
+  ]
+}

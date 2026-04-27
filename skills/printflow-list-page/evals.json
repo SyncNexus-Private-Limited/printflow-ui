@@ -1,0 +1,47 @@
+{
+  "skill_name": "printflow-list-page",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We need a new list page for `vendors` under the dashboard. It should show vendor name, contact email, phone, and branch. It needs a filter drawer with a search-by-name field and a branch filter. Use the expenses page as the closest reference.",
+      "expected_output": "Scopes the files that need to change (page, list-controls, data-table, query, types). Uses shared primitives: useFilterDrawer, FilterDrawerShell, FilterTriggerButton, AppliedFilterPills, DataTableContainer, TableScrollArea, SortableHeaderCell, computeStickySpecs. Prepends branch pill in buildAppliedFilterSummaryItems. Fetches data server-side via queries.ts. Produces handoff.",
+      "assertions": [
+        "Uses `useFilterDrawer` hook — does not implement open/close state manually",
+        "Renders `<FilterDrawerShell>`, `<FilterTriggerButton>`, `<AppliedFilterPills>` — does not re-implement these",
+        "`buildAppliedFilterSummaryItems` prepends the branch pill as the first item",
+        "Data table uses `<DataTableContainer>` and `<TableScrollArea>`",
+        "Column definitions use `ColumnStickyDef` and `computeStickySpecs` is called",
+        "Page fetches data server-side via a function in `lib/dashboard/queries.ts` — no inline SQL in the page or component",
+        "Passes `selectedBranchName={context.selectedBranchName}` to the list controls",
+        "Produces a handoff with files changed, how to test, and any DB steps"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "On the inventory list page, I want to add a delete button to each row. When clicked it should open a popup asking the user to type the word 'delete' to confirm before the button becomes active. On confirm it should call an API route that deletes the inventory item.",
+      "expected_output": "Adds a delete CTA to the row actions cell. Implements a dialog that disables the confirm button until the user types exactly 'delete'. Creates or extends a route handler under app/api/ that validates with Zod, authorizes via getCurrentUser(), branch-scopes the query, and returns { success, message }. Never leaks SQL errors.",
+      "assertions": [
+        "Confirm button is disabled until `confirmText === 'delete'` (exact lowercase match)",
+        "Does not introduce a new dialog/modal library — uses existing patterns from `components/ui/`",
+        "Route handler exports `runtime = 'nodejs'`",
+        "Route handler calls `getCurrentUser()` for authorization",
+        "Route handler uses a parameterised DELETE query — no string interpolation of IDs",
+        "Route handler returns `{ success: boolean, message: string }` and catches DB errors without leaking SQL",
+        "Handoff notes whether a soft-delete or hard-delete was used and why"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "On the customers list page, I want to add a filter for `customer_type` (it's an existing enum: individual, corporate). It should appear in the filter drawer as a select dropdown, show as an applied pill when active, and filter the query results.",
+      "expected_output": "Adds customer_type to the filter state type and parser. Adds a select input to the filter drawer. Adds the pill to buildAppliedFilterSummaryItems (after the branch pill). Adds a parameterised WHERE clause to the customers query in queries.ts. Does not touch unrelated files.",
+      "assertions": [
+        "Filter state type in `lib/dashboard/*-page-filters.ts` is updated with `customer_type` field",
+        "A select/dropdown input for `customer_type` is added inside `<FilterDrawerShell>` in the list controls component",
+        "`buildAppliedFilterSummaryItems` includes a pill for `customer_type` when it is set — and the branch pill remains first",
+        "The WHERE clause in `lib/dashboard/queries.ts` is parameterised (uses `$N` placeholder), not string-interpolated",
+        "No files outside the scoped set are modified",
+        "Produces a handoff with files changed and how to test the filter"
+      ]
+    }
+  ]
+}

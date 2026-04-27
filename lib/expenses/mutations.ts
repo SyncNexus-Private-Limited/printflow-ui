@@ -2,12 +2,12 @@ import "server-only";
 import type { PoolClient } from "pg";
 import type { AuthenticatedUser } from "@/lib/auth/current-user";
 import { buildBranchHref } from "@/lib/dashboard/helpers";
-import type { CreateExpenseInput } from "@/lib/expenses/schema";
+import type { CreateExpenseInput, UpdateEmployeeExpenseInput } from "@/lib/expenses/schema";
 import { getExpenseBranchesForUser } from "@/lib/expenses/queries";
 import type { CreateExpenseFieldName, CreateExpenseSuccessPayload, ExpenseType } from "@/lib/expenses/types";
 import { getPool } from "@/lib/db/postgres";
 
-type MutationFieldErrors = Partial<Record<CreateExpenseFieldName, string>>;
+type MutationFieldErrors = Partial<Record<string, string>>;
 
 type ExpenseCategoryLookupRow = {
   id: string;
@@ -343,6 +343,242 @@ export async function createExpense(currentUser: AuthenticatedUser, input: Creat
       type: input.type,
       redirectTo: getExpenseRedirectTarget(input.type, selectedBranch.id),
     };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// ---------- Employee expense update ----------
+
+type ExistingEmployeeExpenseRow = {
+  id: string;
+  branch_id: string;
+  user_id: string;
+  title: string;
+  category_id: string;
+  amount: string;
+  payment_mode: string;
+  expense_date: string;
+  remarks: string | null;
+  order_id: string | null;
+};
+
+const FETCH_EXISTING_SQL = `
+  SELECT
+    ee.id::text             AS id,
+    ee.branch_id::text      AS branch_id,
+    ee.user_id::text        AS user_id,
+    ee.title,
+    ee.category_id::text    AS category_id,
+    ee.amount::text         AS amount,
+    ee.payment_mode::text   AS payment_mode,
+    ee.expense_date::text   AS expense_date,
+    ee.remarks,
+    ee.order_id::text       AS order_id
+  FROM employee_expenses ee
+  WHERE ee.id = $1::uuid
+  FOR UPDATE
+`;
+
+function buildExpenseSnapshot(row: ExistingEmployeeExpenseRow) {
+  return {
+    id: row.id,
+    branchId: row.branch_id,
+    userId: row.user_id,
+    title: row.title,
+    categoryId: row.category_id,
+    amount: row.amount,
+    paymentMode: row.payment_mode,
+    expenseDate: row.expense_date,
+    remarks: row.remarks,
+    orderId: row.order_id,
+  };
+}
+
+export async function updateEmployeeExpense(
+  currentUser: AuthenticatedUser,
+  expenseId: string,
+  input: UpdateEmployeeExpenseInput,
+): Promise<void> {
+  const pool = getPool();
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // 1. Fetch + lock
+    const { rows: existingRows } = await client.query<ExistingEmployeeExpenseRow>(
+      FETCH_EXISTING_SQL,
+      [expenseId],
+    );
+
+    const existing = existingRows[0];
+
+    if (!existing) {
+      throw new ExpenseMutationError("Expense not found.", { status: 404 });
+    }
+
+    // 2. Branch authorization
+    if (currentUser.role !== "admin" && existing.branch_id !== currentUser.branchId) {
+      throw new ExpenseMutationError("You cannot edit this expense.", { status: 403 });
+    }
+
+    // 3. Category scope check (employee-only)
+    const { rows: catRows } = await client.query(
+      `SELECT id FROM expense_categories
+       WHERE id = $1::uuid AND is_active = true AND scope = ANY($2::text[]) LIMIT 1`,
+      [input.categoryId, ["employee", "both"]],
+    );
+
+    if (!catRows[0]) {
+      throw new ExpenseMutationError("Select a valid expense category.", {
+        status: 400,
+        fieldErrors: { categoryId: "Select a valid expense category." },
+      });
+    }
+
+    // 4. Employee belongs to branch
+    const { rows: empRows } = await client.query(
+      `SELECT id FROM users
+       WHERE id = $1::uuid AND branch_id = $2::uuid AND is_active = true LIMIT 1`,
+      [input.employeeId, existing.branch_id],
+    );
+
+    if (!empRows[0]) {
+      throw new ExpenseMutationError("Select a valid employee for this branch.", {
+        status: 400,
+        fieldErrors: { employeeId: "Select a valid employee for this branch." },
+      });
+    }
+
+    // 5. Order belongs to branch (if provided)
+    if (input.orderId) {
+      const { rows: orderRows } = await client.query(
+        `SELECT id FROM orders
+         WHERE id = $1::uuid AND branch_id = $2::uuid AND status <> 'cancelled' LIMIT 1`,
+        [input.orderId, existing.branch_id],
+      );
+
+      if (!orderRows[0]) {
+        throw new ExpenseMutationError("Select a valid linked order for this branch.", {
+          status: 400,
+          fieldErrors: { orderId: "Select a valid linked order for this branch." },
+        });
+      }
+    }
+
+    // 6. Compute changed_fields (before-vs-after)
+    const changedFields: Record<string, { from: unknown; to: unknown }> = {};
+    const newRemarks = normalizeRemarks(input.remarks);
+
+    if (existing.title !== input.title)
+      changedFields.title = { from: existing.title, to: input.title };
+    if (existing.category_id !== input.categoryId)
+      changedFields.categoryId = { from: existing.category_id, to: input.categoryId };
+    if (existing.payment_mode !== input.paymentMode)
+      changedFields.paymentMode = { from: existing.payment_mode, to: input.paymentMode };
+    if (existing.expense_date !== input.expenseDate)
+      changedFields.expenseDate = { from: existing.expense_date, to: input.expenseDate };
+    if ((existing.remarks ?? null) !== (newRemarks ?? null))
+      changedFields.remarks = { from: existing.remarks, to: newRemarks };
+    if (existing.user_id !== input.employeeId)
+      changedFields.employeeId = { from: existing.user_id, to: input.employeeId };
+    if ((existing.order_id ?? null) !== (input.orderId ?? null))
+      changedFields.orderId = { from: existing.order_id, to: input.orderId ?? null };
+
+    // 7. Audit log (snapshot = before-state)
+    await client.query(
+      `INSERT INTO employee_expense_audit_logs
+         (expense_id, action, snapshot, changed_fields, changed_by)
+       VALUES ($1::uuid, 'update', $2::jsonb, $3::jsonb, $4::uuid)`,
+      [
+        expenseId,
+        JSON.stringify(buildExpenseSnapshot(existing)),
+        Object.keys(changedFields).length > 0 ? JSON.stringify(changedFields) : null,
+        currentUser.userId,
+      ],
+    );
+
+    // 8. Update live row (updated_at handled by trigger)
+    await client.query(
+      `UPDATE employee_expenses SET
+         title        = $1,
+         category_id  = $2::uuid,
+         amount       = $3::numeric(14,2),
+         payment_mode = $4::payment_mode,
+         expense_date = $5::date,
+         remarks      = $6,
+         user_id      = $7::uuid,
+         order_id     = $8::uuid,
+         updated_by   = $9::uuid
+       WHERE id = $10::uuid`,
+      [
+        input.title,
+        input.categoryId,
+        parseExpenseAmount(input.amount),
+        input.paymentMode,
+        input.expenseDate,
+        newRemarks,
+        input.employeeId,
+        input.orderId ?? null,
+        currentUser.userId,
+        expenseId,
+      ],
+    );
+
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// ---------- Employee expense delete ----------
+
+export async function deleteEmployeeExpense(
+  currentUser: AuthenticatedUser,
+  expenseId: string,
+): Promise<void> {
+  const pool = getPool();
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // 1. Fetch + lock
+    const { rows: existingRows } = await client.query<ExistingEmployeeExpenseRow>(
+      FETCH_EXISTING_SQL,
+      [expenseId],
+    );
+
+    const existing = existingRows[0];
+
+    if (!existing) {
+      throw new ExpenseMutationError("Expense not found.", { status: 404 });
+    }
+
+    // 2. Branch authorization
+    if (currentUser.role !== "admin" && existing.branch_id !== currentUser.branchId) {
+      throw new ExpenseMutationError("You cannot delete this expense.", { status: 403 });
+    }
+
+    // 3. Audit log (snapshot = full before-state)
+    await client.query(
+      `INSERT INTO employee_expense_audit_logs
+         (expense_id, action, snapshot, changed_fields, changed_by)
+       VALUES ($1::uuid, 'delete', $2::jsonb, NULL, $3::uuid)`,
+      [expenseId, JSON.stringify(buildExpenseSnapshot(existing)), currentUser.userId],
+    );
+
+    // 4. Delete live row
+    await client.query(`DELETE FROM employee_expenses WHERE id = $1::uuid`, [expenseId]);
+
+    await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

@@ -167,7 +167,7 @@ export function RowActionMenu({ actions, label = "Row actions" }: RowActionMenuP
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[rgb(var(--primary)/0.35)]",
                     "disabled:cursor-not-allowed disabled:opacity-50",
                     action.destructive
-                      ? "text-[rgb(var(--destructive))] hover:bg-[rgb(var(--destructive)/0.08)]"
+                      ? "text-[rgb(var(--danger))] hover:bg-[rgb(var(--danger)/0.08)]"
                       : "text-[rgb(var(--foreground))] hover:bg-[rgb(var(--muted))]",
                   )}
                 >

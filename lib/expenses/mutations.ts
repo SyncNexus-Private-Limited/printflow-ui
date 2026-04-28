@@ -2,7 +2,7 @@ import "server-only";
 import type { PoolClient } from "pg";
 import type { AuthenticatedUser } from "@/lib/auth/current-user";
 import { buildBranchHref } from "@/lib/dashboard/helpers";
-import type { CreateExpenseInput, UpdateEmployeeExpenseInput } from "@/lib/expenses/schema";
+import type { CreateExpenseInput, UpdateBusinessExpenseInput, UpdateEmployeeExpenseInput } from "@/lib/expenses/schema";
 import { getExpenseBranchesForUser } from "@/lib/expenses/queries";
 import type { CreateExpenseFieldName, CreateExpenseSuccessPayload, ExpenseType } from "@/lib/expenses/types";
 import { getPool } from "@/lib/db/postgres";
@@ -577,6 +577,226 @@ export async function deleteEmployeeExpense(
 
     // 4. Delete live row
     await client.query(`DELETE FROM employee_expenses WHERE id = $1::uuid`, [expenseId]);
+
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// ---------- Business expense update ----------
+
+type ExistingBusinessExpenseRow = {
+  id: string;
+  branch_id: string;
+  title: string | null;
+  category_id: string;
+  amount: string;
+  payment_mode: string;
+  expense_date: string;
+  remarks: string | null;
+  order_vendor_id: string | null;
+};
+
+const FETCH_EXISTING_BUSINESS_SQL = `
+  SELECT
+    be.id::text                 AS id,
+    be.branch_id::text          AS branch_id,
+    be.title,
+    be.category_id::text        AS category_id,
+    be.amount::text             AS amount,
+    be.payment_mode::text       AS payment_mode,
+    be.expense_date::text       AS expense_date,
+    be.remarks,
+    be.order_vendor_id::text    AS order_vendor_id
+  FROM branch_expenses be
+  WHERE be.id = $1::uuid
+  FOR UPDATE
+`;
+
+function buildBusinessExpenseSnapshot(row: ExistingBusinessExpenseRow) {
+  return {
+    id: row.id,
+    branchId: row.branch_id,
+    title: row.title,
+    categoryId: row.category_id,
+    amount: row.amount,
+    paymentMode: row.payment_mode,
+    expenseDate: row.expense_date,
+    remarks: row.remarks,
+    orderVendorId: row.order_vendor_id,
+  };
+}
+
+export async function updateBusinessExpense(
+  currentUser: AuthenticatedUser,
+  expenseId: string,
+  input: UpdateBusinessExpenseInput,
+): Promise<void> {
+  const pool = getPool();
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // 1. Fetch + lock
+    const { rows: existingRows } = await client.query<ExistingBusinessExpenseRow>(
+      FETCH_EXISTING_BUSINESS_SQL,
+      [expenseId],
+    );
+
+    const existing = existingRows[0];
+
+    if (!existing) {
+      throw new ExpenseMutationError("Expense not found.", { status: 404 });
+    }
+
+    // 2. Branch authorization
+    if (currentUser.role !== "admin" && existing.branch_id !== currentUser.branchId) {
+      throw new ExpenseMutationError("You cannot edit this expense.", { status: 403 });
+    }
+
+    // 3. Category scope check (business = branch/both)
+    const { rows: catRows } = await client.query(
+      `SELECT id FROM expense_categories
+       WHERE id = $1::uuid AND is_active = true AND scope = ANY($2::text[]) LIMIT 1`,
+      [input.categoryId, ["branch", "both"]],
+    );
+
+    if (!catRows[0]) {
+      throw new ExpenseMutationError("Select a valid expense category.", {
+        status: 400,
+        fieldErrors: { categoryId: "Select a valid expense category." },
+      });
+    }
+
+    // 4. Vendor belongs to branch (if provided)
+    if (input.vendorId) {
+      await assertVendorBelongsToBranch(client, input.vendorId, existing.branch_id);
+    }
+
+    // 5. OrderVendor validation + cross-check (if provided)
+    let resolvedOrderVendorId: string | null = null;
+
+    if (input.orderVendorId) {
+      const orderVendor = await getOrderVendorForBranch(client, input.orderVendorId, existing.branch_id);
+
+      if (input.vendorId && orderVendor.vendorId !== input.vendorId) {
+        throw new ExpenseMutationError("Linked order vendor must match the selected vendor.", {
+          status: 400,
+          fieldErrors: { orderVendorId: "Linked order vendor must match the selected vendor." },
+        });
+      }
+
+      resolvedOrderVendorId = orderVendor.id;
+    }
+
+    // 6. Compute changed_fields (before-vs-after)
+    const changedFields: Record<string, { from: unknown; to: unknown }> = {};
+    const newRemarks = normalizeRemarks(input.remarks);
+
+    if (existing.title !== input.title)
+      changedFields.title = { from: existing.title, to: input.title };
+    if (existing.category_id !== input.categoryId)
+      changedFields.categoryId = { from: existing.category_id, to: input.categoryId };
+    if (existing.payment_mode !== input.paymentMode)
+      changedFields.paymentMode = { from: existing.payment_mode, to: input.paymentMode };
+    if (existing.expense_date !== input.expenseDate)
+      changedFields.expenseDate = { from: existing.expense_date, to: input.expenseDate };
+    if ((existing.remarks ?? null) !== (newRemarks ?? null))
+      changedFields.remarks = { from: existing.remarks, to: newRemarks };
+    if ((existing.order_vendor_id ?? null) !== (resolvedOrderVendorId ?? null))
+      changedFields.orderVendorId = { from: existing.order_vendor_id, to: resolvedOrderVendorId };
+
+    // 7. Audit log (snapshot = before-state)
+    await client.query(
+      `INSERT INTO business_expense_audit_logs
+         (expense_id, action, snapshot, changed_fields, changed_by)
+       VALUES ($1::uuid, 'update', $2::jsonb, $3::jsonb, $4::uuid)`,
+      [
+        expenseId,
+        JSON.stringify(buildBusinessExpenseSnapshot(existing)),
+        Object.keys(changedFields).length > 0 ? JSON.stringify(changedFields) : null,
+        currentUser.userId,
+      ],
+    );
+
+    // 8. Update live row (updated_at handled by trigger)
+    await client.query(
+      `UPDATE branch_expenses SET
+         title           = $1,
+         category_id     = $2::uuid,
+         amount          = $3::numeric(14,2),
+         payment_mode    = $4::payment_mode,
+         expense_date    = $5::date,
+         remarks         = $6,
+         order_vendor_id = $7::uuid,
+         updated_by      = $8::uuid
+       WHERE id = $9::uuid`,
+      [
+        input.title,
+        input.categoryId,
+        parseExpenseAmount(input.amount),
+        input.paymentMode,
+        input.expenseDate,
+        newRemarks,
+        resolvedOrderVendorId,
+        currentUser.userId,
+        expenseId,
+      ],
+    );
+
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// ---------- Business expense delete ----------
+
+export async function deleteBusinessExpense(
+  currentUser: AuthenticatedUser,
+  expenseId: string,
+): Promise<void> {
+  const pool = getPool();
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    // 1. Fetch + lock
+    const { rows: existingRows } = await client.query<ExistingBusinessExpenseRow>(
+      FETCH_EXISTING_BUSINESS_SQL,
+      [expenseId],
+    );
+
+    const existing = existingRows[0];
+
+    if (!existing) {
+      throw new ExpenseMutationError("Expense not found.", { status: 404 });
+    }
+
+    // 2. Branch authorization
+    if (currentUser.role !== "admin" && existing.branch_id !== currentUser.branchId) {
+      throw new ExpenseMutationError("You cannot delete this expense.", { status: 403 });
+    }
+
+    // 3. Audit log (snapshot = full before-state)
+    await client.query(
+      `INSERT INTO business_expense_audit_logs
+         (expense_id, action, snapshot, changed_fields, changed_by)
+       VALUES ($1::uuid, 'delete', $2::jsonb, NULL, $3::uuid)`,
+      [expenseId, JSON.stringify(buildBusinessExpenseSnapshot(existing)), currentUser.userId],
+    );
+
+    // 4. Delete live row
+    await client.query(`DELETE FROM branch_expenses WHERE id = $1::uuid`, [expenseId]);
 
     await client.query("COMMIT");
   } catch (error) {

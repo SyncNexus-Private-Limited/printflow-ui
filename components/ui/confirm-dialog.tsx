@@ -51,9 +51,9 @@ export function ConfirmDialog({
   return (
     <Dialog isOpen={isOpen} onClose={onClose} title={title} size="sm">
       <div className="px-5 pb-5 pt-4">
-        <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-[rgb(var(--destructive)/0.1)]">
+        <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-[rgb(var(--danger)/0.1)]">
           <AlertTriangle
-            className="h-5 w-5 text-[rgb(var(--destructive))]"
+            className="h-5 w-5 text-[rgb(var(--danger))]"
             aria-hidden="true"
             strokeWidth={1.9}
           />
@@ -104,7 +104,7 @@ export function ConfirmDialog({
           </Button>
           <Button
             type="button"
-            className="h-10 rounded-2xl bg-[rgb(var(--destructive))] px-5 shadow-none hover:bg-[rgb(var(--destructive)/0.9)]"
+            className="h-10 rounded-2xl bg-[rgb(var(--danger))] px-5 shadow-none hover:bg-[rgb(var(--danger)/0.9)]"
             onClick={handleConfirm}
             disabled={!canConfirm}
             aria-busy={isPending}

@@ -185,3 +185,72 @@ export type UpdateEmployeeExpenseApiResponse =
 export type DeleteEmployeeExpenseApiResponse =
   | { success: true }
   | { success: false; message: string };
+
+// ---------- Business expense detail (used by edit dialog) ----------
+
+export type BusinessExpenseDetail = {
+  id: string;
+  branchId: string;
+  branchName: string;
+  title: string | null;
+  categoryId: string;
+  categoryCode: string;
+  category: string;
+  amount: number;
+  paymentMode: string;
+  expenseDate: string;
+  remarks: string | null;
+  orderVendorId: string | null;
+  vendorId: string | null;
+  vendorName: string | null;
+  createdAt: string;
+  createdByName: string | null;
+  updatedAt: string;
+  updatedByName: string | null;
+};
+
+export const updateBusinessExpenseFieldNames = [
+  "title",
+  "categoryId",
+  "amount",
+  "paymentMode",
+  "expenseDate",
+  "remarks",
+  "vendorId",
+  "orderVendorId",
+] as const;
+
+export type UpdateBusinessExpenseFieldName = (typeof updateBusinessExpenseFieldNames)[number];
+
+export type UpdateBusinessExpenseFormValues = {
+  title: string;
+  categoryId: string;
+  amount: string;
+  paymentMode: PaymentMode;
+  expenseDate: string;
+  remarks: string;
+  vendorId: string;
+  orderVendorId: string;
+};
+
+export type BusinessExpenseDetailApiResponse =
+  | {
+      success: true;
+      data: {
+        expense: BusinessExpenseDetail;
+        options: {
+          categories: ExpenseCategoryOption[];
+          vendors: ExpenseVendorOption[];
+          orderVendors: ExpenseOrderVendorOption[];
+        };
+      };
+    }
+  | { success: false; message: string };
+
+export type UpdateBusinessExpenseApiResponse =
+  | { success: true; data: { id: string } }
+  | { success: false; message: string; fieldErrors?: Partial<Record<UpdateBusinessExpenseFieldName, string>> };
+
+export type DeleteBusinessExpenseApiResponse =
+  | { success: true }
+  | { success: false; message: string };

@@ -54,6 +54,8 @@ type BusinessExpenseDataTableProps = ExpenseDataTableBaseProps & {
   kind: "business";
   items: BusinessExpenseDetailRow[];
   fallbackBranchName: string;
+  onEditRow?: (expense: BusinessExpenseDetailRow) => void;
+  onDeleteRow?: (expense: BusinessExpenseDetailRow) => void;
 };
 
 type ExpenseDataTableProps = EmployeeExpenseDataTableProps | BusinessExpenseDataTableProps;
@@ -253,7 +255,12 @@ function renderBusinessRows(
   items: BusinessExpenseDetailRow[],
   fallbackBranchName: string,
   stickySpecs: (StickySpec | null)[],
+  onEditRow?: (expense: BusinessExpenseDetailRow) => void,
+  onDeleteRow?: (expense: BusinessExpenseDetailRow) => void,
 ) {
+  const hasActions = Boolean(onEditRow && onDeleteRow);
+  const actionsStickySpec = hasActions ? stickySpecs[stickySpecs.length - 1] : null;
+
   return items.map((expense) => (
     <tr
       key={expense.id}
@@ -300,6 +307,31 @@ function renderBusinessRows(
           {expense.branchName ?? fallbackBranchName}
         </p>
       </td>
+      {hasActions ? (
+        <td
+          className={cn(TABLE_BODY_CELL_CLASS, "px-2", getStickyBodyCellClass(actionsStickySpec))}
+          style={getStickyBodyCellStyle(actionsStickySpec)}
+        >
+          <RowActionMenu
+            label={`Actions for ${expense.title ?? "expense"}`}
+            actions={[
+              {
+                key: "edit",
+                label: "Edit",
+                icon: <Pencil className="h-4 w-4" strokeWidth={1.9} />,
+                onClick: () => onEditRow!(expense),
+              },
+              {
+                key: "delete",
+                label: "Delete",
+                icon: <Trash2 className="h-4 w-4" strokeWidth={1.9} />,
+                destructive: true,
+                onClick: () => onDeleteRow!(expense),
+              },
+            ]}
+          />
+        </td>
+      ) : null}
     </tr>
   ));
 }
@@ -316,9 +348,13 @@ export function ExpenseDataTable({
 }: ExpenseDataTableProps) {
   const router = useRouter();
 
-  const onEditRow = kind === "employee" ? (kindProps as EmployeeExpenseDataTableProps).onEditRow : undefined;
-  const onDeleteRow = kind === "employee" ? (kindProps as EmployeeExpenseDataTableProps).onDeleteRow : undefined;
-  const hasActions = kind === "employee" && Boolean(onEditRow && onDeleteRow);
+  const employeeOnEditRow = kind === "employee" ? (kindProps as EmployeeExpenseDataTableProps).onEditRow : undefined;
+  const employeeOnDeleteRow = kind === "employee" ? (kindProps as EmployeeExpenseDataTableProps).onDeleteRow : undefined;
+  const businessOnEditRow = kind === "business" ? (kindProps as BusinessExpenseDataTableProps).onEditRow : undefined;
+  const businessOnDeleteRow = kind === "business" ? (kindProps as BusinessExpenseDataTableProps).onDeleteRow : undefined;
+  const hasActions =
+    (kind === "employee" && Boolean(employeeOnEditRow && employeeOnDeleteRow)) ||
+    (kind === "business" && Boolean(businessOnEditRow && businessOnDeleteRow));
 
   if (items.length === 0) {
     return <TableEmptyState message={emptyMessage} />;
@@ -367,6 +403,7 @@ export function ExpenseDataTable({
               <col className="w-36" />
               <col className="w-36" />
               <col className="w-44" />
+              {hasActions ? <col className="w-14" /> : null}
             </colgroup>
           )}
 
@@ -405,8 +442,8 @@ export function ExpenseDataTable({
 
           <tbody>
             {kind === "employee"
-              ? renderEmployeeRows(items, stickySpecs, onEditRow, onDeleteRow)
-              : renderBusinessRows(items, fallbackBranchName ?? "Branch", stickySpecs)}
+              ? renderEmployeeRows(items, stickySpecs, employeeOnEditRow, employeeOnDeleteRow)
+              : renderBusinessRows(items, fallbackBranchName ?? "Branch", stickySpecs, businessOnEditRow, businessOnDeleteRow)}
           </tbody>
         </table>
       </TableScrollArea>

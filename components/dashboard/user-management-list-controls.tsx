@@ -1,7 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
-import { AppliedFilterPills, type AppliedFilterSummaryItem } from "@/components/dashboard/applied-filter-pills";
+import {
+  AppliedFilterPills,
+  type AppliedFilterSummaryItem,
+} from "@/components/dashboard/applied-filter-pills";
 import { FilterDrawerShell } from "@/components/dashboard/filter-drawer-shell";
 import { FilterTriggerButton } from "@/components/dashboard/filter-trigger-button";
 import { useFilterDrawer } from "@/components/dashboard/use-filter-drawer";
@@ -176,7 +179,14 @@ export function UserManagementListControls({
       page: 1,
     });
 
-    setDraftFilters({ role: null, branchId: null, status: "all", locked: "all", name: null, username: null });
+    setDraftFilters({
+      role: null,
+      branchId: null,
+      status: "all",
+      locked: "all",
+      name: null,
+      username: null,
+    });
     navigateToHref(nextHref);
   };
 

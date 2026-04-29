@@ -1,6 +1,15 @@
 "use client";
 
-import { Suspense, createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  Suspense,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 type LoaderOptions = {
@@ -26,7 +35,11 @@ const DEFAULT_NON_BLOCKING_MESSAGE = "Working in the background...";
 
 const GlobalLoaderContext = createContext<GlobalLoaderContextValue | undefined>(undefined);
 
-function GlobalLoaderRouteWatcher({ onRouteChange }: { onRouteChange: (routeSignature: string) => void }) {
+function GlobalLoaderRouteWatcher({
+  onRouteChange,
+}: {
+  onRouteChange: (routeSignature: string) => void;
+}) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const routeSignature = `${pathname}?${searchParams.toString()}`;
@@ -54,8 +67,12 @@ export function GlobalLoaderProvider({ children }: { children: ReactNode }) {
     }
 
     previousRouteRef.current = routeSignature;
-    setBlockingLoader((currentLoader) => (currentLoader?.autoHideOnRouteChange ? null : currentLoader));
-    setNonBlockingLoader((currentLoader) => (currentLoader?.autoHideOnRouteChange ? null : currentLoader));
+    setBlockingLoader((currentLoader) =>
+      currentLoader?.autoHideOnRouteChange ? null : currentLoader,
+    );
+    setNonBlockingLoader((currentLoader) =>
+      currentLoader?.autoHideOnRouteChange ? null : currentLoader,
+    );
   }, []);
 
   useEffect(() => {

@@ -40,8 +40,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
     ]);
     const branchOptions = buildBranchFilterOptions(context);
     const hasDateFilter = !!(currentFilters.from || currentFilters.to);
-    const dateFieldLabel =
-      currentFilters.dateField === "created" ? "created date" : "updated date";
+    const dateFieldLabel = currentFilters.dateField === "created" ? "created date" : "updated date";
     const dateRangeLabel = hasDateFilter
       ? formatDateRangeLabel(currentFilters.from, currentFilters.to)
       : null;

@@ -137,19 +137,19 @@ function ResetPasswordDialog({
 
   return (
     <Dialog isOpen={isOpen} onClose={handleClose} title="Reset password" size="sm">
-      <div className="px-5 pb-5 pt-4">
+      <div className="px-5 pt-4 pb-5">
         {user ? (
           <p className="mb-4 text-sm text-[rgb(var(--muted-foreground))]">
             Set a new password for{" "}
-            <span className="font-semibold text-[rgb(var(--foreground))]">{user.fullName}</span>. The
-            existing password will be replaced immediately.
+            <span className="font-semibold text-[rgb(var(--foreground))]">{user.fullName}</span>.
+            The existing password will be replaced immediately.
           </p>
         ) : null}
 
         <div className="mb-4 space-y-2">
           <label
             htmlFor="reset-password-input"
-            className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted-foreground))]"
+            className="block text-[11px] font-semibold tracking-[0.16em] text-[rgb(var(--muted-foreground))] uppercase"
           >
             New password
           </label>
@@ -171,13 +171,15 @@ function ResetPasswordDialog({
               type="button"
               tabIndex={-1}
               onClick={() => setShowPassword((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-[rgb(var(--muted-foreground))] hover:text-[rgb(var(--foreground))]"
+              className="absolute top-1/2 right-3 -translate-y-1/2 text-xs font-medium text-[rgb(var(--muted-foreground))] hover:text-[rgb(var(--foreground))]"
             >
               {showPassword ? "Hide" : "Show"}
             </button>
           </div>
           {newPassword.length > 0 && newPassword.length < 8 ? (
-            <p className="text-sm text-[rgb(var(--danger))]">Password must be at least 8 characters.</p>
+            <p className="text-sm text-[rgb(var(--danger))]">
+              Password must be at least 8 characters.
+            </p>
           ) : null}
         </div>
 
@@ -295,7 +297,10 @@ export function UserManagementDataTable({
         });
       }
 
-      const data = (await response.json().catch(() => null)) as { success: boolean; message?: string } | null;
+      const data = (await response.json().catch(() => null)) as {
+        success: boolean;
+        message?: string;
+      } | null;
 
       if (!response.ok || !data?.success) {
         setErrorMessage(data?.message ?? "Unable to complete the action right now.");
@@ -385,7 +390,8 @@ export function UserManagementDataTable({
     return actions;
   }
 
-  const confirmingUser = pendingAction?.type !== "reset-password" ? pendingAction?.user ?? null : null;
+  const confirmingUser =
+    pendingAction?.type !== "reset-password" ? (pendingAction?.user ?? null) : null;
   const confirmTitle =
     pendingAction?.type === "deactivate"
       ? "Deactivate account"
@@ -407,9 +413,7 @@ export function UserManagementDataTable({
             ? `${confirmingUser?.fullName}'s account will be unlocked.`
             : "";
   const confirmKeyword =
-    pendingAction?.type === "deactivate" || pendingAction?.type === "lock"
-      ? "confirm"
-      : "confirm";
+    pendingAction?.type === "deactivate" || pendingAction?.type === "lock" ? "confirm" : "confirm";
   const confirmLabel =
     pendingAction?.type === "deactivate"
       ? "Deactivate"
@@ -476,27 +480,33 @@ export function UserManagementDataTable({
               {localItems.map((user) => (
                 <tr
                   key={user.id}
-                  className="group border-b border-[rgb(var(--border)/0.58)] transition-colors hover:bg-[rgb(var(--muted)/0.28)] last:border-b-0"
+                  className="group border-b border-[rgb(var(--border)/0.58)] transition-colors last:border-b-0 hover:bg-[rgb(var(--muted)/0.28)]"
                 >
                   <td
                     className={cn(TABLE_BODY_CELL_CLASS, getStickyBodyCellClass(stickySpecs[0]))}
                     style={getStickyBodyCellStyle(stickySpecs[0])}
                   >
-                    <p className="wrap-break-word font-semibold leading-6 text-[rgb(var(--card-foreground))]">
+                    <p className="leading-6 font-semibold wrap-break-word text-[rgb(var(--card-foreground))]">
                       {user.fullName}
                     </p>
                   </td>
                   <td className={TABLE_BODY_CELL_CLASS}>
-                    <p className="whitespace-nowrap text-[rgb(var(--foreground)/0.76)]">{user.username}</p>
+                    <p className="whitespace-nowrap text-[rgb(var(--foreground)/0.76)]">
+                      {user.username}
+                    </p>
                   </td>
                   <td className={TABLE_BODY_CELL_CLASS}>
-                    <DataPill tone={getActiveUserRoleTone(user.role)} appearance="outline" className="max-w-full">
+                    <DataPill
+                      tone={getActiveUserRoleTone(user.role)}
+                      appearance="outline"
+                      className="max-w-full"
+                    >
                       {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                     </DataPill>
                   </td>
                   {showBranch && (
                     <td className={TABLE_BODY_CELL_CLASS}>
-                      <p className="max-w-40 wrap-break-word font-medium leading-6 text-[rgb(var(--foreground)/0.76)]">
+                      <p className="max-w-40 leading-6 font-medium wrap-break-word text-[rgb(var(--foreground)/0.76)]">
                         {user.branchName ?? "—"}
                       </p>
                     </td>
@@ -505,12 +515,16 @@ export function UserManagementDataTable({
                     {renderStatusPill(user.isActive, user.isLocked)}
                   </td>
                   <td className={TABLE_BODY_CELL_CLASS}>
-                    <p className="whitespace-nowrap font-medium text-[rgb(var(--foreground)/0.68)]">
+                    <p className="font-medium whitespace-nowrap text-[rgb(var(--foreground)/0.68)]">
                       {formatDate(user.createdAt)}
                     </p>
                   </td>
                   <td
-                    className={cn(TABLE_BODY_CELL_CLASS, "px-2", getStickyBodyCellClass(actionsStickySpec))}
+                    className={cn(
+                      TABLE_BODY_CELL_CLASS,
+                      "px-2",
+                      getStickyBodyCellClass(actionsStickySpec),
+                    )}
                     style={getStickyBodyCellStyle(actionsStickySpec)}
                   >
                     <RowActionMenu
@@ -535,9 +549,7 @@ export function UserManagementDataTable({
       {/* Confirm dialog for deactivate / activate / lock / unlock */}
       <ConfirmDialog
         isOpen={
-          pendingAction !== null &&
-          pendingAction.type !== "reset-password" &&
-          !isActionPending
+          pendingAction !== null && pendingAction.type !== "reset-password" && !isActionPending
             ? true
             : pendingAction !== null && pendingAction.type !== "reset-password"
         }
@@ -556,9 +568,7 @@ export function UserManagementDataTable({
         confirmLabel={confirmLabel}
         isPending={isActionPending}
       >
-        {errorMessage ? (
-          <p className="text-sm text-[rgb(var(--danger))]">{errorMessage}</p>
-        ) : null}
+        {errorMessage ? <p className="text-sm text-[rgb(var(--danger))]">{errorMessage}</p> : null}
       </ConfirmDialog>
 
       {/* Reset password dialog */}

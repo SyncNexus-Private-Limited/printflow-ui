@@ -50,7 +50,7 @@ function FieldLabel({ htmlFor, children }: { htmlFor: string; children: string }
   return (
     <label
       htmlFor={htmlFor}
-      className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted-foreground))]"
+      className="block text-[11px] font-semibold tracking-[0.16em] text-[rgb(var(--muted-foreground))] uppercase"
     >
       {children}
     </label>
@@ -58,14 +58,12 @@ function FieldLabel({ htmlFor, children }: { htmlFor: string; children: string }
 }
 
 function FieldError({ message }: { message?: string }) {
-  return message ? (
-    <p className="text-xs text-[rgb(var(--danger))]">{message}</p>
-  ) : null;
+  return message ? <p className="text-xs text-[rgb(var(--danger))]">{message}</p> : null;
 }
 
 function LoadingShimmer() {
   return (
-    <div className="space-y-5 px-5 pb-6 pt-4" aria-busy="true" aria-label="Loading expense details">
+    <div className="space-y-5 px-5 pt-4 pb-6" aria-busy="true" aria-label="Loading expense details">
       {[1, 2, 3].map((row) => (
         <div key={row} className="grid gap-4 sm:grid-cols-2">
           {[1, 2].map((col) => (
@@ -98,7 +96,9 @@ export function EmployeeExpenseEditDialog({
     clearErrors,
     formState: { errors, isSubmitting },
   } = useForm<UpdateEmployeeExpenseFormValues>({
-    resolver: zodResolver(updateEmployeeExpenseSchema) as unknown as Resolver<UpdateEmployeeExpenseFormValues>,
+    resolver: zodResolver(
+      updateEmployeeExpenseSchema,
+    ) as unknown as Resolver<UpdateEmployeeExpenseFormValues>,
     defaultValues: {
       title: "",
       categoryId: "",
@@ -214,7 +214,7 @@ export function EmployeeExpenseEditDialog({
         </div>
       ) : (
         <form onSubmit={onSubmit} noValidate>
-          <div className="space-y-5 px-5 pb-2 pt-4">
+          <div className="space-y-5 px-5 pt-4 pb-2">
             {serverError ? (
               <div className="rounded-2xl border border-[rgb(var(--danger)/0.18)] bg-[rgb(var(--danger)/0.08)] px-4 py-3 text-sm text-[rgb(var(--danger))]">
                 {serverError}
@@ -320,9 +320,7 @@ export function EmployeeExpenseEditDialog({
                   {...register("orderId")}
                 >
                   <option value="">
-                    {(options?.orders.length ?? 0) === 0
-                      ? "No recent orders"
-                      : "No linked order"}
+                    {(options?.orders.length ?? 0) === 0 ? "No recent orders" : "No linked order"}
                   </option>
                   {options?.orders.map((order) => (
                     <option key={order.id} value={order.id}>

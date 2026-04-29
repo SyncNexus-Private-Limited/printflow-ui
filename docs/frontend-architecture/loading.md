@@ -179,11 +179,11 @@ Use this order of preference:
 Before changing loading behavior:
 
 1. Classify the interaction:
-    - global blocking
-    - route loading
-    - inline spinner
-    - button pending
-    - region busy state
+   - global blocking
+   - route loading
+   - inline spinner
+   - button pending
+   - region busy state
 
 2. Use the smallest correct loader
 

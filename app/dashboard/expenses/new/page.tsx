@@ -3,7 +3,12 @@ import { ExpenseForm } from "@/components/expenses/expense-form";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { coerceExpenseType, getExpenseBranchesForUser, getExpenseFormPageData, normalizeExpenseSearchParam } from "@/lib/expenses/queries";
+import {
+  coerceExpenseType,
+  getExpenseBranchesForUser,
+  getExpenseFormPageData,
+  normalizeExpenseSearchParam,
+} from "@/lib/expenses/queries";
 
 type AddExpensePageProps = {
   searchParams?: Promise<{
@@ -30,19 +35,30 @@ export default async function AddExpensePage({ searchParams }: AddExpensePagePro
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
             title="Add Expense"
-            branchOptions={[{ label: currentUser.branchName ?? "No branch available", value: currentUser.branchId ?? "unavailable" }]}
+            branchOptions={[
+              {
+                label: currentUser.branchName ?? "No branch available",
+                value: currentUser.branchId ?? "unavailable",
+              },
+            ]}
             selectedBranchValue={currentUser.branchId ?? "unavailable"}
             branchFilterDisabled
           />
-          <SectionCard title="No branch available" description="A branch assignment is required before you can create expenses.">
-            <p className="text-sm text-[rgb(var(--muted-foreground))]">Please contact an administrator to restore your branch access.</p>
+          <SectionCard
+            title="No branch available"
+            description="A branch assignment is required before you can create expenses."
+          >
+            <p className="text-sm text-[rgb(var(--muted-foreground))]">
+              Please contact an administrator to restore your branch access.
+            </p>
           </SectionCard>
         </div>
       </main>
     );
   }
 
-  const selectedBranch = branchOptions.find((branch) => branch.id === requestedBranchId) ?? branchOptions[0];
+  const selectedBranch =
+    branchOptions.find((branch) => branch.id === requestedBranchId) ?? branchOptions[0];
   const selectedType = coerceExpenseType(requestedType);
   const canonicalHref = `/dashboard/expenses/new?branchId=${encodeURIComponent(selectedBranch.id)}&type=${encodeURIComponent(selectedType)}`;
   const hasCanonicalBranch = requestedBranchId === selectedBranch.id;
@@ -70,7 +86,11 @@ export default async function AddExpensePage({ searchParams }: AddExpensePagePro
           />
 
           <SectionCard
-            title={pageData.selectedType === "business" ? "Business expense details" : "Employee expense details"}
+            title={
+              pageData.selectedType === "business"
+                ? "Business expense details"
+                : "Employee expense details"
+            }
             description={`Create a ${pageData.selectedType} expense for ${pageData.selectedBranchName}.`}
           >
             <ExpenseForm {...pageData} />
@@ -86,7 +106,12 @@ export default async function AddExpensePage({ searchParams }: AddExpensePagePro
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
             title="Add Expense"
-            branchOptions={[{ label: currentUser.branchName ?? "Branch", value: currentUser.branchId ?? "unavailable" }]}
+            branchOptions={[
+              {
+                label: currentUser.branchName ?? "Branch",
+                value: currentUser.branchId ?? "unavailable",
+              },
+            ]}
             selectedBranchValue={currentUser.branchId ?? "unavailable"}
             branchFilterDisabled
           />

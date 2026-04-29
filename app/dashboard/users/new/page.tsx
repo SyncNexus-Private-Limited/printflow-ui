@@ -4,7 +4,12 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasPermission } from "@/lib/auth/permissions";
-import { normalizeUserSearchParam, coerceUserRole, getUserBranchesForCreation, getUserFormPageData } from "@/lib/users/queries";
+import {
+  normalizeUserSearchParam,
+  coerceUserRole,
+  getUserBranchesForCreation,
+  getUserFormPageData,
+} from "@/lib/users/queries";
 import { userRoleLabels } from "@/lib/users/types";
 
 type AddUserPageProps = {
@@ -40,7 +45,12 @@ export default async function AddUserPage({ searchParams }: AddUserPageProps) {
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
             title="Add User"
-            branchOptions={[{ label: currentUser.branchName ?? "No branch", value: currentUser.branchId ?? "unavailable" }]}
+            branchOptions={[
+              {
+                label: currentUser.branchName ?? "No branch",
+                value: currentUser.branchId ?? "unavailable",
+              },
+            ]}
             selectedBranchValue={currentUser.branchId ?? "unavailable"}
             branchFilterDisabled
           />
@@ -110,10 +120,7 @@ export default async function AddUserPage({ searchParams }: AddUserPageProps) {
             branchFilterDisabled={!pageData.canSelectBranch}
           />
 
-          <SectionCard
-            title={`New ${roleLabelLower} account`}
-            description={sectionDescription}
-          >
+          <SectionCard title={`New ${roleLabelLower} account`} description={sectionDescription}>
             <UserForm {...pageData} showSuccess={showSuccess} />
           </SectionCard>
         </div>
@@ -127,7 +134,12 @@ export default async function AddUserPage({ searchParams }: AddUserPageProps) {
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
             title="Add User"
-            branchOptions={[{ label: currentUser.branchName ?? "Branch", value: currentUser.branchId ?? "unavailable" }]}
+            branchOptions={[
+              {
+                label: currentUser.branchName ?? "Branch",
+                value: currentUser.branchId ?? "unavailable",
+              },
+            ]}
             selectedBranchValue={currentUser.branchId ?? "unavailable"}
             branchFilterDisabled
           />

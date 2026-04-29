@@ -114,9 +114,7 @@ const baseHeaderConfigs: HeaderConfig[] = [
 ];
 
 function getHeaderConfigs(showBranch: boolean): HeaderConfig[] {
-  return showBranch
-    ? baseHeaderConfigs
-    : baseHeaderConfigs.filter((h) => h.key !== "branch");
+  return showBranch ? baseHeaderConfigs : baseHeaderConfigs.filter((h) => h.key !== "branch");
 }
 
 export function OrderDataTable({
@@ -148,7 +146,11 @@ export function OrderDataTable({
 
   return (
     <DataTableContainer>
-      <TableScrollArea className="bg-[rgb(var(--card)/0.98)]" viewportClassName="pb-0" stickyLeftWidth={stickyLeftWidth}>
+      <TableScrollArea
+        className="bg-[rgb(var(--card)/0.98)]"
+        viewportClassName="pb-0"
+        stickyLeftWidth={stickyLeftWidth}
+      >
         <table
           className={cn(
             "w-max min-w-full border-collapse text-left text-sm",
@@ -204,18 +206,18 @@ export function OrderDataTable({
             {items.map((order) => (
               <tr
                 key={order.id}
-                className="group border-b border-[rgb(var(--border)/0.58)] transition-colors hover:bg-[rgb(var(--muted)/0.28)] last:border-b-0"
+                className="group border-b border-[rgb(var(--border)/0.58)] transition-colors last:border-b-0 hover:bg-[rgb(var(--muted)/0.28)]"
               >
                 <td
                   className={cn(TABLE_BODY_CELL_CLASS, getStickyBodyCellClass(stickySpecs[0]))}
                   style={getStickyBodyCellStyle(stickySpecs[0])}
                 >
-                  <p className="whitespace-nowrap font-semibold leading-6 text-[rgb(var(--card-foreground))]">
+                  <p className="leading-6 font-semibold whitespace-nowrap text-[rgb(var(--card-foreground))]">
                     {order.orderCode}
                   </p>
                 </td>
                 <td className={TABLE_BODY_CELL_CLASS}>
-                  <p className="wrap-break-word leading-6 text-[rgb(var(--card-foreground))]">
+                  <p className="leading-6 wrap-break-word text-[rgb(var(--card-foreground))]">
                     {order.customerName}
                   </p>
                 </td>
@@ -234,19 +236,19 @@ export function OrderDataTable({
                   </DataPill>
                 </td>
                 <td className={cn(TABLE_BODY_CELL_CLASS, "text-right")}>
-                  <p className="whitespace-nowrap text-base font-semibold tabular-nums text-[rgb(var(--card-foreground))]">
+                  <p className="text-base font-semibold whitespace-nowrap text-[rgb(var(--card-foreground))] tabular-nums">
                     {formatCurrency(order.payableAmount)}
                   </p>
                 </td>
                 <td className={cn(TABLE_BODY_CELL_CLASS, "text-right")}>
-                  <p className="whitespace-nowrap font-medium tabular-nums text-[rgb(var(--card-foreground))]">
+                  <p className="font-medium whitespace-nowrap text-[rgb(var(--card-foreground))] tabular-nums">
                     {formatCurrency(order.paidAmount)}
                   </p>
                 </td>
                 <td className={cn(TABLE_BODY_CELL_CLASS, "text-right")}>
                   <p
                     className={cn(
-                      "whitespace-nowrap font-medium tabular-nums",
+                      "font-medium whitespace-nowrap tabular-nums",
                       order.outstandingAmount > 0
                         ? "text-[rgb(var(--metric-rose-ink))]"
                         : "text-[rgb(var(--foreground)/0.6)]",
@@ -256,24 +258,24 @@ export function OrderDataTable({
                   </p>
                 </td>
                 <td className={TABLE_BODY_CELL_CLASS}>
-                  <p className="whitespace-nowrap font-medium text-[rgb(var(--card-foreground))]">
+                  <p className="font-medium whitespace-nowrap text-[rgb(var(--card-foreground))]">
                     {formatDate(order.orderDate)}
                   </p>
                 </td>
                 <td className={TABLE_BODY_CELL_CLASS}>
-                  <p className="whitespace-nowrap font-medium text-[rgb(var(--card-foreground))]">
+                  <p className="font-medium whitespace-nowrap text-[rgb(var(--card-foreground))]">
                     {formatDate(order.createdAt)}
                   </p>
                 </td>
                 {showBranch && (
                   <td className={TABLE_BODY_CELL_CLASS}>
-                    <p className="max-w-40 wrap-break-word font-medium leading-6 text-[rgb(var(--foreground)/0.76)]">
+                    <p className="max-w-40 leading-6 font-medium wrap-break-word text-[rgb(var(--foreground)/0.76)]">
                       {order.branchName ?? "—"}
                     </p>
                   </td>
                 )}
                 <td className={TABLE_BODY_CELL_CLASS}>
-                  <p className="max-w-36 wrap-break-word text-sm leading-6 text-[rgb(var(--foreground)/0.68)]">
+                  <p className="max-w-36 text-sm leading-6 wrap-break-word text-[rgb(var(--foreground)/0.68)]">
                     {order.createdByName ?? "—"}
                   </p>
                 </td>

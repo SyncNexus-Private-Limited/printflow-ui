@@ -108,7 +108,7 @@ function NavActionsOverflow() {
       </Button>
 
       {isOpen ? (
-        <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 flex items-center gap-1.5 rounded-2xl border border-[rgb(var(--border)/0.78)] bg-[rgb(var(--card)/0.96)] p-1.5 shadow-[0_20px_44px_-32px_rgb(var(--shadow)/0.22)] backdrop-blur-[14px]">
+        <div className="absolute top-[calc(100%+0.5rem)] right-0 z-50 flex items-center gap-1.5 rounded-2xl border border-[rgb(var(--border)/0.78)] bg-[rgb(var(--card)/0.96)] p-1.5 shadow-[0_20px_44px_-32px_rgb(var(--shadow)/0.22)] backdrop-blur-[14px]">
           <ThemeToggleButton />
           <LogoutButton iconOnly title="Sign out" />
         </div>
@@ -155,7 +155,6 @@ export function TopNavbar({
   return (
     <div className="sticky top-0 z-40 px-4 pt-4 sm:px-6 xl:px-8">
       <nav className="mx-auto flex w-full max-w-384 flex-wrap items-center gap-2.5 rounded-3xl border border-[rgb(var(--border)/0.72)] bg-[rgb(var(--card)/0.86)] px-3 py-2.5 shadow-[0_20px_48px_-42px_rgb(var(--shadow)/0.18)] backdrop-blur supports-backdrop-filter:bg-[rgb(var(--card)/0.82)] sm:px-4 md:flex-nowrap md:gap-3">
-
         {/* Left: hamburger + brand — anchors row 1 left at all breakpoints */}
         <div className="order-1 flex shrink-0 items-center gap-2">
           <Button

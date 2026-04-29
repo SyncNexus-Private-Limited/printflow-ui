@@ -3,9 +3,17 @@ import type { PoolClient } from "pg";
 import type { AuthenticatedUser } from "@/lib/auth/current-user";
 import { canAccessBranch, hasPermission } from "@/lib/auth/permissions";
 import { buildBranchHref } from "@/lib/dashboard/helpers";
-import type { CreateExpenseInput, UpdateBusinessExpenseInput, UpdateEmployeeExpenseInput } from "@/lib/expenses/schema";
+import type {
+  CreateExpenseInput,
+  UpdateBusinessExpenseInput,
+  UpdateEmployeeExpenseInput,
+} from "@/lib/expenses/schema";
 import { getExpenseBranchesForUser } from "@/lib/expenses/queries";
-import type { CreateExpenseFieldName, CreateExpenseSuccessPayload, ExpenseType } from "@/lib/expenses/types";
+import type {
+  CreateExpenseFieldName,
+  CreateExpenseSuccessPayload,
+  ExpenseType,
+} from "@/lib/expenses/types";
 import { getPool } from "@/lib/db/postgres";
 
 type MutationFieldErrors = Partial<Record<string, string>>;
@@ -44,7 +52,10 @@ export class ExpenseMutationError extends Error {
 }
 
 function getExpenseRedirectTarget(type: ExpenseType, branchId: string) {
-  return buildBranchHref(type === "business" ? "/dashboard/business-expenses" : "/dashboard/employee-expenses", branchId);
+  return buildBranchHref(
+    type === "business" ? "/dashboard/business-expenses" : "/dashboard/employee-expenses",
+    branchId,
+  );
 }
 
 function parseExpenseAmount(value: string) {
@@ -79,7 +90,11 @@ async function assertCategoryIsAllowed(client: PoolClient, input: CreateExpenseI
   }
 }
 
-async function assertEmployeeBelongsToBranch(client: PoolClient, employeeId: string, branchId: string) {
+async function assertEmployeeBelongsToBranch(
+  client: PoolClient,
+  employeeId: string,
+  branchId: string,
+) {
   const { rows } = await client.query<ExpenseOrderLookupRow>(
     `
       SELECT id::text AS id
@@ -102,7 +117,12 @@ async function assertEmployeeBelongsToBranch(client: PoolClient, employeeId: str
   }
 }
 
-async function assertOrderBelongsToBranch(client: PoolClient, orderId: string, branchId: string, fieldName: "orderId" | "orderVendorId") {
+async function assertOrderBelongsToBranch(
+  client: PoolClient,
+  orderId: string,
+  branchId: string,
+  fieldName: "orderId" | "orderVendorId",
+) {
   const { rows } = await client.query<ExpenseOrderLookupRow>(
     `
       SELECT id::text AS id
@@ -166,7 +186,11 @@ async function assertVendorBelongsToBranch(client: PoolClient, vendorId: string,
   }
 }
 
-async function getOrderVendorForBranch(client: PoolClient, orderVendorId: string, branchId: string) {
+async function getOrderVendorForBranch(
+  client: PoolClient,
+  orderVendorId: string,
+  branchId: string,
+) {
   const { rows } = await client.query<ExpenseOrderVendorLookupRow>(
     `
       SELECT
@@ -194,9 +218,14 @@ async function getOrderVendorForBranch(client: PoolClient, orderVendorId: string
   return rows[0];
 }
 
-export async function createExpense(currentUser: AuthenticatedUser, input: CreateExpenseInput): Promise<CreateExpenseSuccessPayload> {
+export async function createExpense(
+  currentUser: AuthenticatedUser,
+  input: CreateExpenseInput,
+): Promise<CreateExpenseSuccessPayload> {
   if (!hasPermission(currentUser, "expenses:create")) {
-    throw new ExpenseMutationError("You do not have permission to create expenses.", { status: 403 });
+    throw new ExpenseMutationError("You do not have permission to create expenses.", {
+      status: 403,
+    });
   }
 
   const pool = getPool();
@@ -286,7 +315,11 @@ export async function createExpense(currentUser: AuthenticatedUser, input: Creat
     let orderVendorId: string | null = null;
 
     if (input.orderVendorId) {
-      const orderVendor = await getOrderVendorForBranch(client, input.orderVendorId, selectedBranch.id);
+      const orderVendor = await getOrderVendorForBranch(
+        client,
+        input.orderVendorId,
+        selectedBranch.id,
+      );
 
       if (input.vendorId && orderVendor.vendorId !== input.vendorId) {
         throw new ExpenseMutationError("Linked order vendor must match the selected vendor.", {
@@ -428,7 +461,9 @@ export async function updateEmployeeExpense(
 
     // 2. Permission + branch scope check (separate concerns — see lib/auth/permissions.ts)
     if (!hasPermission(currentUser, "expenses:edit")) {
-      throw new ExpenseMutationError("You do not have permission to edit expenses.", { status: 403 });
+      throw new ExpenseMutationError("You do not have permission to edit expenses.", {
+        status: 403,
+      });
     }
     if (!canAccessBranch(currentUser, existing.branch_id)) {
       throw new ExpenseMutationError("You cannot edit this expense.", { status: 403 });
@@ -572,7 +607,9 @@ export async function deleteEmployeeExpense(
 
     // 2. Permission + branch scope check (separate concerns — see lib/auth/permissions.ts)
     if (!hasPermission(currentUser, "expenses:delete")) {
-      throw new ExpenseMutationError("You do not have permission to delete expenses.", { status: 403 });
+      throw new ExpenseMutationError("You do not have permission to delete expenses.", {
+        status: 403,
+      });
     }
     if (!canAccessBranch(currentUser, existing.branch_id)) {
       throw new ExpenseMutationError("You cannot delete this expense.", { status: 403 });
@@ -667,7 +704,9 @@ export async function updateBusinessExpense(
 
     // 2. Permission + branch scope check (separate concerns — see lib/auth/permissions.ts)
     if (!hasPermission(currentUser, "expenses:edit")) {
-      throw new ExpenseMutationError("You do not have permission to edit expenses.", { status: 403 });
+      throw new ExpenseMutationError("You do not have permission to edit expenses.", {
+        status: 403,
+      });
     }
     if (!canAccessBranch(currentUser, existing.branch_id)) {
       throw new ExpenseMutationError("You cannot edit this expense.", { status: 403 });
@@ -696,7 +735,11 @@ export async function updateBusinessExpense(
     let resolvedOrderVendorId: string | null = null;
 
     if (input.orderVendorId) {
-      const orderVendor = await getOrderVendorForBranch(client, input.orderVendorId, existing.branch_id);
+      const orderVendor = await getOrderVendorForBranch(
+        client,
+        input.orderVendorId,
+        existing.branch_id,
+      );
 
       if (input.vendorId && orderVendor.vendorId !== input.vendorId) {
         throw new ExpenseMutationError("Linked order vendor must match the selected vendor.", {
@@ -798,7 +841,9 @@ export async function deleteBusinessExpense(
 
     // 2. Permission + branch scope check (separate concerns — see lib/auth/permissions.ts)
     if (!hasPermission(currentUser, "expenses:delete")) {
-      throw new ExpenseMutationError("You do not have permission to delete expenses.", { status: 403 });
+      throw new ExpenseMutationError("You do not have permission to delete expenses.", {
+        status: 403,
+      });
     }
     if (!canAccessBranch(currentUser, existing.branch_id)) {
       throw new ExpenseMutationError("You cannot delete this expense.", { status: 403 });

@@ -6,7 +6,10 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useDashboardChrome } from "@/components/dashboard/dashboard-chrome-context";
 import { getDashboardBreadcrumbs } from "@/components/dashboard/dashboard-navigation";
-import { getDashboardNavigationFilterState, isDashboardFilterAwarePath } from "@/lib/dashboard/page-filters";
+import {
+  getDashboardNavigationFilterState,
+  isDashboardFilterAwarePath,
+} from "@/lib/dashboard/page-filters";
 
 type DashboardHeaderProps = {
   title: string;
@@ -40,14 +43,17 @@ export function DashboardHeader({
   const searchParams = useSearchParams();
   const { setBranchControl } = useDashboardChrome();
   const isOverviewHeader = pathname === "/dashboard";
-  const navigationFilters = getDashboardNavigationFilterState({
-    branchId: selectedBranchValue,
-    from: searchParams.get("from") ?? undefined,
-    to: searchParams.get("to") ?? undefined,
-    pageSize: searchParams.get("pageSize") ?? undefined,
-  }, {
-    applyDefaultDateRange: isDashboardFilterAwarePath(pathname),
-  });
+  const navigationFilters = getDashboardNavigationFilterState(
+    {
+      branchId: selectedBranchValue,
+      from: searchParams.get("from") ?? undefined,
+      to: searchParams.get("to") ?? undefined,
+      pageSize: searchParams.get("pageSize") ?? undefined,
+    },
+    {
+      applyDefaultDateRange: isDashboardFilterAwarePath(pathname),
+    },
+  );
   const breadcrumbs = getDashboardBreadcrumbs(pathname, navigationFilters);
 
   useLayoutEffect(() => {
@@ -61,7 +67,10 @@ export function DashboardHeader({
   return (
     <header className="space-y-2 px-1">
       {!isOverviewHeader ? (
-        <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-xs font-medium text-[rgb(var(--muted-foreground))]">
+        <nav
+          aria-label="Breadcrumb"
+          className="flex items-center gap-1 text-xs font-medium text-[rgb(var(--muted-foreground))]"
+        >
           {breadcrumbs.map((breadcrumb, index) => {
             const isLast = index === breadcrumbs.length - 1;
 
@@ -70,7 +79,7 @@ export function DashboardHeader({
                 {breadcrumb.href && !isLast ? (
                   <Link
                     href={breadcrumb.href}
-                    className="rounded-md px-1 py-0.5 transition-colors hover:text-[rgb(var(--foreground))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
+                    className="rounded-md px-1 py-0.5 transition-colors hover:text-[rgb(var(--foreground))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none"
                   >
                     {breadcrumb.label}
                   </Link>
@@ -82,7 +91,9 @@ export function DashboardHeader({
                     {breadcrumb.label}
                   </span>
                 )}
-                {!isLast ? <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" strokeWidth={1.9} /> : null}
+                {!isLast ? (
+                  <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" strokeWidth={1.9} />
+                ) : null}
               </div>
             );
           })}
@@ -104,7 +115,9 @@ export function DashboardHeader({
           ) : null}
         </div>
       ) : (
-        <h1 className="text-2xl font-semibold tracking-tight text-[rgb(var(--foreground))] sm:text-3xl">{title}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-[rgb(var(--foreground))] sm:text-3xl">
+          {title}
+        </h1>
       )}
     </header>
   );

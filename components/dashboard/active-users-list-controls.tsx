@@ -1,7 +1,10 @@
 "use client";
 
 import { useMemo } from "react";
-import { AppliedFilterPills, type AppliedFilterSummaryItem } from "@/components/dashboard/applied-filter-pills";
+import {
+  AppliedFilterPills,
+  type AppliedFilterSummaryItem,
+} from "@/components/dashboard/applied-filter-pills";
 import { FilterDrawerShell } from "@/components/dashboard/filter-drawer-shell";
 import { FilterTriggerButton } from "@/components/dashboard/filter-trigger-button";
 import { useFilterDrawer } from "@/components/dashboard/use-filter-drawer";
@@ -45,7 +48,11 @@ function buildAppliedFilterSummaryItems(
   const items: AppliedFilterSummaryItem[] = [{ key: "branch", label: `Branch: ${branchName}` }];
 
   if (filters.role) {
-    items.push({ key: "role", label: `Role: ${filters.role.charAt(0).toUpperCase() + filters.role.slice(1)}`, tone: getActiveUserRoleTone(filters.role) });
+    items.push({
+      key: "role",
+      label: `Role: ${filters.role.charAt(0).toUpperCase() + filters.role.slice(1)}`,
+      tone: getActiveUserRoleTone(filters.role),
+    });
   }
 
   return items;

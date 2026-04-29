@@ -1,13 +1,27 @@
 import { redirect } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { LowStockPanel } from "@/components/dashboard/low-stock-panel";
-import { MetricCard, type MetricCardAccent, type MetricCardMetaItem } from "@/components/dashboard/metric-card";
+import {
+  MetricCard,
+  type MetricCardAccent,
+  type MetricCardMetaItem,
+} from "@/components/dashboard/metric-card";
 import { RecentExpenses } from "@/components/dashboard/recent-expenses";
 import { RecentOrders } from "@/components/dashboard/recent-orders";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { buildBranchFilterOptions, buildBranchHref, hasDashboardData } from "@/lib/dashboard/helpers";
-import { getDashboardContext, getDashboardSummary, getLowStockItems, getRecentExpenses, getRecentOrders } from "@/lib/dashboard/queries";
+import {
+  buildBranchFilterOptions,
+  buildBranchHref,
+  hasDashboardData,
+} from "@/lib/dashboard/helpers";
+import {
+  getDashboardContext,
+  getDashboardSummary,
+  getLowStockItems,
+  getRecentExpenses,
+  getRecentOrders,
+} from "@/lib/dashboard/queries";
 import { formatCompactNumber, formatCurrency } from "@/lib/utils/format";
 
 type DashboardPageProps = {
@@ -60,7 +74,12 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         value: formatCompactNumber(summary.customers.totalCustomers),
         href: branchHref("/dashboard/customers"),
         accent: "emerald",
-        meta: [{ label: "New this month", value: formatCompactNumber(summary.customers.newCustomersThisMonth) }],
+        meta: [
+          {
+            label: "New this month",
+            value: formatCompactNumber(summary.customers.newCustomersThisMonth),
+          },
+        ],
       },
       {
         title: "Inventory",
@@ -78,8 +97,14 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         href: branchHref("/dashboard/active-users"),
         accent: "violet",
         meta: [
-          { label: "Active now", value: formatCompactNumber(summary.activeUsers.currentActiveUsers) },
-          { label: "Staff", value: formatCompactNumber(summary.activeUsers.totalActiveStaffAccounts) },
+          {
+            label: "Active now",
+            value: formatCompactNumber(summary.activeUsers.currentActiveUsers),
+          },
+          {
+            label: "Staff",
+            value: formatCompactNumber(summary.activeUsers.totalActiveStaffAccounts),
+          },
         ],
       },
       {
@@ -87,14 +112,24 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         value: formatCurrency(summary.employeeExpenses.totalAmountThisMonth),
         href: branchHref("/dashboard/employee-expenses"),
         accent: "rose",
-        meta: [{ label: "Entries", value: formatCompactNumber(summary.employeeExpenses.entryCountThisMonth) }],
+        meta: [
+          {
+            label: "Entries",
+            value: formatCompactNumber(summary.employeeExpenses.entryCountThisMonth),
+          },
+        ],
       },
       {
         title: "Business Expenses",
         value: formatCurrency(summary.businessExpenses.totalAmountThisMonth),
         href: branchHref("/dashboard/business-expenses"),
         accent: "orange",
-        meta: [{ label: "Entries", value: formatCompactNumber(summary.businessExpenses.entryCountThisMonth) }],
+        meta: [
+          {
+            label: "Entries",
+            value: formatCompactNumber(summary.businessExpenses.entryCountThisMonth),
+          },
+        ],
       },
     ];
 
@@ -119,7 +154,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           {!showData ? (
             <SectionCard title="No data yet" description="No data available for this branch yet.">
               <p className="text-sm text-slate-600">
-                Once orders, customers, inventory, expenses, or active sessions exist, they will appear here.
+                Once orders, customers, inventory, expenses, or active sessions exist, they will
+                appear here.
               </p>
             </SectionCard>
           ) : (
@@ -142,7 +178,9 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
             title="Dashboard"
-            branchOptions={[{ label: currentUser.branchName ?? "Branch", value: currentUser.branchId ?? "all" }]}
+            branchOptions={[
+              { label: currentUser.branchName ?? "Branch", value: currentUser.branchId ?? "all" },
+            ]}
             selectedBranchValue={currentUser.branchId ?? "all"}
             branchFilterDisabled
             greetingName={currentUser.fullName.split(" ")[0] || currentUser.username}

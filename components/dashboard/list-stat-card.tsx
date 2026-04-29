@@ -13,8 +13,7 @@ type ListStatCardProps = {
 const accentClasses: Record<ListStatCardAccent, string> = {
   emerald:
     "border-[rgb(var(--metric-emerald)/0.14)] bg-[linear-gradient(180deg,rgb(var(--card)/0.98)_0%,rgb(var(--metric-emerald-soft)/0.88)_100%)] text-[rgb(var(--metric-emerald-ink))]",
-  blue:
-    "border-[rgb(var(--metric-blue)/0.14)] bg-[linear-gradient(180deg,rgb(var(--card)/0.98)_0%,rgb(var(--metric-blue-soft)/0.88)_100%)] text-[rgb(var(--metric-blue-ink))]",
+  blue: "border-[rgb(var(--metric-blue)/0.14)] bg-[linear-gradient(180deg,rgb(var(--card)/0.98)_0%,rgb(var(--metric-blue-soft)/0.88)_100%)] text-[rgb(var(--metric-blue-ink))]",
   violet:
     "border-[rgb(var(--metric-violet)/0.14)] bg-[linear-gradient(180deg,rgb(var(--card)/0.98)_0%,rgb(var(--metric-violet-soft)/0.88)_100%)] text-[rgb(var(--metric-violet-ink))]",
   amber:
@@ -39,11 +38,18 @@ export function ListStatCard({
         className,
       )}
     >
-      <div className="absolute right-5 top-5 h-2.5 w-2.5 rounded-full bg-current opacity-70" aria-hidden="true" />
+      <div
+        className="absolute top-5 right-5 h-2.5 w-2.5 rounded-full bg-current opacity-70"
+        aria-hidden="true"
+      />
       <div className="space-y-4">
         <div className="space-y-1.5">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--foreground)/0.7)]">{label}</p>
-          <p className="text-3xl font-semibold tracking-tight text-[rgb(var(--card-foreground))] sm:text-[2rem]">{value}</p>
+          <p className="text-[11px] font-semibold tracking-[0.18em] text-[rgb(var(--foreground)/0.7)] uppercase">
+            {label}
+          </p>
+          <p className="text-3xl font-semibold tracking-tight text-[rgb(var(--card-foreground))] sm:text-[2rem]">
+            {value}
+          </p>
         </div>
         <div className="flex items-center gap-2 text-sm text-[rgb(var(--foreground)/0.64)]">
           <span className="h-1.5 w-1.5 rounded-full bg-current opacity-55" aria-hidden="true" />

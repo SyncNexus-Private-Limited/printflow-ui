@@ -5,7 +5,10 @@ import { ChevronDown, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { buildCanonicalExpenseCreateHref, buildCanonicalUserCreateHref } from "@/lib/dashboard/helpers";
+import {
+  buildCanonicalExpenseCreateHref,
+  buildCanonicalUserCreateHref,
+} from "@/lib/dashboard/helpers";
 import {
   buildDashboardHref,
   dashboardNavigation,
@@ -13,7 +16,10 @@ import {
   isDashboardRouteActive,
 } from "@/components/dashboard/dashboard-navigation";
 import { Button } from "@/components/ui/button";
-import { getDashboardNavigationFilterState, isDashboardFilterAwarePath } from "@/lib/dashboard/page-filters";
+import {
+  getDashboardNavigationFilterState,
+  isDashboardFilterAwarePath,
+} from "@/lib/dashboard/page-filters";
 import { cn } from "@/lib/utils/cn";
 
 type DashboardSidebarProps = {
@@ -42,7 +48,10 @@ type SidebarLinkProps = {
 
 function getActiveGroupLabels(pathname: string) {
   return dashboardNavigation
-    .filter((item): item is Extract<(typeof dashboardNavigation)[number], { type: "group" }> => item.type === "group")
+    .filter(
+      (item): item is Extract<(typeof dashboardNavigation)[number], { type: "group" }> =>
+        item.type === "group",
+    )
     .filter((item) => item.children.some((child) => isDashboardRouteActive(pathname, child.href)))
     .map((item) => item.label);
 }
@@ -59,7 +68,7 @@ function SidebarLink({
 }: SidebarLinkProps) {
   const resolvedHref = href.includes("?") ? href : buildDashboardHref(href, navigationFilters);
   const isCurrentTarget = pathname === href;
-  const accessibleLabel = collapsed ? title ?? label : undefined;
+  const accessibleLabel = collapsed ? (title ?? label) : undefined;
 
   return (
     <Link
@@ -75,7 +84,7 @@ function SidebarLink({
       }}
       className={cn(
         "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+        "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
         active
           ? "bg-[rgb(var(--primary-soft))] text-[rgb(var(--card-foreground))] shadow-[0_18px_36px_-34px_rgb(var(--shadow)/0.3)]"
           : "text-[rgb(var(--muted-foreground))] hover:bg-[rgb(var(--muted)/0.74)] hover:text-[rgb(var(--foreground))]",
@@ -109,15 +118,20 @@ export function DashboardSidebar({
 }: DashboardSidebarProps) {
   const searchParams = useSearchParams();
   const isDesktopCollapsed = collapsed && !mobile;
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(() => getActiveGroupLabels(pathname));
-  const navigationFilters = getDashboardNavigationFilterState({
-    branchId: currentBranchId ?? searchParams.get("branchId") ?? undefined,
-    from: searchParams.get("from") ?? undefined,
-    to: searchParams.get("to") ?? undefined,
-    pageSize: searchParams.get("pageSize") ?? undefined,
-  }, {
-    applyDefaultDateRange: isDashboardFilterAwarePath(pathname),
-  });
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(() =>
+    getActiveGroupLabels(pathname),
+  );
+  const navigationFilters = getDashboardNavigationFilterState(
+    {
+      branchId: currentBranchId ?? searchParams.get("branchId") ?? undefined,
+      from: searchParams.get("from") ?? undefined,
+      to: searchParams.get("to") ?? undefined,
+      pageSize: searchParams.get("pageSize") ?? undefined,
+    },
+    {
+      applyDefaultDateRange: isDashboardFilterAwarePath(pathname),
+    },
+  );
 
   // Build the visible navigation based on permission flags passed from the server.
   // Filtering here (not in dashboardNavigation) keeps the source array role-agnostic.
@@ -127,7 +141,12 @@ export function DashboardSidebar({
       if (!canManageUsers) return [];
       // Hide "Add User" for roles with users:view but not users:create (e.g. manager).
       if (!canCreateUser) {
-        return [{ ...item, children: item.children.filter((child) => child.href !== "/dashboard/users/new") }];
+        return [
+          {
+            ...item,
+            children: item.children.filter((child) => child.href !== "/dashboard/users/new"),
+          },
+        ];
       }
     }
     return [item];
@@ -164,9 +183,18 @@ export function DashboardSidebar({
         mobile ? "p-4" : cn("hidden lg:flex", isDesktopCollapsed ? "w-20 p-3" : "w-72 p-4"),
       )}
     >
-      <div data-dashboard-sidebar-header className={cn("flex items-start gap-3", isDesktopCollapsed ? "justify-center" : "justify-between")}>
-        <div data-dashboard-sidebar-heading className={cn("min-w-0", isDesktopCollapsed && "sr-only")}>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted-foreground))]">
+      <div
+        data-dashboard-sidebar-header
+        className={cn(
+          "flex items-start gap-3",
+          isDesktopCollapsed ? "justify-center" : "justify-between",
+        )}
+      >
+        <div
+          data-dashboard-sidebar-heading
+          className={cn("min-w-0", isDesktopCollapsed && "sr-only")}
+        >
+          <p className="text-[11px] font-semibold tracking-[0.18em] text-[rgb(var(--muted-foreground))] uppercase">
             Workspace
           </p>
           <p className="mt-1 text-sm font-semibold text-[rgb(var(--card-foreground))]">
@@ -231,7 +259,9 @@ export function DashboardSidebar({
           }
 
           const fallbackItem = getDashboardGroupFallback(item);
-          const isGroupActive = item.children.some((child) => isDashboardRouteActive(pathname, child.href));
+          const isGroupActive = item.children.some((child) =>
+            isDashboardRouteActive(pathname, child.href),
+          );
 
           if (isDesktopCollapsed) {
             return (
@@ -259,7 +289,7 @@ export function DashboardSidebar({
                 data-dashboard-sidebar-group-toggle
                 className={cn(
                   "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+                  "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
                   isGroupActive
                     ? "bg-[rgb(var(--primary-soft))] text-[rgb(var(--card-foreground))] shadow-[0_18px_36px_-34px_rgb(var(--shadow)/0.3)]"
                     : "text-[rgb(var(--muted-foreground))] hover:bg-[rgb(var(--muted)/0.74)] hover:text-[rgb(var(--foreground))]",
@@ -280,7 +310,10 @@ export function DashboardSidebar({
                 </span>
                 <ChevronDown
                   data-dashboard-sidebar-group-chevron
-                  className={cn("h-4 w-4 shrink-0 transition-transform duration-200", !isExpanded && "-rotate-90")}
+                  className={cn(
+                    "h-4 w-4 shrink-0 transition-transform duration-200",
+                    !isExpanded && "-rotate-90",
+                  )}
                   aria-hidden="true"
                   strokeWidth={1.9}
                 />
@@ -321,7 +354,7 @@ export function DashboardSidebar({
                           }}
                           className={cn(
                             "flex min-h-10 items-center rounded-xl px-3 py-2 text-sm font-medium transition-colors",
-                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+                            "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
                             childIsActive
                               ? "bg-[rgb(var(--primary-soft)/0.88)] text-[rgb(var(--card-foreground))]"
                               : "text-[rgb(var(--muted-foreground))] hover:bg-[rgb(var(--muted)/0.72)] hover:text-[rgb(var(--foreground))]",

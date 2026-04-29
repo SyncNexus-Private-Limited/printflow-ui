@@ -2,7 +2,12 @@
 
 import { Briefcase, ShieldCheck, Users, Wrench } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { userRoleDescriptions, userRoleLabels, userRoleValues, type UserRole } from "@/lib/users/types";
+import {
+  userRoleDescriptions,
+  userRoleLabels,
+  userRoleValues,
+  type UserRole,
+} from "@/lib/users/types";
 import { cn } from "@/lib/utils/cn";
 
 const roleIcons: Record<UserRole, LucideIcon> = {
@@ -37,7 +42,7 @@ export function UserRoleSwitch({ value, disabled = false, onChange }: UserRoleSw
             }}
             className={cn(
               "rounded-[22px] border px-4 py-4 text-left transition-colors",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+              "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
               isActive
                 ? "border-[rgb(var(--primary)/0.3)] bg-[rgb(var(--primary-soft))] shadow-[0_20px_42px_-38px_rgb(var(--shadow)/0.3)]"
                 : "border-[rgb(var(--border)/0.82)] bg-[rgb(var(--card)/0.82)] hover:bg-[rgb(var(--muted)/0.72)]",

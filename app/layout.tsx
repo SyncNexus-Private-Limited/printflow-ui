@@ -30,10 +30,18 @@ export default async function RootLayout({ children }: RootLayoutProps) {
   const themeCookieValue = cookieStore.get(THEME_COOKIE_NAME)?.value;
   const hasThemeCookie = isThemeName(themeCookieValue);
   const initialTheme = hasThemeCookie ? themeCookieValue : DEFAULT_THEME;
-  const preHydrationUiBootstrapScript = getPreHydrationUiBootstrapScript(hasThemeCookie, initialTheme);
+  const preHydrationUiBootstrapScript = getPreHydrationUiBootstrapScript(
+    hasThemeCookie,
+    initialTheme,
+  );
 
   return (
-    <html lang="en" suppressHydrationWarning data-theme={initialTheme} data-dashboard-sidebar-collapsed="false">
+    <html
+      lang="en"
+      suppressHydrationWarning
+      data-theme={initialTheme}
+      data-dashboard-sidebar-collapsed="false"
+    >
       <head>
         <script
           id="printflow-ui-bootstrap"

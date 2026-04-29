@@ -29,7 +29,9 @@ export function SectionCard({
     >
       <div className={cn("mb-4 space-y-1.5", headerClassName)}>
         <h2 className="text-lg font-semibold text-[rgb(var(--card-foreground))]">{title}</h2>
-        {description ? <p className="text-sm text-[rgb(var(--muted-foreground)/0.94)]">{description}</p> : null}
+        {description ? (
+          <p className="text-sm text-[rgb(var(--muted-foreground)/0.94)]">{description}</p>
+        ) : null}
       </div>
       <div className={bodyClassName}>{children}</div>
     </section>

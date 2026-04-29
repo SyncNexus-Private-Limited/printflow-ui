@@ -73,8 +73,8 @@ export function EmployeeExpenseDeleteDialog({
         <div className="rounded-2xl border border-[rgb(var(--border)/0.72)] bg-[rgb(var(--muted)/0.4)] px-4 py-3">
           <p className="text-sm font-medium text-[rgb(var(--foreground))]">{expense.title}</p>
           <p className="mt-0.5 text-xs text-[rgb(var(--muted-foreground))]">
-            {expense.userName} &middot; {expense.category} &middot;{" "}
-            {formatCurrency(expense.amount)} &middot; {formatDate(expense.expenseDate)}
+            {expense.userName} &middot; {expense.category} &middot; {formatCurrency(expense.amount)}{" "}
+            &middot; {formatDate(expense.expenseDate)}
           </p>
         </div>
       ) : null}

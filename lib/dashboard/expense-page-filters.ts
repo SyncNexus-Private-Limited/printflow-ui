@@ -143,7 +143,10 @@ export function normalizeExpenseSortForKind(kind: ExpensePageKind, sort: string 
   return sort;
 }
 
-export function coerceExpensePageFiltersForKind(kind: ExpensePageKind, filters: ExpensePageFilterState): ExpensePageFilterState {
+export function coerceExpensePageFiltersForKind(
+  kind: ExpensePageKind,
+  filters: ExpensePageFilterState,
+): ExpensePageFilterState {
   return {
     ...filters,
     categoryId: null,
@@ -154,10 +157,15 @@ export function coerceExpensePageFiltersForKind(kind: ExpensePageKind, filters: 
 }
 
 export function getLastMonthExpenseDateRange(referenceDate = new Date()): DashboardDateRange {
-  return getCurrentMonthDashboardDateRange(new Date(referenceDate.getFullYear(), referenceDate.getMonth() - 1, 1));
+  return getCurrentMonthDashboardDateRange(
+    new Date(referenceDate.getFullYear(), referenceDate.getMonth() - 1, 1),
+  );
 }
 
-export function getExpenseQuickDatePreset(dateRange: DashboardDateRange, referenceDate = new Date()): ExpenseQuickDatePreset {
+export function getExpenseQuickDatePreset(
+  dateRange: DashboardDateRange,
+  referenceDate = new Date(),
+): ExpenseQuickDatePreset {
   const thisMonthDateRange = getCurrentMonthDashboardDateRange(referenceDate);
   const lastMonthDateRange = getLastMonthExpenseDateRange(referenceDate);
 
@@ -177,18 +185,31 @@ export function parseExpensePageFilters(
   kind: ExpensePageKind = "employee",
 ): ExpensePageFilterState {
   const baseFilters = parseDashboardPageFilters(searchParams);
-  const categoryId = normalizeExpenseIdValue(normalizeDashboardSearchParam(searchParams?.categoryId));
+  const categoryId = normalizeExpenseIdValue(
+    normalizeDashboardSearchParam(searchParams?.categoryId),
+  );
   const paymentModeValue = normalizeDashboardSearchParam(searchParams?.paymentMode);
-  const amountMinValue = normalizeAmountInput(normalizeDashboardSearchParam(searchParams?.amountMin));
-  const amountMaxValue = normalizeAmountInput(normalizeDashboardSearchParam(searchParams?.amountMax));
+  const amountMinValue = normalizeAmountInput(
+    normalizeDashboardSearchParam(searchParams?.amountMin),
+  );
+  const amountMaxValue = normalizeAmountInput(
+    normalizeDashboardSearchParam(searchParams?.amountMax),
+  );
   const normalizedAmounts = normalizeAmountRange(amountMinValue, amountMaxValue);
   const dateFieldValue = normalizeDashboardSearchParam(searchParams?.dateField);
   const remarksValue = normalizeDashboardSearchParam(searchParams?.remarks);
   const employeeId =
-    kind === "employee" ? normalizeExpenseIdValue(normalizeDashboardSearchParam(searchParams?.employeeId)) : null;
+    kind === "employee"
+      ? normalizeExpenseIdValue(normalizeDashboardSearchParam(searchParams?.employeeId))
+      : null;
   const vendorId =
-    kind === "business" ? normalizeExpenseIdValue(normalizeDashboardSearchParam(searchParams?.vendorId)) : null;
-  const sortValue = normalizeExpenseSortForKind(kind, normalizeDashboardSearchParam(searchParams?.sort));
+    kind === "business"
+      ? normalizeExpenseIdValue(normalizeDashboardSearchParam(searchParams?.vendorId))
+      : null;
+  const sortValue = normalizeExpenseSortForKind(
+    kind,
+    normalizeDashboardSearchParam(searchParams?.sort),
+  );
 
   return {
     ...baseFilters,

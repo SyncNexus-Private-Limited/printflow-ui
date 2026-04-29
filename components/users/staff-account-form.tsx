@@ -12,14 +12,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { UserRoleSwitch } from "@/components/users/user-role-switch";
 import { createUserSchema } from "@/lib/users/schema";
-import { userRoleLabels, type CreateUserApiResponse, type CreateUserFieldName, type CreateUserFormValues, type UserFormPageData, type UserRole } from "@/lib/users/types";
+import {
+  userRoleLabels,
+  type CreateUserApiResponse,
+  type CreateUserFieldName,
+  type CreateUserFormValues,
+  type UserFormPageData,
+  type UserRole,
+} from "@/lib/users/types";
 import { useGlobalLoader } from "@/lib/ui/global-loader-context";
 
 type UserFormProps = UserFormPageData & {
   showSuccess?: boolean;
 };
 
-function buildDefaultValues(selectedBranchId: string, selectedRole: UserRole): CreateUserFormValues {
+function buildDefaultValues(
+  selectedBranchId: string,
+  selectedRole: UserRole,
+): CreateUserFormValues {
   return {
     role: selectedRole,
     branchId: selectedBranchId,
@@ -45,7 +55,10 @@ function FieldLabel({
   optional?: boolean;
 }) {
   return (
-    <label className="flex items-center gap-2 text-sm font-medium text-[rgb(var(--foreground))]" htmlFor={htmlFor}>
+    <label
+      className="flex items-center gap-2 text-sm font-medium text-[rgb(var(--foreground))]"
+      htmlFor={htmlFor}
+    >
       {children}
       {optional ? (
         <span className="text-xs font-normal text-[rgb(var(--muted-foreground))]">Optional</span>
@@ -173,7 +186,8 @@ export function UserForm({
             strokeWidth={1.9}
           />
           <p className="text-sm text-[rgb(34_197_94)]">
-            {userRoleLabels[selectedRole]} account created successfully. You can create another one below.
+            {userRoleLabels[selectedRole]} account created successfully. You can create another one
+            below.
           </p>
         </div>
       ) : null}
@@ -204,7 +218,9 @@ export function UserForm({
       {/* Section B — Profile details */}
       <section className="space-y-4">
         <div className="space-y-0.5">
-          <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">Profile details</p>
+          <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">
+            Profile details
+          </p>
           <p className="text-sm text-[rgb(var(--muted-foreground))]">
             Basic information about the person.
           </p>
@@ -293,9 +309,7 @@ export function UserForm({
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className={branchRequired ? "space-y-2 md:col-span-2" : "space-y-2"}>
-            <FieldLabel htmlFor="user-branch">
-              {branchRequired ? "Branch" : "Branch"}
-            </FieldLabel>
+            <FieldLabel htmlFor="user-branch">{branchRequired ? "Branch" : "Branch"}</FieldLabel>
             {branchOptions.length === 0 ? (
               <p className="text-sm text-[rgb(var(--muted-foreground))]">No branches available.</p>
             ) : (
@@ -368,7 +382,7 @@ export function UserForm({
                 type="button"
                 tabIndex={-1}
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-[rgb(var(--muted-foreground))] hover:text-[rgb(var(--foreground))]"
+                className="absolute top-1/2 right-3 -translate-y-1/2 text-xs font-medium text-[rgb(var(--muted-foreground))] hover:text-[rgb(var(--foreground))]"
               >
                 {showPassword ? "Hide" : "Show"}
               </button>
@@ -392,7 +406,7 @@ export function UserForm({
                 type="button"
                 tabIndex={-1}
                 onClick={() => setShowConfirmPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-[rgb(var(--muted-foreground))] hover:text-[rgb(var(--foreground))]"
+                className="absolute top-1/2 right-3 -translate-y-1/2 text-xs font-medium text-[rgb(var(--muted-foreground))] hover:text-[rgb(var(--foreground))]"
               >
                 {showConfirmPassword ? "Hide" : "Show"}
               </button>
@@ -407,7 +421,8 @@ export function UserForm({
               Password stored securely
             </p>
             <p className="text-sm text-[rgb(var(--muted-foreground))]">
-              Passwords are hashed with bcrypt before storage. They are never visible after creation.
+              Passwords are hashed with bcrypt before storage. They are never visible after
+              creation.
             </p>
           </div>
         </div>

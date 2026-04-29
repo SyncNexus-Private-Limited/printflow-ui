@@ -14,25 +14,16 @@ const databaseUrl = await getDatabaseUrl();
 await new Promise((resolve, reject) => {
   const child = spawn(
     "pg_dump",
-    [
-      "--schema-only",
-      "--no-owner",
-      "--no-privileges",
-      "--file",
-      outputPath,
-      databaseUrl,
-    ],
+    ["--schema-only", "--no-owner", "--no-privileges", "--file", outputPath, databaseUrl],
     {
       cwd: repoRoot,
       stdio: "inherit",
-    }
+    },
   );
 
   child.on("error", (error) => {
     if (error.code === "ENOENT") {
-      reject(
-        new Error("pg_dump was not found. Install PostgreSQL client tools to use db:dump.")
-      );
+      reject(new Error("pg_dump was not found. Install PostgreSQL client tools to use db:dump."));
       return;
     }
 

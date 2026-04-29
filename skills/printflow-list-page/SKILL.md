@@ -25,13 +25,13 @@ If the user has not named a reference page, ask which existing page is closest i
 
 List page tasks come in several forms. Identify which applies before planning:
 
-| Task | What it touches |
-|---|---|
+| Task                       | What it touches                                                     |
+| -------------------------- | ------------------------------------------------------------------- |
 | New list page from scratch | Page file, list controls, data table, query, types, route if needed |
-| Add a filter field | List controls component, filter state parser, query WHERE clause |
-| Add a table column | Data table component, column definitions, query SELECT, types |
-| Add form fields | Form component, Zod schema, route handler, DB migration possibly |
-| Add a delete CTA | Data table row, confirmation dialog component, DELETE route handler |
+| Add a filter field         | List controls component, filter state parser, query WHERE clause    |
+| Add a table column         | Data table component, column definitions, query SELECT, types       |
+| Add form fields            | Form component, Zod schema, route handler, DB migration possibly    |
+| Add a delete CTA           | Data table row, confirmation dialog component, DELETE route handler |
 
 For each task, scope exactly which files will change before writing any code.
 
@@ -40,12 +40,14 @@ For each task, scope exactly which files will change before writing any code.
 ## 2. Shared primitives — always use these, never re-implement
 
 **Filter controls** (e.g. `*-list-controls.tsx`):
+
 - Use `useFilterDrawer` for open/close, draft filters, pending transition, focus management.
 - Render `<FilterDrawerShell>`, `<FilterTriggerButton>`, `<AppliedFilterPills>` — do not rebuild these.
 - `buildAppliedFilterSummaryItems` must always prepend `{ key: "branch", label: "Branch: [name]" }` first.
 - `handleApplyFilters` and `handleResetFilters` stay in the page file, not the controls component.
 
 **Data tables** (e.g. `*-data-table.tsx`):
+
 - Wrap with `<DataTableContainer>` (glass card) and `<TableScrollArea>` (scroll + shadow indicators).
 - Column definitions use `ColumnStickyDef` — set `sticky`, `width`, and `stickyOrder` as needed.
 - Call `computeStickySpecs(columns)` once; pass result through both header and row render.
@@ -55,6 +57,7 @@ For each task, scope exactly which files will change before writing any code.
 - Never override `.table-sticky-cell` background with Tailwind bg utilities — `globals.css` handles it.
 
 **Pages**:
+
 - Pass `selectedBranchName={context.selectedBranchName}` to every `*ListControls`.
 - Fetch data server-side via `lib/dashboard/queries.ts`. Do not inline SQL in pages or components.
 - Use `getDashboardContext` to resolve branch filter and user context.

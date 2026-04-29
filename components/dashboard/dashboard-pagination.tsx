@@ -41,10 +41,16 @@ import {
   buildDashboardPageHref,
   buildDashboardPaginationHref,
 } from "@/lib/dashboard/page-filters";
-import type { DashboardBaseFilterState, DashboardPageFilterState, DashboardPaginationState } from "@/lib/dashboard/types";
+import type {
+  DashboardBaseFilterState,
+  DashboardPageFilterState,
+  DashboardPaginationState,
+} from "@/lib/dashboard/types";
 import { isSameHref } from "@/lib/dashboard/href-utils";
 
-type DashboardPaginationProps<TFilters extends DashboardBaseFilterState = DashboardPageFilterState> = {
+type DashboardPaginationProps<
+  TFilters extends DashboardBaseFilterState = DashboardPageFilterState,
+> = {
   currentPath: string;
   currentFilters: TFilters;
   pagination: DashboardPaginationState;
@@ -67,7 +73,9 @@ function getVisiblePageNumbers(page: number, totalPages: number) {
   return [1, page - 1, page, page + 1, totalPages];
 }
 
-export function DashboardPagination<TFilters extends DashboardBaseFilterState = DashboardPageFilterState>({
+export function DashboardPagination<
+  TFilters extends DashboardBaseFilterState = DashboardPageFilterState,
+>({
   currentPath,
   currentFilters,
   pagination,
@@ -81,14 +89,24 @@ export function DashboardPagination<TFilters extends DashboardBaseFilterState = 
   const isActiveUsersVariant = variant === "active-users";
   const isUsersVariant = variant === "users";
   const isInlineVariant =
-    isExpenseVariant || isCustomerVariant || isInventoryVariant || isOrderVariant || isActiveUsersVariant || isUsersVariant;
+    isExpenseVariant ||
+    isCustomerVariant ||
+    isInventoryVariant ||
+    isOrderVariant ||
+    isActiveUsersVariant ||
+    isUsersVariant;
   const resolvePageHref = (path: string, filters: TFilters) => {
-    if (isExpenseVariant) return buildExpensePageHref(path, filters as unknown as ExpensePageFilterState);
-    if (isCustomerVariant) return buildCustomerPageHref(path, filters as unknown as CustomerPageFilterState);
-    if (isInventoryVariant) return buildInventoryPageHref(path, filters as unknown as InventoryPageFilterState);
+    if (isExpenseVariant)
+      return buildExpensePageHref(path, filters as unknown as ExpensePageFilterState);
+    if (isCustomerVariant)
+      return buildCustomerPageHref(path, filters as unknown as CustomerPageFilterState);
+    if (isInventoryVariant)
+      return buildInventoryPageHref(path, filters as unknown as InventoryPageFilterState);
     if (isOrderVariant) return buildOrderPageHref(path, filters as unknown as OrderPageFilterState);
-    if (isActiveUsersVariant) return buildActiveUsersPageHref(path, filters as unknown as ActiveUserPageFilterState);
-    if (isUsersVariant) return buildUsersPageHref(path, filters as unknown as UserManagementPageFilterState);
+    if (isActiveUsersVariant)
+      return buildActiveUsersPageHref(path, filters as unknown as ActiveUserPageFilterState);
+    if (isUsersVariant)
+      return buildUsersPageHref(path, filters as unknown as UserManagementPageFilterState);
     return buildDashboardPageHref(path, filters as unknown as DashboardPageFilterState);
   };
   const resolvePaginationHref = (
@@ -99,15 +117,52 @@ export function DashboardPagination<TFilters extends DashboardBaseFilterState = 
       pageSize?: number;
     },
   ) => {
-    if (isExpenseVariant) return buildExpensePaginationHref(path, filters as unknown as ExpensePageFilterState, nextPagination);
-    if (isCustomerVariant) return buildCustomerPaginationHref(path, filters as unknown as CustomerPageFilterState, nextPagination);
-    if (isInventoryVariant) return buildInventoryPaginationHref(path, filters as unknown as InventoryPageFilterState, nextPagination);
-    if (isOrderVariant) return buildOrderPaginationHref(path, filters as unknown as OrderPageFilterState, nextPagination);
-    if (isActiveUsersVariant) return buildActiveUsersPaginationHref(path, filters as unknown as ActiveUserPageFilterState, nextPagination);
-    if (isUsersVariant) return buildUsersPaginationHref(path, filters as unknown as UserManagementPageFilterState, nextPagination);
-    return buildDashboardPaginationHref(path, filters as unknown as DashboardPageFilterState, nextPagination);
+    if (isExpenseVariant)
+      return buildExpensePaginationHref(
+        path,
+        filters as unknown as ExpensePageFilterState,
+        nextPagination,
+      );
+    if (isCustomerVariant)
+      return buildCustomerPaginationHref(
+        path,
+        filters as unknown as CustomerPageFilterState,
+        nextPagination,
+      );
+    if (isInventoryVariant)
+      return buildInventoryPaginationHref(
+        path,
+        filters as unknown as InventoryPageFilterState,
+        nextPagination,
+      );
+    if (isOrderVariant)
+      return buildOrderPaginationHref(
+        path,
+        filters as unknown as OrderPageFilterState,
+        nextPagination,
+      );
+    if (isActiveUsersVariant)
+      return buildActiveUsersPaginationHref(
+        path,
+        filters as unknown as ActiveUserPageFilterState,
+        nextPagination,
+      );
+    if (isUsersVariant)
+      return buildUsersPaginationHref(
+        path,
+        filters as unknown as UserManagementPageFilterState,
+        nextPagination,
+      );
+    return buildDashboardPaginationHref(
+      path,
+      filters as unknown as DashboardPageFilterState,
+      nextPagination,
+    );
   };
-  const currentHref = useMemo(() => resolvePageHref(currentPath, currentFilters), [currentFilters, currentPath, resolvePageHref]);
+  const currentHref = useMemo(
+    () => resolvePageHref(currentPath, currentFilters),
+    [currentFilters, currentPath, resolvePageHref],
+  );
   const visiblePageNumbers = useMemo(
     () => getVisiblePageNumbers(pagination.page, pagination.totalPages),
     [pagination.page, pagination.totalPages],
@@ -135,9 +190,12 @@ export function DashboardPagination<TFilters extends DashboardBaseFilterState = 
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-3 sm:gap-4">
             <p className="text-sm text-[rgb(var(--muted-foreground))]">
-              Showing <span className="font-semibold text-[rgb(var(--foreground))]">{startItem}</span>-
+              Showing{" "}
+              <span className="font-semibold text-[rgb(var(--foreground))]">{startItem}</span>-
               <span className="font-semibold text-[rgb(var(--foreground))]">{endItem}</span> of{" "}
-              <span className="font-semibold text-[rgb(var(--foreground))]">{pagination.totalItems}</span>
+              <span className="font-semibold text-[rgb(var(--foreground))]">
+                {pagination.totalItems}
+              </span>
             </p>
 
             <label className="inline-flex items-center gap-3 text-sm text-[rgb(var(--muted-foreground))]">
@@ -199,12 +257,18 @@ export function DashboardPagination<TFilters extends DashboardBaseFilterState = 
               title="Previous page"
             >
               <ChevronLeft className="h-4 w-4" aria-hidden="true" strokeWidth={1.9} />
-              <span className="sr-only sm:ml-1.5 sm:not-sr-only">Previous</span>
+              <span className="sr-only sm:not-sr-only sm:ml-1.5">Previous</span>
             </Button>
 
             <div className="inline-flex items-center rounded-full border border-[rgb(var(--border)/0.74)] bg-[rgb(var(--card)/0.92)] px-3.5 py-2 text-sm font-medium text-[rgb(var(--foreground)/0.76)] shadow-[0_18px_36px_-30px_rgb(var(--shadow)/0.12)]">
-              Page <span className="mx-1.5 font-semibold text-[rgb(var(--card-foreground))]">{pagination.page}</span> of{" "}
-              <span className="ml-1.5 font-semibold text-[rgb(var(--card-foreground))]">{pagination.totalPages}</span>
+              Page{" "}
+              <span className="mx-1.5 font-semibold text-[rgb(var(--card-foreground))]">
+                {pagination.page}
+              </span>{" "}
+              of{" "}
+              <span className="ml-1.5 font-semibold text-[rgb(var(--card-foreground))]">
+                {pagination.totalPages}
+              </span>
             </div>
 
             <Button
@@ -221,7 +285,7 @@ export function DashboardPagination<TFilters extends DashboardBaseFilterState = 
               }
               title="Next page"
             >
-              <span className="sr-only sm:mr-1.5 sm:not-sr-only">Next</span>
+              <span className="sr-only sm:not-sr-only sm:mr-1.5">Next</span>
               <ChevronRight className="h-4 w-4" aria-hidden="true" strokeWidth={1.9} />
             </Button>
           </div>
@@ -242,10 +306,17 @@ export function DashboardPagination<TFilters extends DashboardBaseFilterState = 
       )}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between lg:justify-start">
-        <p className={cn("text-sm text-[rgb(var(--muted-foreground))]", isInlineVariant && "text-[13px]")}>
+        <p
+          className={cn(
+            "text-sm text-[rgb(var(--muted-foreground))]",
+            isInlineVariant && "text-[13px]",
+          )}
+        >
           Showing <span className="font-semibold text-[rgb(var(--foreground))]">{startItem}</span>-
           <span className="font-semibold text-[rgb(var(--foreground))]">{endItem}</span> of{" "}
-          <span className="font-semibold text-[rgb(var(--foreground))]">{pagination.totalItems}</span>
+          <span className="font-semibold text-[rgb(var(--foreground))]">
+            {pagination.totalItems}
+          </span>
         </p>
 
         <label
@@ -258,7 +329,9 @@ export function DashboardPagination<TFilters extends DashboardBaseFilterState = 
           <Select
             className={cn(
               "w-24",
-              isInlineVariant ? "h-9 rounded-xl bg-[rgb(var(--card)/0.82)] shadow-none" : "h-10 rounded-2xl",
+              isInlineVariant
+                ? "h-9 rounded-xl bg-[rgb(var(--card)/0.82)] shadow-none"
+                : "h-10 rounded-2xl",
             )}
             value={String(pagination.pageSize)}
             onChange={(event) => {
@@ -284,7 +357,9 @@ export function DashboardPagination<TFilters extends DashboardBaseFilterState = 
         <Button
           type="button"
           variant="secondary"
-          className={cn(isInlineVariant ? "h-9 rounded-xl px-3.5 shadow-none" : "h-10 rounded-2xl px-3")}
+          className={cn(
+            isInlineVariant ? "h-9 rounded-xl px-3.5 shadow-none" : "h-10 rounded-2xl px-3",
+          )}
           disabled={pagination.page <= 1}
           onClick={() =>
             navigateToPagination(
@@ -303,12 +378,16 @@ export function DashboardPagination<TFilters extends DashboardBaseFilterState = 
           <div className="flex flex-wrap items-center gap-2">
             {visiblePageNumbers.map((pageNumber, index) => {
               const previousPageNumber = visiblePageNumbers[index - 1];
-              const shouldShowEllipsis = previousPageNumber !== undefined && pageNumber - previousPageNumber > 1;
+              const shouldShowEllipsis =
+                previousPageNumber !== undefined && pageNumber - previousPageNumber > 1;
 
               return (
                 <div key={pageNumber} className="flex items-center gap-2">
                   {shouldShowEllipsis ? (
-                    <span className="px-1 text-sm text-[rgb(var(--muted-foreground))]" aria-hidden="true">
+                    <span
+                      className="px-1 text-sm text-[rgb(var(--muted-foreground))]"
+                      aria-hidden="true"
+                    >
                       ...
                     </span>
                   ) : null}
@@ -324,7 +403,11 @@ export function DashboardPagination<TFilters extends DashboardBaseFilterState = 
                       )
                     }
                     aria-current={pageNumber === pagination.page ? "page" : undefined}
-                    title={pageNumber === pagination.page ? `Current page, ${pageNumber}` : `Go to page ${pageNumber}`}
+                    title={
+                      pageNumber === pagination.page
+                        ? `Current page, ${pageNumber}`
+                        : `Go to page ${pageNumber}`
+                    }
                   >
                     {pageNumber}
                   </Button>
@@ -336,15 +419,23 @@ export function DashboardPagination<TFilters extends DashboardBaseFilterState = 
 
         {isInlineVariant ? (
           <div className="inline-flex items-center rounded-full border border-[rgb(var(--border)/0.78)] bg-[rgb(var(--card)/0.82)] px-3 py-1.5 text-sm font-medium text-[rgb(var(--foreground)/0.78)] shadow-[0_14px_28px_-24px_rgb(var(--shadow)/0.12)] backdrop-blur-lg">
-            Page <span className="mx-1 font-semibold text-[rgb(var(--card-foreground))]">{pagination.page}</span> of{" "}
-            <span className="ml-1 font-semibold text-[rgb(var(--card-foreground))]">{pagination.totalPages}</span>
+            Page{" "}
+            <span className="mx-1 font-semibold text-[rgb(var(--card-foreground))]">
+              {pagination.page}
+            </span>{" "}
+            of{" "}
+            <span className="ml-1 font-semibold text-[rgb(var(--card-foreground))]">
+              {pagination.totalPages}
+            </span>
           </div>
         ) : null}
 
         <Button
           type="button"
           variant="secondary"
-          className={cn(isInlineVariant ? "h-9 rounded-xl px-3.5 shadow-none" : "h-10 rounded-2xl px-3")}
+          className={cn(
+            isInlineVariant ? "h-9 rounded-xl px-3.5 shadow-none" : "h-10 rounded-2xl px-3",
+          )}
           disabled={pagination.page >= pagination.totalPages}
           onClick={() =>
             navigateToPagination(

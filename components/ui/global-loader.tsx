@@ -12,7 +12,7 @@ export function GlobalLoader() {
           <span className="sr-only" role="status" aria-live="polite">
             {nonBlockingLoader.message}
           </span>
-          <div className="h-full w-1/3 rounded-full bg-[linear-gradient(90deg,rgb(var(--primary-soft-foreground))_0%,rgb(var(--primary))_50%,rgb(var(--primary-strong))_100%)] shadow-[0_0_18px_rgb(var(--primary)/0.42)] animate-[global-loader-marquee_1.15s_ease-in-out_infinite]" />
+          <div className="h-full w-1/3 animate-[global-loader-marquee_1.15s_ease-in-out_infinite] rounded-full bg-[linear-gradient(90deg,rgb(var(--primary-soft-foreground))_0%,rgb(var(--primary))_50%,rgb(var(--primary-strong))_100%)] shadow-[0_0_18px_rgb(var(--primary)/0.42)]" />
         </div>
       ) : null}
 
@@ -28,14 +28,16 @@ export function GlobalLoader() {
           >
             <div className="relative h-12 w-12 shrink-0">
               <div className="absolute inset-0 rounded-full border-2 border-[rgb(var(--border))]" />
-              <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-r-[rgb(var(--primary-strong))] border-t-[rgb(var(--primary))]" />
+              <div className="absolute inset-0 animate-spin rounded-full border-2 border-transparent border-t-[rgb(var(--primary))] border-r-[rgb(var(--primary-strong))]" />
               <div className="absolute inset-2.5 rounded-full bg-[rgb(var(--card)/0.92)]" />
             </div>
             <div className="space-y-1">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[rgb(var(--primary-soft-foreground))]">
+              <p className="text-[11px] font-semibold tracking-[0.24em] text-[rgb(var(--primary-soft-foreground))] uppercase">
                 PrintFlow
               </p>
-              <p className="text-sm font-medium text-[rgb(var(--card-foreground))]">{blockingLoader.message}</p>
+              <p className="text-sm font-medium text-[rgb(var(--card-foreground))]">
+                {blockingLoader.message}
+              </p>
             </div>
           </div>
         </div>

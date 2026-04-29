@@ -36,7 +36,11 @@ async function getSessionPayloadFromCookies() {
   };
 }
 
-async function loadCurrentUser(session: SessionPayload, sessionToken: string, touchSession: boolean) {
+async function loadCurrentUser(
+  session: SessionPayload,
+  sessionToken: string,
+  touchSession: boolean,
+) {
   const db = getPool();
   const tokenHash = await hashSessionToken(sessionToken);
   const sessionTouchIntervalSeconds = getSessionTouchIntervalSeconds();
@@ -81,7 +85,14 @@ async function loadCurrentUser(session: SessionPayload, sessionToken: string, to
         AND COALESCE(ua.is_locked, false) = false
       LIMIT 1
     `,
-    [session.sessionId, session.userId, tokenHash, touchSession, sessionTouchIntervalSeconds, session.username],
+    [
+      session.sessionId,
+      session.userId,
+      tokenHash,
+      touchSession,
+      sessionTouchIntervalSeconds,
+      session.username,
+    ],
   );
 
   return rows[0] ?? null;
@@ -94,7 +105,11 @@ export async function getCurrentUser(options?: { touchSession?: boolean }) {
     return null;
   }
 
-  return loadCurrentUser(currentSession.session, currentSession.sessionToken, options?.touchSession ?? false);
+  return loadCurrentUser(
+    currentSession.session,
+    currentSession.sessionToken,
+    options?.touchSession ?? false,
+  );
 }
 
 export async function revokeCurrentSession() {

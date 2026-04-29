@@ -110,7 +110,9 @@ function isValidInventoryActiveFilter(value: string | undefined): value is Inven
   return inventoryActiveValues.includes(value as InventoryActiveFilter);
 }
 
-function isValidInventoryPresenceFilter(value: string | undefined): value is InventoryPresenceFilter {
+function isValidInventoryPresenceFilter(
+  value: string | undefined,
+): value is InventoryPresenceFilter {
   return inventoryPresenceValues.includes(value as InventoryPresenceFilter);
 }
 
@@ -217,10 +219,16 @@ export function parseInventoryPageFilters(
   const unit = normalizeTextSearch(normalizeDashboardSearchParam(searchParams?.unit));
   const isActiveValue = normalizeDashboardSearchParam(searchParams?.isActive);
   const stockStateValue = normalizeDashboardSearchParam(searchParams?.stockState);
-  const quantityMinRaw = normalizeNumericInput(normalizeDashboardSearchParam(searchParams?.quantityMin));
-  const quantityMaxRaw = normalizeNumericInput(normalizeDashboardSearchParam(searchParams?.quantityMax));
+  const quantityMinRaw = normalizeNumericInput(
+    normalizeDashboardSearchParam(searchParams?.quantityMin),
+  );
+  const quantityMaxRaw = normalizeNumericInput(
+    normalizeDashboardSearchParam(searchParams?.quantityMax),
+  );
   const normalizedQty = normalizeNumericRange(quantityMinRaw, quantityMaxRaw);
-  const lastVendorId = normalizeTextSearch(normalizeDashboardSearchParam(searchParams?.lastVendorId));
+  const lastVendorId = normalizeTextSearch(
+    normalizeDashboardSearchParam(searchParams?.lastVendorId),
+  );
   const purchaseRateMinRaw = normalizeNumericInput(
     normalizeDashboardSearchParam(searchParams?.purchaseRateMin),
   );

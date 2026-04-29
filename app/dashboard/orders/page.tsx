@@ -7,7 +7,11 @@ import { SectionCard } from "@/components/dashboard/section-card";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { parseOrderPageFilters } from "@/lib/dashboard/order-page-filters";
 import { buildBranchFilterOptions } from "@/lib/dashboard/helpers";
-import { getDashboardContext, getOrderFilterOptions, getOrdersPageData } from "@/lib/dashboard/queries";
+import {
+  getDashboardContext,
+  getOrderFilterOptions,
+  getOrdersPageData,
+} from "@/lib/dashboard/queries";
 import { formatCompactNumber, formatCurrency, formatDateRangeLabel } from "@/lib/utils/format";
 
 type OrdersPageProps = {

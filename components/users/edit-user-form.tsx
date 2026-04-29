@@ -35,7 +35,10 @@ function FieldLabel({
   optional?: boolean;
 }) {
   return (
-    <label className="flex items-center gap-2 text-sm font-medium text-[rgb(var(--foreground))]" htmlFor={htmlFor}>
+    <label
+      className="flex items-center gap-2 text-sm font-medium text-[rgb(var(--foreground))]"
+      htmlFor={htmlFor}
+    >
       {children}
       {optional ? (
         <span className="text-xs font-normal text-[rgb(var(--muted-foreground))]">Optional</span>
@@ -171,18 +174,16 @@ export function EditUserForm({ userId, user, branchOptions, canSelectBranch }: E
             Change the access level for this account.
           </p>
         </div>
-        <UserRoleSwitch
-          value={selectedRole}
-          disabled={isSubmitting}
-          onChange={handleRoleChange}
-        />
+        <UserRoleSwitch value={selectedRole} disabled={isSubmitting} onChange={handleRoleChange} />
         <FieldError message={getFieldError(errors, "role")} />
       </section>
 
       {/* Section B — Profile details */}
       <section className="space-y-4">
         <div className="space-y-0.5">
-          <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">Profile details</p>
+          <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">
+            Profile details
+          </p>
           <p className="text-sm text-[rgb(var(--muted-foreground))]">
             Basic information about the person.
           </p>
@@ -320,7 +321,8 @@ export function EditUserForm({ userId, user, branchOptions, canSelectBranch }: E
               Username and password
             </p>
             <p className="text-sm text-[rgb(var(--muted-foreground))]">
-              Username cannot be changed here. To reset the password, use the Reset password action in the users list.
+              Username cannot be changed here. To reset the password, use the Reset password action
+              in the users list.
             </p>
           </div>
         </div>

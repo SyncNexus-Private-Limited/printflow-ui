@@ -2,7 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { AppliedFilterPills, type AppliedFilterSummaryItem } from "@/components/dashboard/applied-filter-pills";
+import {
+  AppliedFilterPills,
+  type AppliedFilterSummaryItem,
+} from "@/components/dashboard/applied-filter-pills";
 import { FilterDrawerShell } from "@/components/dashboard/filter-drawer-shell";
 import { FilterTriggerButton } from "@/components/dashboard/filter-trigger-button";
 import { useFilterDrawer } from "@/components/dashboard/use-filter-drawer";
@@ -102,10 +105,14 @@ function buildPrimaryFilterSummary(filters: InventoryPageFilterState): string {
 
 function formatStockStateLabel(stockState: string): string {
   switch (stockState) {
-    case "in-stock": return "In stock";
-    case "low-stock": return "Low stock";
-    case "out-of-stock": return "Out of stock";
-    default: return stockState;
+    case "in-stock":
+      return "In stock";
+    case "low-stock":
+      return "Low stock";
+    case "out-of-stock":
+      return "Out of stock";
+    default:
+      return stockState;
   }
 }
 
@@ -166,8 +173,10 @@ function buildAppliedFilterSummaryItems({
     items.push({ key: "qty", label });
   }
 
-  if (filters.hasLastPurchaseRate === "with") items.push({ key: "has-rate", label: "Has purchase rate" });
-  else if (filters.hasLastPurchaseRate === "without") items.push({ key: "no-rate", label: "No purchase rate" });
+  if (filters.hasLastPurchaseRate === "with")
+    items.push({ key: "has-rate", label: "Has purchase rate" });
+  else if (filters.hasLastPurchaseRate === "without")
+    items.push({ key: "no-rate", label: "No purchase rate" });
 
   if (filters.hasImage === "with") items.push({ key: "has-image", label: "Has image" });
   else if (filters.hasImage === "without") items.push({ key: "no-image", label: "No image" });
@@ -188,9 +197,17 @@ export function InventoryListControls({
     [currentFilters, currentPath],
   );
   const activeFilterCount = useMemo(() => getActiveFilterCount(currentFilters), [currentFilters]);
-  const primaryFilterSummary = useMemo(() => buildPrimaryFilterSummary(currentFilters), [currentFilters]);
+  const primaryFilterSummary = useMemo(
+    () => buildPrimaryFilterSummary(currentFilters),
+    [currentFilters],
+  );
   const appliedFilterItems = useMemo(
-    () => buildAppliedFilterSummaryItems({ filters: currentFilters, vendorOptions, branchName: selectedBranchName }),
+    () =>
+      buildAppliedFilterSummaryItems({
+        filters: currentFilters,
+        vendorOptions,
+        branchName: selectedBranchName,
+      }),
     [currentFilters, vendorOptions, selectedBranchName],
   );
 
@@ -213,7 +230,10 @@ export function InventoryListControls({
   const baseId = filterPanelId.split("-filter-panel")[0];
   const advancedPanelId = `${baseId}-advanced-filters`;
 
-  const currentDatePreset = getInventoryQuickDatePreset({ from: draftFilters.from, to: draftFilters.to });
+  const currentDatePreset = getInventoryQuickDatePreset({
+    from: draftFilters.from,
+    to: draftFilters.to,
+  });
   const advancedFilterCount = useMemo(() => getAdvancedFilterCount(draftFilters), [draftFilters]);
 
   const drawerSubtitle =
@@ -228,7 +248,9 @@ export function InventoryListControls({
     toggleFilterDrawer();
   };
 
-  const updateDraftFilters = (updater: (current: InventoryPageFilterState) => InventoryPageFilterState) => {
+  const updateDraftFilters = (
+    updater: (current: InventoryPageFilterState) => InventoryPageFilterState,
+  ) => {
     setDraftFilters((current) => updater(current));
   };
 
@@ -236,9 +258,15 @@ export function InventoryListControls({
     if (preset === "custom") return;
 
     const nextDateRange =
-      preset === "last-month" ? getLastMonthInventoryDateRange() : getCurrentMonthDashboardDateRange();
+      preset === "last-month"
+        ? getLastMonthInventoryDateRange()
+        : getCurrentMonthDashboardDateRange();
 
-    updateDraftFilters((current) => ({ ...current, from: nextDateRange.from, to: nextDateRange.to }));
+    updateDraftFilters((current) => ({
+      ...current,
+      from: nextDateRange.from,
+      to: nextDateRange.to,
+    }));
   };
 
   const handleClearDates = () => {
@@ -246,7 +274,10 @@ export function InventoryListControls({
   };
 
   const handleApplyFilters = () => {
-    const nextHref = buildInventoryPageHref(currentPath, currentFilters, { ...draftFilters, page: 1 });
+    const nextHref = buildInventoryPageHref(currentPath, currentFilters, {
+      ...draftFilters,
+      page: 1,
+    });
 
     setPendingAction("apply");
     startTransition(() => {
@@ -362,7 +393,7 @@ export function InventoryListControls({
                     onClick={() => handleDatePresetSelect(preset)}
                     className={cn(
                       "rounded-full border px-3 py-2 text-xs font-semibold capitalize transition-colors",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+                      "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
                       isActive
                         ? "border-[rgb(var(--primary)/0.38)] bg-[rgb(var(--primary-soft))] text-[rgb(var(--primary-soft-foreground))]"
                         : "border-[rgb(var(--border))] bg-[rgb(var(--background))] text-[rgb(var(--muted-foreground))] hover:text-[rgb(var(--foreground))]",
@@ -630,9 +661,13 @@ export function InventoryListControls({
               onClick={() => setIsAdvancedOpen((current) => !current)}
             >
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">Advanced filters</p>
+                <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">
+                  Advanced filters
+                </p>
                 <p className="text-xs text-[rgb(var(--muted-foreground))]">
-                  {advancedFilterCount > 0 ? `${advancedFilterCount} selected` : "View by, image, and rate presence"}
+                  {advancedFilterCount > 0
+                    ? `${advancedFilterCount} selected`
+                    : "View by, image, and rate presence"}
                 </p>
               </div>
 

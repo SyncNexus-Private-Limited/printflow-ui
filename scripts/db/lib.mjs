@@ -32,7 +32,7 @@ function stripWrappingQuotes(value) {
   const first = value[0];
   const last = value[value.length - 1];
 
-  if ((first === "\"" || first === "'") && first === last) {
+  if ((first === '"' || first === "'") && first === last) {
     return value.slice(1, -1);
   }
 
@@ -177,7 +177,7 @@ export async function getDatabaseUrl(overrideUrl) {
 
   if (!databaseUrl) {
     throw new Error(
-      "DATABASE_URL is not configured. Set DATABASE_URL before running database commands."
+      "DATABASE_URL is not configured. Set DATABASE_URL before running database commands.",
     );
   }
 
@@ -311,7 +311,7 @@ export function parseCliFlags(argv = process.argv.slice(2)) {
       flags.confirm = requireFlagValue(
         "--confirm",
         arg.slice("--confirm=".length),
-        "printflow_dev"
+        "printflow_dev",
       );
       continue;
     }
@@ -323,11 +323,7 @@ export function parseCliFlags(argv = process.argv.slice(2)) {
     }
 
     if (arg.startsWith("--purpose=")) {
-      flags.purpose = requireFlagValue(
-        "--purpose",
-        arg.slice("--purpose=".length),
-        "migration"
-      );
+      flags.purpose = requireFlagValue("--purpose", arg.slice("--purpose=".length), "migration");
       continue;
     }
 
@@ -353,15 +349,14 @@ export function parseCliFlags(argv = process.argv.slice(2)) {
 export async function assertDestructiveCommandAllowed(
   client,
   cliFlags,
-  { commandName = "This command", effectiveEnvironment } = {}
+  { commandName = "This command", effectiveEnvironment } = {},
 ) {
-  const resolvedEnvironment =
-    effectiveEnvironment ?? (await getEffectiveEnvironment());
+  const resolvedEnvironment = effectiveEnvironment ?? (await getEffectiveEnvironment());
 
   if (isProductionEnvironment(resolvedEnvironment)) {
     throw new Error(
       `${commandName} is blocked because the effective environment is production. ` +
-        "Destructive database commands are not allowed when APP_ENV or NODE_ENV resolves to production."
+        "Destructive database commands are not allowed when APP_ENV or NODE_ENV resolves to production.",
     );
   }
 
@@ -369,7 +364,7 @@ export async function assertDestructiveCommandAllowed(
 
   if (process.env.ALLOW_DESTRUCTIVE_DB_COMMANDS !== "true") {
     throw new Error(
-      `${commandName} is blocked. Set ALLOW_DESTRUCTIVE_DB_COMMANDS=true for local or test work before running destructive database commands.`
+      `${commandName} is blocked. Set ALLOW_DESTRUCTIVE_DB_COMMANDS=true for local or test work before running destructive database commands.`,
     );
   }
 
@@ -379,20 +374,20 @@ export async function assertDestructiveCommandAllowed(
   if (!allowlist.includes(target.databaseName)) {
     throw new Error(
       `${commandName} is blocked because the connected database "${target.databaseName}" is not in DEV_DB_NAME_ALLOWLIST (${allowlist.join(
-        ", "
-      )}).`
+        ", ",
+      )}).`,
     );
   }
 
   if (!cliFlags.confirm) {
     throw new Error(
-      `${commandName} requires explicit confirmation. Re-run the command with '--confirm ${target.databaseName}.'`
+      `${commandName} requires explicit confirmation. Re-run the command with '--confirm ${target.databaseName}.'`,
     );
   }
 
   if (cliFlags.confirm !== target.databaseName) {
     throw new Error(
-      `${commandName} confirmation mismatch. Connected database is "${target.databaseName}", but --confirm was "${cliFlags.confirm}". Re-run with '--confirm ${target.databaseName}'.`
+      `${commandName} confirmation mismatch. Connected database is "${target.databaseName}", but --confirm was "${cliFlags.confirm}". Re-run with '--confirm ${target.databaseName}'.`,
     );
   }
 
@@ -408,15 +403,13 @@ export async function assertDestructiveCommandAllowed(
  * @returns {Promise<{ effectiveEnvironment: string }>}
  * @throws {Error} When destructive commands are not allowed.
  */
-export async function assertDestructiveCommandPreconditions(
-  { commandName = "This command" } = {}
-) {
+export async function assertDestructiveCommandPreconditions({ commandName = "This command" } = {}) {
   const effectiveEnvironment = await getEffectiveEnvironment();
 
   if (isProductionEnvironment(effectiveEnvironment)) {
     throw new Error(
       `${commandName} is blocked because the effective environment is production. ` +
-        "Destructive database commands are not allowed when APP_ENV or NODE_ENV resolves to production."
+        "Destructive database commands are not allowed when APP_ENV or NODE_ENV resolves to production.",
     );
   }
 
@@ -424,7 +417,7 @@ export async function assertDestructiveCommandPreconditions(
 
   if (process.env.ALLOW_DESTRUCTIVE_DB_COMMANDS !== "true") {
     throw new Error(
-      `${commandName} is blocked. Set ALLOW_DESTRUCTIVE_DB_COMMANDS=true for local or test work before running destructive database commands.`
+      `${commandName} is blocked. Set ALLOW_DESTRUCTIVE_DB_COMMANDS=true for local or test work before running destructive database commands.`,
     );
   }
 
@@ -441,7 +434,7 @@ export async function assertDestructiveCommandPreconditions(
  */
 export async function assertRollbackAllowed(
   cliFlags,
-  { commandName = "db:rollback", effectiveEnvironment } = {}
+  { commandName = "db:rollback", effectiveEnvironment } = {},
 ) {
   if (cliFlags.dryRun) {
     return;
@@ -455,15 +448,12 @@ export async function assertRollbackAllowed(
 
   await loadEnv();
 
-  if (
-    process.env.ALLOW_PRODUCTION_ROLLBACK === "true" &&
-    cliFlags.allowProduction
-  ) {
+  if (process.env.ALLOW_PRODUCTION_ROLLBACK === "true" && cliFlags.allowProduction) {
     return;
   }
 
   throw new Error(
-    `${commandName} is blocked in production. Production should normally use forward-fix migrations instead of routine rollback. To override, set ALLOW_PRODUCTION_ROLLBACK=true and pass --allow-production.`
+    `${commandName} is blocked in production. Production should normally use forward-fix migrations instead of routine rollback. To override, set ALLOW_PRODUCTION_ROLLBACK=true and pass --allow-production.`,
   );
 }
 
@@ -489,16 +479,16 @@ export function parseMigrationSections(contents, fileLabel = "migration") {
   const downMatch = /^--\s*migrate:down\s*$/im.exec(normalized);
 
   if (!upMatch || !downMatch) {
-    throw new Error(`${fileLabel} must contain both "-- migrate:up" and "-- migrate:down" markers.`);
+    throw new Error(
+      `${fileLabel} must contain both "-- migrate:up" and "-- migrate:down" markers.`,
+    );
   }
 
   if (downMatch.index <= upMatch.index) {
     throw new Error(`${fileLabel} has an invalid migration section order.`);
   }
 
-  const upSql = normalized
-    .slice(upMatch.index + upMatch[0].length, downMatch.index)
-    .trim();
+  const upSql = normalized.slice(upMatch.index + upMatch[0].length, downMatch.index).trim();
   const downSql = normalized.slice(downMatch.index + downMatch[0].length).trim();
 
   if (!upSql) {
@@ -618,7 +608,7 @@ export async function applyPendingMigrations(client, { dryRun = false } = {}) {
     if (existing) {
       if (existing.checksum !== migration.checksum) {
         throw new Error(
-          `Applied migration ${migration.name} does not match the current file checksum.`
+          `Applied migration ${migration.name} does not match the current file checksum.`,
         );
       }
 
@@ -641,7 +631,7 @@ export async function applyPendingMigrations(client, { dryRun = false } = {}) {
           INSERT INTO schema_migrations (name, checksum)
           VALUES ($1, $2)
         `,
-        [migration.name, migration.checksum]
+        [migration.name, migration.checksum],
       );
       await client.query("COMMIT");
     } catch (error) {
@@ -673,7 +663,9 @@ export async function rollbackLatestMigration(client, { dryRun = false } = {}) {
   const filePath = path.join(migrationsDir, latest.name);
 
   if (!existsSync(filePath)) {
-    throw new Error(`Cannot roll back ${latest.name} because the file is missing from db/migrations.`);
+    throw new Error(
+      `Cannot roll back ${latest.name} because the file is missing from db/migrations.`,
+    );
   }
 
   const migration = await readMigration(filePath);
@@ -746,11 +738,10 @@ function pad(value) {
  * @returns {string}
  */
 export function createMigrationTimestamp(date = new Date()) {
-  return [
-    date.getFullYear(),
-    pad(date.getMonth() + 1),
-    pad(date.getDate()),
-  ].join("") + `_${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+  return (
+    [date.getFullYear(), pad(date.getMonth() + 1), pad(date.getDate())].join("") +
+    `_${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`
+  );
 }
 
 /**

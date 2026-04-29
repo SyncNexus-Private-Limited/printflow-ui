@@ -115,7 +115,9 @@ export type CreateExpenseApiErrorResponse = {
   fieldErrors?: Partial<Record<CreateExpenseFieldName, string>>;
 };
 
-export type CreateExpenseApiResponse = CreateExpenseApiSuccessResponse | CreateExpenseApiErrorResponse;
+export type CreateExpenseApiResponse =
+  | CreateExpenseApiSuccessResponse
+  | CreateExpenseApiErrorResponse;
 
 // ---------- Employee expense detail (used by edit dialog) ----------
 
@@ -180,7 +182,11 @@ export type EmployeeExpenseDetailApiResponse =
 
 export type UpdateEmployeeExpenseApiResponse =
   | { success: true; data: { id: string } }
-  | { success: false; message: string; fieldErrors?: Partial<Record<UpdateEmployeeExpenseFieldName, string>> };
+  | {
+      success: false;
+      message: string;
+      fieldErrors?: Partial<Record<UpdateEmployeeExpenseFieldName, string>>;
+    };
 
 export type DeleteEmployeeExpenseApiResponse =
   | { success: true }
@@ -249,7 +255,11 @@ export type BusinessExpenseDetailApiResponse =
 
 export type UpdateBusinessExpenseApiResponse =
   | { success: true; data: { id: string } }
-  | { success: false; message: string; fieldErrors?: Partial<Record<UpdateBusinessExpenseFieldName, string>> };
+  | {
+      success: false;
+      message: string;
+      fieldErrors?: Partial<Record<UpdateBusinessExpenseFieldName, string>>;
+    };
 
 export type DeleteBusinessExpenseApiResponse =
   | { success: true }

@@ -14,7 +14,10 @@ type UserRow = {
 };
 
 function getValidationErrorResponse(fieldErrors: Record<string, string>) {
-  const message = fieldErrors.username ?? fieldErrors.password ?? "Unable to sign in right now. Please try again shortly.";
+  const message =
+    fieldErrors.username ??
+    fieldErrors.password ??
+    "Unable to sign in right now. Please try again shortly.";
 
   return NextResponse.json(
     {

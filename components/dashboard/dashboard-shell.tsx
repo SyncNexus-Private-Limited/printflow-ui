@@ -198,7 +198,13 @@ export function DashboardShell({
                 isMobileSidebarOpen ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0",
               )}
             >
-              <div id="dashboard-mobile-sidebar" role="dialog" aria-modal="true" aria-label="Dashboard navigation" className="h-full">
+              <div
+                id="dashboard-mobile-sidebar"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Dashboard navigation"
+                className="h-full"
+              >
                 <DashboardSidebar
                   pathname={pathname}
                   currentBranchId={currentBranchId}
@@ -214,7 +220,7 @@ export function DashboardShell({
           </div>
         ) : null}
 
-        <div className="mx-auto flex w-full max-w-384 gap-4 px-4 pb-6 pt-4 sm:px-6 lg:gap-6 xl:px-8">
+        <div className="mx-auto flex w-full max-w-384 gap-4 px-4 pt-4 pb-6 sm:px-6 lg:gap-6 xl:px-8">
           <div className="hidden lg:sticky lg:top-22 lg:block lg:h-[calc(100vh-6.5rem)] lg:self-start">
             <DashboardSidebar
               pathname={pathname}

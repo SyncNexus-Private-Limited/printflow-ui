@@ -34,7 +34,9 @@ export function RouteLoading({
 
           <div className="min-w-0 flex-1 space-y-3">
             <p className="text-base font-semibold text-[rgb(var(--card-foreground))]">{message}</p>
-            <p className="text-sm text-[rgb(var(--muted-foreground))]">Please wait while the next view is prepared.</p>
+            <p className="text-sm text-[rgb(var(--muted-foreground))]">
+              Please wait while the next view is prepared.
+            </p>
 
             <div className="space-y-2.5" aria-hidden="true">
               <div className="h-3 w-5/6 animate-pulse rounded-full bg-[rgb(var(--muted))]" />

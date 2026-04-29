@@ -2,11 +2,17 @@
 
 import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { AppliedFilterPills, type AppliedFilterSummaryItem } from "@/components/dashboard/applied-filter-pills";
+import {
+  AppliedFilterPills,
+  type AppliedFilterSummaryItem,
+} from "@/components/dashboard/applied-filter-pills";
 import { FilterDrawerShell } from "@/components/dashboard/filter-drawer-shell";
 import { FilterTriggerButton } from "@/components/dashboard/filter-trigger-button";
 import { useFilterDrawer } from "@/components/dashboard/use-filter-drawer";
-import { getExpenseCategoryTone, getExpensePaymentModeTone } from "@/components/dashboard/data-pill";
+import {
+  getExpenseCategoryTone,
+  getExpensePaymentModeTone,
+} from "@/components/dashboard/data-pill";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import {
@@ -21,7 +27,11 @@ import {
 } from "@/lib/dashboard/expense-page-filters";
 import { FILTER_FIELD_LABEL_CLASS } from "@/lib/dashboard/list-page-classes";
 import { getCurrentMonthDashboardDateRange } from "@/lib/dashboard/page-filters";
-import type { ExpenseCategoryOption, ExpenseEmployeeOption, ExpenseVendorOption } from "@/lib/expenses/types";
+import type {
+  ExpenseCategoryOption,
+  ExpenseEmployeeOption,
+  ExpenseVendorOption,
+} from "@/lib/expenses/types";
 import { getPaymentModeLabel, paymentModeValues } from "@/lib/expenses/types";
 import { cn } from "@/lib/utils/cn";
 import { formatDateRangeLabel } from "@/lib/utils/format";
@@ -51,7 +61,8 @@ function getActiveFilterCount(kind: ExpensePageKind, filters: ExpensePageFilterS
   let count = 0;
 
   if (filters.dateField !== "expense") count += 1;
-  if (getExpenseQuickDatePreset({ from: filters.from, to: filters.to }) !== "this-month") count += 1;
+  if (getExpenseQuickDatePreset({ from: filters.from, to: filters.to }) !== "this-month")
+    count += 1;
   if (filters.categoryId) count += 1;
   if (filters.paymentMode) count += 1;
   if (filters.amountMin || filters.amountMax) count += 1;
@@ -241,14 +252,19 @@ export function ExpenseListControls({
   const baseId = filterPanelId.split("-filter-panel")[0];
   const advancedPanelId = `${baseId}-advanced-filters`;
 
-  const currentDatePreset = getExpenseQuickDatePreset({ from: draftFilters.from, to: draftFilters.to });
+  const currentDatePreset = getExpenseQuickDatePreset({
+    from: draftFilters.from,
+    to: draftFilters.to,
+  });
   const advancedFilterCount = useMemo(() => getAdvancedFilterCount(draftFilters), [draftFilters]);
   const personOptions = kind === "employee" ? employeeOptions : vendorOptions;
   const personFilterLabel = getPersonFilterLabel(kind);
   const personPlaceholder = getPersonPlaceholder(kind, personOptions.length);
 
   const drawerSubtitle =
-    activeFilterCount > 0 ? `${activeFilterCount} active filters` : "Filter by date, person, and spend details";
+    activeFilterCount > 0
+      ? `${activeFilterCount} active filters`
+      : "Filter by date, person, and spend details";
 
   const handleFilterToggle = () => {
     if (!isOpen) {
@@ -257,7 +273,9 @@ export function ExpenseListControls({
     toggleFilterDrawer();
   };
 
-  const updateDraftFilters = (updater: (currentValue: ExpensePageFilterState) => ExpensePageFilterState) => {
+  const updateDraftFilters = (
+    updater: (currentValue: ExpensePageFilterState) => ExpensePageFilterState,
+  ) => {
     setDraftFilters((currentValue) => updater(currentValue));
   };
 
@@ -265,7 +283,9 @@ export function ExpenseListControls({
     if (preset === "custom") return;
 
     const nextDateRange =
-      preset === "last-month" ? getLastMonthExpenseDateRange() : getCurrentMonthDashboardDateRange();
+      preset === "last-month"
+        ? getLastMonthExpenseDateRange()
+        : getCurrentMonthDashboardDateRange();
 
     updateDraftFilters((currentValue) => ({
       ...currentValue,
@@ -375,7 +395,7 @@ export function ExpenseListControls({
                     onClick={() => handleDatePresetSelect(preset)}
                     className={cn(
                       "rounded-full border px-3 py-2 text-xs font-semibold capitalize transition-colors",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+                      "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
                       isActive
                         ? "border-[rgb(var(--primary)/0.38)] bg-[rgb(var(--primary-soft))] text-[rgb(var(--primary-soft-foreground))]"
                         : "border-[rgb(var(--border))] bg-[rgb(var(--background))] text-[rgb(var(--muted-foreground))] hover:text-[rgb(var(--foreground))]",
@@ -467,12 +487,22 @@ export function ExpenseListControls({
           <label className="space-y-2">
             <span className={FILTER_FIELD_LABEL_CLASS}>{personFilterLabel}</span>
             <Select
-              value={kind === "employee" ? draftFilters.employeeId ?? "" : draftFilters.vendorId ?? ""}
+              value={
+                kind === "employee"
+                  ? (draftFilters.employeeId ?? "")
+                  : (draftFilters.vendorId ?? "")
+              }
               onChange={(event) =>
                 updateDraftFilters((currentValue) => ({
                   ...currentValue,
-                  employeeId: kind === "employee" && event.target.value.length > 0 ? event.target.value : null,
-                  vendorId: kind === "business" && event.target.value.length > 0 ? event.target.value : null,
+                  employeeId:
+                    kind === "employee" && event.target.value.length > 0
+                      ? event.target.value
+                      : null,
+                  vendorId:
+                    kind === "business" && event.target.value.length > 0
+                      ? event.target.value
+                      : null,
                 }))
               }
               className="h-11 rounded-2xl bg-[rgb(var(--background))]"
@@ -542,9 +572,13 @@ export function ExpenseListControls({
               onClick={() => setIsAdvancedOpen((currentValue) => !currentValue)}
             >
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">Advanced filters</p>
+                <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">
+                  Advanced filters
+                </p>
                 <p className="text-xs text-[rgb(var(--muted-foreground))]">
-                  {advancedFilterCount > 0 ? `${advancedFilterCount} selected` : "View by and remarks"}
+                  {advancedFilterCount > 0
+                    ? `${advancedFilterCount} selected`
+                    : "View by and remarks"}
                 </p>
               </div>
 

@@ -2,7 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { Pencil, Trash2 } from "lucide-react";
-import { DataPill, getExpenseCategoryTone, getExpensePaymentModeTone } from "@/components/dashboard/data-pill";
+import {
+  DataPill,
+  getExpenseCategoryTone,
+  getExpensePaymentModeTone,
+} from "@/components/dashboard/data-pill";
 import { RowActionMenu } from "@/components/dashboard/row-action-menu";
 import { DataTableContainer } from "@/components/dashboard/data-table-container";
 import { DashboardPagination } from "@/components/dashboard/dashboard-pagination";
@@ -181,18 +185,20 @@ function renderEmployeeRows(
     <tr
       key={expense.id}
       // `group` enables group-hover: on sticky body cells
-      className="group border-b border-[rgb(var(--border)/0.58)] transition-colors hover:bg-[rgb(var(--muted)/0.28)] last:border-b-0"
+      className="group border-b border-[rgb(var(--border)/0.58)] transition-colors last:border-b-0 hover:bg-[rgb(var(--muted)/0.28)]"
     >
       <td
         className={cn(TABLE_BODY_CELL_CLASS, getStickyBodyCellClass(stickySpecs[0]))}
         style={getStickyBodyCellStyle(stickySpecs[0])}
       >
-        <p className="wrap-break-word font-semibold leading-6 text-[rgb(var(--card-foreground))]">
+        <p className="leading-6 font-semibold wrap-break-word text-[rgb(var(--card-foreground))]">
           {expense.userName}
         </p>
       </td>
       <td className={TABLE_BODY_CELL_CLASS}>
-        <p className="font-semibold leading-6 text-[rgb(var(--card-foreground))]">{expense.title}</p>
+        <p className="leading-6 font-semibold text-[rgb(var(--card-foreground))]">
+          {expense.title}
+        </p>
       </td>
       <td className={TABLE_BODY_CELL_CLASS}>
         <DataPill tone={getExpenseCategoryTone(expense.categoryCode)} className="max-w-full">
@@ -200,25 +206,25 @@ function renderEmployeeRows(
         </DataPill>
       </td>
       <td className={cn(TABLE_BODY_CELL_CLASS, "text-right")}>
-        <p className="whitespace-nowrap text-base font-semibold tabular-nums text-[rgb(var(--card-foreground))]">
+        <p className="text-base font-semibold whitespace-nowrap text-[rgb(var(--card-foreground))] tabular-nums">
           {formatCurrency(expense.amount)}
         </p>
       </td>
       <td className={TABLE_BODY_CELL_CLASS}>{renderPaymentPill(expense.paymentMode)}</td>
       <td className={TABLE_BODY_CELL_CLASS}>
         <div className="max-w-lg">
-          <p className="wrap-break-word text-sm leading-6 text-[rgb(var(--foreground)/0.68)]">
+          <p className="text-sm leading-6 wrap-break-word text-[rgb(var(--foreground)/0.68)]">
             {expense.remarks ?? "No remarks added."}
           </p>
         </div>
       </td>
       <td className={TABLE_BODY_CELL_CLASS}>
-        <p className="whitespace-nowrap font-medium text-[rgb(var(--card-foreground))]">
+        <p className="font-medium whitespace-nowrap text-[rgb(var(--card-foreground))]">
           {formatDate(expense.expenseDate)}
         </p>
       </td>
       <td className={TABLE_BODY_CELL_CLASS}>
-        <p className="whitespace-nowrap font-medium text-[rgb(var(--card-foreground))]">
+        <p className="font-medium whitespace-nowrap text-[rgb(var(--card-foreground))]">
           {formatDate(expense.createdAt)}
         </p>
       </td>
@@ -264,7 +270,7 @@ function renderBusinessRows(
   return items.map((expense) => (
     <tr
       key={expense.id}
-      className="group border-b border-[rgb(var(--border)/0.58)] transition-colors hover:bg-[rgb(var(--muted)/0.28)] last:border-b-0"
+      className="group border-b border-[rgb(var(--border)/0.58)] transition-colors last:border-b-0 hover:bg-[rgb(var(--muted)/0.28)]"
     >
       <td
         className={cn(TABLE_BODY_CELL_CLASS, getStickyBodyCellClass(stickySpecs[0]))}
@@ -275,35 +281,35 @@ function renderBusinessRows(
         </DataPill>
       </td>
       <td className={TABLE_BODY_CELL_CLASS}>
-        <p className="font-semibold leading-6 text-[rgb(var(--card-foreground))]">
+        <p className="leading-6 font-semibold text-[rgb(var(--card-foreground))]">
           {expense.title ?? "Untitled expense"}
         </p>
       </td>
       <td className={cn(TABLE_BODY_CELL_CLASS, "text-right")}>
-        <p className="whitespace-nowrap text-base font-semibold tabular-nums text-[rgb(var(--card-foreground))]">
+        <p className="text-base font-semibold whitespace-nowrap text-[rgb(var(--card-foreground))] tabular-nums">
           {formatCurrency(expense.amount)}
         </p>
       </td>
       <td className={TABLE_BODY_CELL_CLASS}>{renderPaymentPill(expense.paymentMode)}</td>
       <td className={TABLE_BODY_CELL_CLASS}>
         <div className="max-w-lg">
-          <p className="wrap-break-word text-sm leading-6 text-[rgb(var(--foreground)/0.68)]">
+          <p className="text-sm leading-6 wrap-break-word text-[rgb(var(--foreground)/0.68)]">
             {expense.remarks ?? "No remarks added."}
           </p>
         </div>
       </td>
       <td className={TABLE_BODY_CELL_CLASS}>
-        <p className="whitespace-nowrap font-medium text-[rgb(var(--card-foreground))]">
+        <p className="font-medium whitespace-nowrap text-[rgb(var(--card-foreground))]">
           {formatDate(expense.expenseDate)}
         </p>
       </td>
       <td className={TABLE_BODY_CELL_CLASS}>
-        <p className="whitespace-nowrap font-medium text-[rgb(var(--card-foreground))]">
+        <p className="font-medium whitespace-nowrap text-[rgb(var(--card-foreground))]">
           {formatDate(expense.createdAt)}
         </p>
       </td>
       <td className={TABLE_BODY_CELL_CLASS}>
-        <p className="max-w-44 wrap-break-word font-medium leading-6 text-[rgb(var(--foreground)/0.76)]">
+        <p className="max-w-44 leading-6 font-medium wrap-break-word text-[rgb(var(--foreground)/0.76)]">
           {expense.branchName ?? fallbackBranchName}
         </p>
       </td>
@@ -348,10 +354,14 @@ export function ExpenseDataTable({
 }: ExpenseDataTableProps) {
   const router = useRouter();
 
-  const employeeOnEditRow = kind === "employee" ? (kindProps as EmployeeExpenseDataTableProps).onEditRow : undefined;
-  const employeeOnDeleteRow = kind === "employee" ? (kindProps as EmployeeExpenseDataTableProps).onDeleteRow : undefined;
-  const businessOnEditRow = kind === "business" ? (kindProps as BusinessExpenseDataTableProps).onEditRow : undefined;
-  const businessOnDeleteRow = kind === "business" ? (kindProps as BusinessExpenseDataTableProps).onDeleteRow : undefined;
+  const employeeOnEditRow =
+    kind === "employee" ? (kindProps as EmployeeExpenseDataTableProps).onEditRow : undefined;
+  const employeeOnDeleteRow =
+    kind === "employee" ? (kindProps as EmployeeExpenseDataTableProps).onDeleteRow : undefined;
+  const businessOnEditRow =
+    kind === "business" ? (kindProps as BusinessExpenseDataTableProps).onEditRow : undefined;
+  const businessOnDeleteRow =
+    kind === "business" ? (kindProps as BusinessExpenseDataTableProps).onDeleteRow : undefined;
   const hasActions =
     (kind === "employee" && Boolean(employeeOnEditRow && employeeOnDeleteRow)) ||
     (kind === "business" && Boolean(businessOnEditRow && businessOnDeleteRow));
@@ -379,8 +389,17 @@ export function ExpenseDataTable({
 
   return (
     <DataTableContainer>
-      <TableScrollArea className="bg-[rgb(var(--card)/0.98)]" viewportClassName="pb-0" stickyLeftWidth={stickyLeftWidth}>
-        <table className={cn("w-max min-w-full border-collapse text-left text-sm", tableMinWidthClassName)}>
+      <TableScrollArea
+        className="bg-[rgb(var(--card)/0.98)]"
+        viewportClassName="pb-0"
+        stickyLeftWidth={stickyLeftWidth}
+      >
+        <table
+          className={cn(
+            "w-max min-w-full border-collapse text-left text-sm",
+            tableMinWidthClassName,
+          )}
+        >
           {kind === "employee" ? (
             <colgroup>
               <col className="w-48" />
@@ -431,9 +450,7 @@ export function ExpenseDataTable({
                     )}
                     style={getStickyHeaderCellStyle(stickySpecs[index])}
                   >
-                    {headerConfig.label || (
-                      <span className="sr-only">Actions</span>
-                    )}
+                    {headerConfig.label || <span className="sr-only">Actions</span>}
                   </th>
                 ),
               )}
@@ -443,7 +460,13 @@ export function ExpenseDataTable({
           <tbody>
             {kind === "employee"
               ? renderEmployeeRows(items, stickySpecs, employeeOnEditRow, employeeOnDeleteRow)
-              : renderBusinessRows(items, fallbackBranchName ?? "Branch", stickySpecs, businessOnEditRow, businessOnDeleteRow)}
+              : renderBusinessRows(
+                  items,
+                  fallbackBranchName ?? "Branch",
+                  stickySpecs,
+                  businessOnEditRow,
+                  businessOnDeleteRow,
+                )}
           </tbody>
         </table>
       </TableScrollArea>

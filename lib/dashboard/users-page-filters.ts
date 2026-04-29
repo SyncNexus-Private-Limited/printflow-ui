@@ -62,10 +62,14 @@ export function parseUsersPageFilters(
   const branchId = normalizeDashboardSearchParam(searchParams?.branchId) ?? null;
   const sortValue = normalizeDashboardSearchParam(searchParams?.sort);
   const parsedPage = parsePositiveInteger(normalizeDashboardSearchParam(searchParams?.page));
-  const parsedPageSize = parsePositiveInteger(normalizeDashboardSearchParam(searchParams?.pageSize));
+  const parsedPageSize = parsePositiveInteger(
+    normalizeDashboardSearchParam(searchParams?.pageSize),
+  );
   const pageSize =
     parsedPageSize &&
-    DASHBOARD_PAGE_SIZE_OPTIONS.includes(parsedPageSize as (typeof DASHBOARD_PAGE_SIZE_OPTIONS)[number])
+    DASHBOARD_PAGE_SIZE_OPTIONS.includes(
+      parsedPageSize as (typeof DASHBOARD_PAGE_SIZE_OPTIONS)[number],
+    )
       ? parsedPageSize
       : DEFAULT_DASHBOARD_PAGE_SIZE;
   const roleValue = normalizeDashboardSearchParam(searchParams?.role);

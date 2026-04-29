@@ -132,8 +132,9 @@ export function RowActionMenu({ actions, label = "Row actions" }: RowActionMenuP
         className={cn(
           "flex h-7 w-7 items-center justify-center rounded-lg border border-[rgb(var(--border)/0.72)] bg-[rgb(var(--card))]",
           "text-[rgb(var(--muted-foreground))] transition-colors hover:border-[rgb(var(--border))] hover:bg-[rgb(var(--muted))] hover:text-[rgb(var(--foreground))]",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
-          isOpen && "border-[rgb(var(--border))] bg-[rgb(var(--muted))] text-[rgb(var(--foreground))]",
+          "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
+          isOpen &&
+            "border-[rgb(var(--border))] bg-[rgb(var(--muted))] text-[rgb(var(--foreground))]",
         )}
       >
         <MoreHorizontal className="h-3.5 w-3.5" aria-hidden="true" />
@@ -164,7 +165,7 @@ export function RowActionMenu({ actions, label = "Row actions" }: RowActionMenuP
                   }}
                   className={cn(
                     "flex w-full items-center gap-2.5 px-3.5 py-2 text-sm font-medium",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[rgb(var(--primary)/0.35)]",
+                    "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:outline-none focus-visible:ring-inset",
                     "disabled:cursor-not-allowed disabled:opacity-50",
                     action.destructive
                       ? "text-[rgb(var(--danger))] hover:bg-[rgb(var(--danger)/0.08)]"

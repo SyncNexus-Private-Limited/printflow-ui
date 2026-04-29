@@ -118,7 +118,11 @@ export function ActiveUsersDataTable({
 
   return (
     <DataTableContainer>
-      <TableScrollArea className="bg-[rgb(var(--card)/0.98)]" viewportClassName="pb-0" stickyLeftWidth={stickyLeftWidth}>
+      <TableScrollArea
+        className="bg-[rgb(var(--card)/0.98)]"
+        viewportClassName="pb-0"
+        stickyLeftWidth={stickyLeftWidth}
+      >
         <table
           className={cn(
             "w-max min-w-full border-collapse text-left text-sm",
@@ -150,7 +154,10 @@ export function ActiveUsersDataTable({
                   <th
                     key={headerConfig.key}
                     scope="col"
-                    className={cn(TABLE_HEADER_CELL_CLASS, getStickyHeaderCellClass(stickySpecs[index]))}
+                    className={cn(
+                      TABLE_HEADER_CELL_CLASS,
+                      getStickyHeaderCellClass(stickySpecs[index]),
+                    )}
                     style={getStickyHeaderCellStyle(stickySpecs[index])}
                   >
                     {headerConfig.label}
@@ -164,13 +171,13 @@ export function ActiveUsersDataTable({
             {items.map((activeUser) => (
               <tr
                 key={activeUser.sessionId}
-                className="group border-b border-[rgb(var(--border)/0.58)] transition-colors hover:bg-[rgb(var(--muted)/0.28)] last:border-b-0"
+                className="group border-b border-[rgb(var(--border)/0.58)] transition-colors last:border-b-0 hover:bg-[rgb(var(--muted)/0.28)]"
               >
                 <td
                   className={cn(TABLE_BODY_CELL_CLASS, getStickyBodyCellClass(stickySpecs[0]))}
                   style={getStickyBodyCellStyle(stickySpecs[0])}
                 >
-                  <p className="wrap-break-word font-semibold leading-6 text-[rgb(var(--card-foreground))]">
+                  <p className="leading-6 font-semibold wrap-break-word text-[rgb(var(--card-foreground))]">
                     {activeUser.fullName}
                   </p>
                 </td>
@@ -182,18 +189,18 @@ export function ActiveUsersDataTable({
                 <td className={TABLE_BODY_CELL_CLASS}>{renderRolePill(activeUser.role)}</td>
                 {showBranch && (
                   <td className={TABLE_BODY_CELL_CLASS}>
-                    <p className="max-w-40 wrap-break-word font-medium leading-6 text-[rgb(var(--foreground)/0.76)]">
+                    <p className="max-w-40 leading-6 font-medium wrap-break-word text-[rgb(var(--foreground)/0.76)]">
                       {activeUser.branchName ?? "—"}
                     </p>
                   </td>
                 )}
                 <td className={TABLE_BODY_CELL_CLASS}>
-                  <p className="whitespace-nowrap font-medium text-[rgb(var(--card-foreground))]">
+                  <p className="font-medium whitespace-nowrap text-[rgb(var(--card-foreground))]">
                     {formatDateTime(activeUser.lastSeenAt)}
                   </p>
                 </td>
                 <td className={TABLE_BODY_CELL_CLASS}>
-                  <p className="whitespace-nowrap font-medium text-[rgb(var(--foreground)/0.68)]">
+                  <p className="font-medium whitespace-nowrap text-[rgb(var(--foreground)/0.68)]">
                     {formatDateTime(activeUser.sessionCreatedAt)}
                   </p>
                 </td>

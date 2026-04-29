@@ -53,11 +53,11 @@ function FieldLabel({
   return (
     <label
       htmlFor={htmlFor}
-      className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted-foreground))]"
+      className="block text-[11px] font-semibold tracking-[0.16em] text-[rgb(var(--muted-foreground))] uppercase"
     >
       {children}
       {optional ? (
-        <span className="ml-1 font-normal normal-case tracking-normal opacity-70">Optional</span>
+        <span className="ml-1 font-normal tracking-normal normal-case opacity-70">Optional</span>
       ) : null}
     </label>
   );
@@ -78,17 +78,10 @@ function getFieldError(
 
 function LoadingShimmer() {
   return (
-    <div
-      className="space-y-6 px-5 pb-6 pt-4"
-      aria-busy="true"
-      aria-label="Loading user details"
-    >
+    <div className="space-y-6 px-5 pt-4 pb-6" aria-busy="true" aria-label="Loading user details">
       <div className="grid gap-3 sm:grid-cols-2">
         {[1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className="h-22 animate-pulse rounded-[22px] bg-[rgb(var(--muted)/0.5)]"
-          />
+          <div key={i} className="h-22 animate-pulse rounded-[22px] bg-[rgb(var(--muted)/0.5)]" />
         ))}
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
@@ -218,9 +211,7 @@ export function UserEditDialog({ userId, onClose, onSuccess }: UserEditDialogPro
             if (message) setError(field, { type: "server", message });
           }
         }
-        setServerError(
-          data && !data.success ? data.message : "Unable to save changes right now.",
-        );
+        setServerError(data && !data.success ? data.message : "Unable to save changes right now.");
         return;
       }
 
@@ -255,7 +246,7 @@ export function UserEditDialog({ userId, onClose, onSuccess }: UserEditDialogPro
           <input type="hidden" {...register("role")} value={selectedRole} />
           <input type="hidden" {...register("branchId")} value={selectedBranchId} />
 
-          <div className="space-y-6 px-5 pb-2 pt-4">
+          <div className="space-y-6 px-5 pt-4 pb-2">
             {serverError ? (
               <div className="rounded-2xl border border-[rgb(var(--danger)/0.18)] bg-[rgb(var(--danger)/0.08)] px-4 py-3 text-sm text-[rgb(var(--danger))]">
                 {serverError}
@@ -264,7 +255,7 @@ export function UserEditDialog({ userId, onClose, onSuccess }: UserEditDialogPro
 
             {/* Role */}
             <div className="space-y-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted-foreground))]">
+              <p className="text-[11px] font-semibold tracking-[0.16em] text-[rgb(var(--muted-foreground))] uppercase">
                 Account role
               </p>
               <UserRoleSwitch
@@ -277,7 +268,7 @@ export function UserEditDialog({ userId, onClose, onSuccess }: UserEditDialogPro
 
             {/* Profile details */}
             <div className="space-y-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted-foreground))]">
+              <p className="text-[11px] font-semibold tracking-[0.16em] text-[rgb(var(--muted-foreground))] uppercase">
                 Profile details
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -352,7 +343,7 @@ export function UserEditDialog({ userId, onClose, onSuccess }: UserEditDialogPro
 
             {/* Access details */}
             <div className="space-y-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted-foreground))]">
+              <p className="text-[11px] font-semibold tracking-[0.16em] text-[rgb(var(--muted-foreground))] uppercase">
                 Access details
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -421,9 +412,7 @@ export function UserEditDialog({ userId, onClose, onSuccess }: UserEditDialogPro
             {readyState?.user.updatedAt ? (
               <p className="mb-3 text-xs text-[rgb(var(--muted-foreground))]">
                 Last edited on {formatDateTime(readyState.user.updatedAt)}
-                {readyState.user.updatedByName
-                  ? ` by ${readyState.user.updatedByName}`
-                  : null}
+                {readyState.user.updatedByName ? ` by ${readyState.user.updatedByName}` : null}
               </p>
             ) : null}
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

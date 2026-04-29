@@ -12,7 +12,10 @@ export const FILTER_AWARE_DASHBOARD_PATHS = [
 ] as const;
 
 type DashboardSearchParam = string | string[] | undefined;
-type DashboardNavigationFilterState = Pick<DashboardPageFilterState, "branchId" | "from" | "to" | "pageSize">;
+type DashboardNavigationFilterState = Pick<
+  DashboardPageFilterState,
+  "branchId" | "from" | "to" | "pageSize"
+>;
 
 function padDatePart(value: number) {
   return String(value).padStart(2, "0");
@@ -111,7 +114,10 @@ export function getCurrentMonthDashboardDateRange(referenceDate = new Date()) {
   return getMonthDateRangeForDate(referenceDate);
 }
 
-export function isCurrentMonthDashboardDateRange(dateRange: DashboardDateRange, referenceDate = new Date()) {
+export function isCurrentMonthDashboardDateRange(
+  dateRange: DashboardDateRange,
+  referenceDate = new Date(),
+) {
   const currentMonth = getCurrentMonthDashboardDateRange(referenceDate);
 
   return dateRange.from === currentMonth.from && dateRange.to === currentMonth.to;
@@ -120,7 +126,9 @@ export function isCurrentMonthDashboardDateRange(dateRange: DashboardDateRange, 
 export function isDashboardFilterAwarePath(path: string) {
   const normalizedPath = path.split("?")[0];
 
-  return FILTER_AWARE_DASHBOARD_PATHS.includes(normalizedPath as (typeof FILTER_AWARE_DASHBOARD_PATHS)[number]);
+  return FILTER_AWARE_DASHBOARD_PATHS.includes(
+    normalizedPath as (typeof FILTER_AWARE_DASHBOARD_PATHS)[number],
+  );
 }
 
 export function parseDashboardPageFilters(searchParams?: {
@@ -138,9 +146,14 @@ export function parseDashboardPageFilters(searchParams?: {
     toValue && isValidDateInput(toValue) ? toValue : null,
   );
   const parsedPage = parsePositiveInteger(normalizeDashboardSearchParam(searchParams?.page));
-  const parsedPageSize = parsePositiveInteger(normalizeDashboardSearchParam(searchParams?.pageSize));
+  const parsedPageSize = parsePositiveInteger(
+    normalizeDashboardSearchParam(searchParams?.pageSize),
+  );
   const pageSize =
-    parsedPageSize && DASHBOARD_PAGE_SIZE_OPTIONS.includes(parsedPageSize as (typeof DASHBOARD_PAGE_SIZE_OPTIONS)[number])
+    parsedPageSize &&
+    DASHBOARD_PAGE_SIZE_OPTIONS.includes(
+      parsedPageSize as (typeof DASHBOARD_PAGE_SIZE_OPTIONS)[number],
+    )
       ? parsedPageSize
       : DEFAULT_DASHBOARD_PAGE_SIZE;
 
@@ -153,12 +166,15 @@ export function parseDashboardPageFilters(searchParams?: {
   };
 }
 
-export function getDashboardNavigationFilterState(searchParams?: {
-  branchId?: DashboardSearchParam;
-  from?: DashboardSearchParam;
-  to?: DashboardSearchParam;
-  pageSize?: DashboardSearchParam;
-}, options?: { applyDefaultDateRange?: boolean }): DashboardNavigationFilterState {
+export function getDashboardNavigationFilterState(
+  searchParams?: {
+    branchId?: DashboardSearchParam;
+    from?: DashboardSearchParam;
+    to?: DashboardSearchParam;
+    pageSize?: DashboardSearchParam;
+  },
+  options?: { applyDefaultDateRange?: boolean },
+): DashboardNavigationFilterState {
   if (options?.applyDefaultDateRange) {
     const filters = parseDashboardPageFilters({
       branchId: searchParams?.branchId,
@@ -182,9 +198,14 @@ export function getDashboardNavigationFilterState(searchParams?: {
     fromValue && isValidDateInput(fromValue) ? fromValue : null,
     toValue && isValidDateInput(toValue) ? toValue : null,
   );
-  const parsedPageSize = parsePositiveInteger(normalizeDashboardSearchParam(searchParams?.pageSize));
+  const parsedPageSize = parsePositiveInteger(
+    normalizeDashboardSearchParam(searchParams?.pageSize),
+  );
   const pageSize =
-    parsedPageSize && DASHBOARD_PAGE_SIZE_OPTIONS.includes(parsedPageSize as (typeof DASHBOARD_PAGE_SIZE_OPTIONS)[number])
+    parsedPageSize &&
+    DASHBOARD_PAGE_SIZE_OPTIONS.includes(
+      parsedPageSize as (typeof DASHBOARD_PAGE_SIZE_OPTIONS)[number],
+    )
       ? parsedPageSize
       : DEFAULT_DASHBOARD_PAGE_SIZE;
 
@@ -232,7 +253,10 @@ export function buildDashboardPageHref(
   return queryString.length > 0 ? `${path}?${queryString}` : path;
 }
 
-export function buildDashboardNavigationHref(path: string, filters: DashboardNavigationFilterState) {
+export function buildDashboardNavigationHref(
+  path: string,
+  filters: DashboardNavigationFilterState,
+) {
   const searchParams = new URLSearchParams();
 
   if (filters.branchId) {

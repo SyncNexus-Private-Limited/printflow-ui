@@ -14,10 +14,7 @@ function getUnauthorizedResponse() {
   return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
 }
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const currentUser = await getCurrentUser({ touchSession: true });
 
   if (!currentUser) {

@@ -25,12 +25,19 @@ function createPool() {
 
   const parsedUrl = new URL(databaseUrl);
   const usesSupabaseHost =
-    parsedUrl.hostname.endsWith(".supabase.co") || parsedUrl.hostname.endsWith(".pooler.supabase.com");
+    parsedUrl.hostname.endsWith(".supabase.co") ||
+    parsedUrl.hostname.endsWith(".pooler.supabase.com");
   const sslMode = parsedUrl.searchParams.get("sslmode");
   const isProduction = process.env.NODE_ENV === "production";
   const max = parsePositiveInt(process.env.POSTGRES_POOL_MAX, isProduction ? 3 : 10);
-  const idleTimeoutMillis = parsePositiveInt(process.env.POSTGRES_IDLE_TIMEOUT_MS, isProduction ? 5_000 : 10_000);
-  const connectionTimeoutMillis = parsePositiveInt(process.env.POSTGRES_CONNECTION_TIMEOUT_MS, 5_000);
+  const idleTimeoutMillis = parsePositiveInt(
+    process.env.POSTGRES_IDLE_TIMEOUT_MS,
+    isProduction ? 5_000 : 10_000,
+  );
+  const connectionTimeoutMillis = parsePositiveInt(
+    process.env.POSTGRES_CONNECTION_TIMEOUT_MS,
+    5_000,
+  );
 
   const nextPool = new Pool({
     connectionString: databaseUrl,

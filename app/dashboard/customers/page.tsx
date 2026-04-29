@@ -90,7 +90,9 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
             title="Customers"
-            branchOptions={[{ label: currentUser.branchName ?? "Branch", value: currentUser.branchId ?? "all" }]}
+            branchOptions={[
+              { label: currentUser.branchName ?? "Branch", value: currentUser.branchId ?? "all" },
+            ]}
             selectedBranchValue={currentUser.branchId ?? "all"}
             branchFilterDisabled
           />

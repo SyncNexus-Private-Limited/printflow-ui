@@ -20,14 +20,24 @@ const buttonSizes = {
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, type = "button", variant = "primary", size = "default", fullWidth = false, ...props }, ref) => {
+  (
+    {
+      className,
+      type = "button",
+      variant = "primary",
+      size = "default",
+      fullWidth = false,
+      ...props
+    },
+    ref,
+  ) => {
     return (
       <button
         ref={ref}
         type={type}
         className={cn(
           "inline-flex items-center justify-center rounded-xl border font-semibold transition-all",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+          "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
           "disabled:cursor-not-allowed disabled:opacity-60",
           buttonVariants[variant],
           buttonSizes[size],

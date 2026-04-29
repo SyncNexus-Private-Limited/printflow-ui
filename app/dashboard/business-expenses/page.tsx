@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { ExpenseDataTable } from "@/components/dashboard/expense-data-table";
+import { BusinessExpenseTableWithActions } from "@/components/dashboard/business-expense-table-with-actions";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { ExpenseListControls } from "@/components/dashboard/expense-list-controls";
 import { ListStatCard } from "@/components/dashboard/list-stat-card";
@@ -74,8 +74,7 @@ export default async function BusinessExpensesPage({ searchParams }: BusinessExp
             selectedBranchName={context.selectedBranchName}
           />
 
-          <ExpenseDataTable
-            kind="business"
+          <BusinessExpenseTableWithActions
             emptyMessage="No business expenses were recorded for the selected branch and date range."
             items={pageData.result.items}
             currentPath="/dashboard/business-expenses"

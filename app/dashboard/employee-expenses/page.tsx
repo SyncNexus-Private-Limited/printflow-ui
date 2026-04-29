@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { ExpenseDataTable } from "@/components/dashboard/expense-data-table";
+import { EmployeeExpenseTableWithActions } from "@/components/dashboard/employee-expense-table-with-actions";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { ExpenseListControls } from "@/components/dashboard/expense-list-controls";
 import { ListStatCard } from "@/components/dashboard/list-stat-card";
@@ -74,10 +74,9 @@ export default async function EmployeeExpensesPage({ searchParams }: EmployeeExp
             selectedBranchName={context.selectedBranchName}
           />
 
-          <ExpenseDataTable
-            kind="employee"
-            emptyMessage="No employee expenses were recorded for the selected branch and date range."
+          <EmployeeExpenseTableWithActions
             items={pageData.result.items}
+            emptyMessage="No employee expenses were recorded for the selected branch and date range."
             currentPath="/dashboard/employee-expenses"
             currentFilters={currentFilters}
             pagination={pageData.result.pagination}

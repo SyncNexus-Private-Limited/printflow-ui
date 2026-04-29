@@ -61,6 +61,10 @@ lib/
     list-page-classes.ts        # TABLE_HEADER_CELL_CLASS, TABLE_BODY_CELL_CLASS, FILTER_FIELD_LABEL_CLASS
     sortable-header-utils.ts    # getSortDirection, getNextSortValue, HeaderSortConfig<T>
     sticky-column-utils.ts      # ColumnStickyDef, StickySpec, computeStickySpecs, sticky cell helpers
+  users/
+    role-rules.ts       # requiresBranch(role) — single source of truth for branch requirement
+    mutations.ts        # createUser, updateUser, updateUserStatus, toggleUserLock, resetUserPassword — all transactional with audit logging; self-protection guards in updateUser; FOR UPDATE OF u (not bare FOR UPDATE) in snapshot fetch
+    queries.ts / schema.ts / types.ts
   expenses/
     schema.ts           # Zod discriminated union for expense creation
     types.ts / queries.ts / mutations.ts
@@ -72,7 +76,7 @@ lib/
   utils/                # cn(), format()
 
 db/
-  migrations/           # SQL migration files (20260410_000001_baseline.sql, 20260414_131102_expense_schema_hardening.sql)
+  migrations/           # SQL migration files (20260410_000001_baseline.sql, 20260414_131102_expense_schema_hardening.sql, 20260429_113844_user_audit_log.sql — adds user_audit_logs table, password_changed_at + must_reset_password to user_auth)
   seeds/dev_seed.sql
   reset/dev_reset.sql
 

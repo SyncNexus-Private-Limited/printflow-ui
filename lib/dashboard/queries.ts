@@ -6,6 +6,7 @@ import type { CustomerPageFilterState } from "@/lib/dashboard/customer-page-filt
 import type { ExpensePageFilterState } from "@/lib/dashboard/expense-page-filters";
 import type { OrderPageFilterState } from "@/lib/dashboard/order-page-filters";
 import type { ActiveUserPageFilterState, ActiveUserSortValue } from "@/lib/dashboard/active-users-page-filters";
+import type { UserManagementPageFilterState, UserManagementSortValue } from "@/lib/dashboard/users-page-filters";
 import {
   INVENTORY_LOW_STOCK_THRESHOLD,
   type InventoryPageFilterState,
@@ -46,6 +47,9 @@ import {
   type OrderVendorOption,
   type RecentExpenseRow,
   type RecentOrderRow,
+  type UserManagementPageData,
+  type UserManagementPageSummary,
+  type UserManagementRow,
 } from "@/lib/dashboard/types";
 import { branchFilterSchema } from "@/lib/validations/dashboard";
 
@@ -1962,6 +1966,135 @@ export async function getBusinessExpenseDetails(branchId: string | null) {
       LEFT JOIN branches b ON b.id = be.branch_id
       WHERE ($1::uuid IS NULL OR be.branch_id = $1::uuid)
       ORDER BY be.expense_date DESC, be.created_at DESC
+    `,
+    [branchId],
+  );
+
+  return rows;
+}
+
+function getUsersOrderByClause(sort: UserManagementSortValue): string {
+  switch (sort) {
+    case "name-desc":
+      return "LOWER(u.full_name) DESC";
+    case "role-asc":
+      return "LOWER(u.role::text) ASC, LOWER(u.full_name) ASC";
+    case "role-desc":
+      return "LOWER(u.role::text) DESC, LOWER(u.full_name) ASC";
+    case "created-desc":
+      return "u.created_at DESC";
+    case "created-asc":
+      return "u.created_at ASC";
+    case "name-asc":
+    default:
+      return "LOWER(u.full_name) ASC";
+  }
+}
+
+export async function getUsersPageData(
+  branchId: string | null,
+  filters: UserManagementPageFilterState,
+): Promise<UserManagementPageData> {
+  const db = getPool();
+  const queryValues: Array<string | null> = [branchId];
+  const whereParts = ["($1::uuid IS NULL OR u.branch_id = $1::uuid)"];
+
+  if (filters.role) {
+    queryValues.push(filters.role);
+    whereParts.push(`u.role::text = $${queryValues.length}`);
+  }
+
+  if (filters.status === "active") {
+    whereParts.push("u.is_active = true");
+  } else if (filters.status === "inactive") {
+    whereParts.push("u.is_active = false");
+  }
+
+  if (filters.locked === "locked") {
+    whereParts.push("COALESCE(ua.is_locked, false) = true");
+  } else if (filters.locked === "unlocked") {
+    whereParts.push("COALESCE(ua.is_locked, false) = false");
+  }
+
+  if (filters.name) {
+    queryValues.push(`%${filters.name}%`);
+    whereParts.push(`LOWER(u.full_name) LIKE LOWER($${queryValues.length})`);
+  }
+
+  if (filters.username) {
+    queryValues.push(`%${filters.username}%`);
+    whereParts.push(`LOWER(COALESCE(ua.username, '')) LIKE LOWER($${queryValues.length})`);
+  }
+
+  const whereClause = whereParts.join("\n      AND ");
+
+  const { rows: summaryRows } = await db.query<UserManagementPageSummary>(
+    `
+      SELECT
+        COUNT(*)::int AS "totalUsers",
+        COUNT(*) FILTER (WHERE u.is_active = true)::int AS "activeUsers",
+        COUNT(*) FILTER (WHERE u.is_active = false)::int AS "inactiveUsers",
+        COUNT(*) FILTER (WHERE ua.is_locked = true)::int AS "lockedUsers"
+      FROM users u
+      LEFT JOIN user_auth ua ON ua.user_id = u.id
+      WHERE ${whereClause}
+    `,
+    queryValues,
+  );
+
+  const summary = summaryRows[0];
+  const totalPages = Math.max(1, Math.ceil(summary.totalUsers / filters.pageSize));
+  const page = Math.min(Math.max(filters.page, 1), totalPages);
+  const orderByClause = getUsersOrderByClause(filters.sort);
+  const listQueryValues = [...queryValues, filters.pageSize, (page - 1) * filters.pageSize];
+  const limitIdx = queryValues.length + 1;
+  const offsetIdx = queryValues.length + 2;
+
+  const { rows } = await db.query<UserManagementRow>(
+    `
+      SELECT
+        u.id::text AS id,
+        u.full_name AS "fullName",
+        COALESCE(ua.username, '') AS username,
+        u.role::text AS role,
+        u.branch_id::text AS "branchId",
+        b.name AS "branchName",
+        u.is_active AS "isActive",
+        COALESCE(ua.is_locked, false) AS "isLocked",
+        u.created_at::text AS "createdAt"
+      FROM users u
+      LEFT JOIN user_auth ua ON ua.user_id = u.id
+      LEFT JOIN branches b ON b.id = u.branch_id
+      WHERE ${whereClause}
+      ORDER BY ${orderByClause}
+      LIMIT $${limitIdx}
+      OFFSET $${offsetIdx}
+    `,
+    listQueryValues,
+  );
+
+  return {
+    summary,
+    result: {
+      items: rows,
+      pagination: {
+        page,
+        pageSize: filters.pageSize,
+        totalItems: summary.totalUsers,
+        totalPages,
+      },
+    },
+  };
+}
+
+export async function getUserManagementRoleOptions(branchId: string | null): Promise<ActiveUserRoleOption[]> {
+  const db = getPool();
+  const { rows } = await db.query<ActiveUserRoleOption>(
+    `
+      SELECT DISTINCT u.role::text AS role
+      FROM users u
+      WHERE ($1::uuid IS NULL OR u.branch_id = $1::uuid)
+      ORDER BY u.role::text ASC
     `,
     [branchId],
   );

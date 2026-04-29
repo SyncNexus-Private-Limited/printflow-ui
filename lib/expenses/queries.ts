@@ -3,6 +3,8 @@ import type { Pool, PoolClient } from "pg";
 import type { AuthenticatedUser } from "@/lib/auth/current-user";
 import { expenseTypeQuerySchema } from "@/lib/expenses/schema";
 import type {
+  BusinessExpenseDetail,
+  EmployeeExpenseDetail,
   ExpenseBranchOption,
   ExpenseCategoryOption,
   ExpenseEmployeeOption,
@@ -212,4 +214,93 @@ export async function getExpenseFormPageData(
     orderOptions: orders,
     orderVendorOptions: orderVendors,
   };
+}
+
+export async function getEmployeeExpenseDetail(
+  id: string,
+  currentUser: AuthenticatedUser,
+  db?: Queryable,
+): Promise<EmployeeExpenseDetail | null> {
+  const branchId = currentUser.role === "admin" ? null : currentUser.branchId;
+
+  const { rows } = await getQueryable(db).query<EmployeeExpenseDetail>(
+    `
+      SELECT
+        ee.id::text                                             AS id,
+        ee.branch_id::text                                      AS "branchId",
+        b.name                                                  AS "branchName",
+        ee.user_id::text                                        AS "userId",
+        u.full_name                                             AS "userName",
+        ee.title,
+        ee.category_id::text                                    AS "categoryId",
+        ec.code                                                 AS "categoryCode",
+        ec.name                                                 AS category,
+        ee.amount::double precision                             AS amount,
+        ee.payment_mode::text                                   AS "paymentMode",
+        ee.expense_date::text                                   AS "expenseDate",
+        ee.remarks,
+        ee.order_id::text                                       AS "orderId",
+        ee.created_at::text                                     AS "createdAt",
+        creator.full_name                                       AS "createdByName",
+        ee.updated_at::text                                     AS "updatedAt",
+        updater.full_name                                       AS "updatedByName"
+      FROM employee_expenses ee
+      JOIN branches b        ON b.id = ee.branch_id
+      JOIN users u           ON u.id = ee.user_id
+      JOIN expense_categories ec ON ec.id = ee.category_id
+      LEFT JOIN users creator  ON creator.id = ee.created_by
+      LEFT JOIN users updater  ON updater.id = ee.updated_by
+      WHERE ee.id = $1::uuid
+        AND ($2::uuid IS NULL OR ee.branch_id = $2::uuid)
+      LIMIT 1
+    `,
+    [id, branchId],
+  );
+
+  return rows[0] ?? null;
+}
+
+export async function getBusinessExpenseDetail(
+  id: string,
+  currentUser: AuthenticatedUser,
+  db?: Queryable,
+): Promise<BusinessExpenseDetail | null> {
+  const branchId = currentUser.role === "admin" ? null : currentUser.branchId;
+
+  const { rows } = await getQueryable(db).query<BusinessExpenseDetail>(
+    `
+      SELECT
+        be.id::text                                             AS id,
+        be.branch_id::text                                      AS "branchId",
+        b.name                                                  AS "branchName",
+        be.title,
+        be.category_id::text                                    AS "categoryId",
+        ec.code                                                 AS "categoryCode",
+        ec.name                                                 AS category,
+        be.amount::double precision                             AS amount,
+        be.payment_mode::text                                   AS "paymentMode",
+        be.expense_date::text                                   AS "expenseDate",
+        be.remarks,
+        be.order_vendor_id::text                                AS "orderVendorId",
+        ov.vendor_id::text                                      AS "vendorId",
+        v.name                                                  AS "vendorName",
+        be.created_at::text                                     AS "createdAt",
+        creator.full_name                                       AS "createdByName",
+        be.updated_at::text                                     AS "updatedAt",
+        updater.full_name                                       AS "updatedByName"
+      FROM branch_expenses be
+      JOIN branches b              ON b.id = be.branch_id
+      JOIN expense_categories ec   ON ec.id = be.category_id
+      LEFT JOIN order_vendors ov   ON ov.id = be.order_vendor_id
+      LEFT JOIN vendors v          ON v.id = ov.vendor_id
+      LEFT JOIN users creator      ON creator.id = be.created_by
+      LEFT JOIN users updater      ON updater.id = be.updated_by
+      WHERE be.id = $1::uuid
+        AND ($2::uuid IS NULL OR be.branch_id = $2::uuid)
+      LIMIT 1
+    `,
+    [id, branchId],
+  );
+
+  return rows[0] ?? null;
 }

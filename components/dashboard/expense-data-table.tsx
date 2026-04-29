@@ -1,7 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { Pencil, Trash2 } from "lucide-react";
 import { DataPill, getExpenseCategoryTone, getExpensePaymentModeTone } from "@/components/dashboard/data-pill";
+import { RowActionMenu } from "@/components/dashboard/row-action-menu";
 import { DataTableContainer } from "@/components/dashboard/data-table-container";
 import { DashboardPagination } from "@/components/dashboard/dashboard-pagination";
 import { SortableHeaderCell } from "@/components/dashboard/sortable-header-cell";
@@ -44,12 +46,16 @@ type ExpenseDataTableBaseProps = {
 type EmployeeExpenseDataTableProps = ExpenseDataTableBaseProps & {
   kind: "employee";
   items: EmployeeExpenseDetailRow[];
+  onEditRow?: (expense: EmployeeExpenseDetailRow) => void;
+  onDeleteRow?: (expense: EmployeeExpenseDetailRow) => void;
 };
 
 type BusinessExpenseDataTableProps = ExpenseDataTableBaseProps & {
   kind: "business";
   items: BusinessExpenseDetailRow[];
   fallbackBranchName: string;
+  onEditRow?: (expense: BusinessExpenseDetailRow) => void;
+  onDeleteRow?: (expense: BusinessExpenseDetailRow) => void;
 };
 
 type ExpenseDataTableProps = EmployeeExpenseDataTableProps | BusinessExpenseDataTableProps;
@@ -165,7 +171,12 @@ function renderPaymentPill(paymentMode: string) {
 function renderEmployeeRows(
   items: EmployeeExpenseDetailRow[],
   stickySpecs: (StickySpec | null)[],
+  onEditRow?: (expense: EmployeeExpenseDetailRow) => void,
+  onDeleteRow?: (expense: EmployeeExpenseDetailRow) => void,
 ) {
+  const hasActions = Boolean(onEditRow && onDeleteRow);
+  const actionsStickySpec = hasActions ? stickySpecs[stickySpecs.length - 1] : null;
+
   return items.map((expense) => (
     <tr
       key={expense.id}
@@ -211,6 +222,31 @@ function renderEmployeeRows(
           {formatDate(expense.createdAt)}
         </p>
       </td>
+      {hasActions ? (
+        <td
+          className={cn(TABLE_BODY_CELL_CLASS, "px-2", getStickyBodyCellClass(actionsStickySpec))}
+          style={getStickyBodyCellStyle(actionsStickySpec)}
+        >
+          <RowActionMenu
+            label={`Actions for ${expense.title}`}
+            actions={[
+              {
+                key: "edit",
+                label: "Edit",
+                icon: <Pencil className="h-4 w-4" strokeWidth={1.9} />,
+                onClick: () => onEditRow!(expense),
+              },
+              {
+                key: "delete",
+                label: "Delete",
+                icon: <Trash2 className="h-4 w-4" strokeWidth={1.9} />,
+                destructive: true,
+                onClick: () => onDeleteRow!(expense),
+              },
+            ]}
+          />
+        </td>
+      ) : null}
     </tr>
   ));
 }
@@ -219,7 +255,12 @@ function renderBusinessRows(
   items: BusinessExpenseDetailRow[],
   fallbackBranchName: string,
   stickySpecs: (StickySpec | null)[],
+  onEditRow?: (expense: BusinessExpenseDetailRow) => void,
+  onDeleteRow?: (expense: BusinessExpenseDetailRow) => void,
 ) {
+  const hasActions = Boolean(onEditRow && onDeleteRow);
+  const actionsStickySpec = hasActions ? stickySpecs[stickySpecs.length - 1] : null;
+
   return items.map((expense) => (
     <tr
       key={expense.id}
@@ -266,6 +307,31 @@ function renderBusinessRows(
           {expense.branchName ?? fallbackBranchName}
         </p>
       </td>
+      {hasActions ? (
+        <td
+          className={cn(TABLE_BODY_CELL_CLASS, "px-2", getStickyBodyCellClass(actionsStickySpec))}
+          style={getStickyBodyCellStyle(actionsStickySpec)}
+        >
+          <RowActionMenu
+            label={`Actions for ${expense.title ?? "expense"}`}
+            actions={[
+              {
+                key: "edit",
+                label: "Edit",
+                icon: <Pencil className="h-4 w-4" strokeWidth={1.9} />,
+                onClick: () => onEditRow!(expense),
+              },
+              {
+                key: "delete",
+                label: "Delete",
+                icon: <Trash2 className="h-4 w-4" strokeWidth={1.9} />,
+                destructive: true,
+                onClick: () => onDeleteRow!(expense),
+              },
+            ]}
+          />
+        </td>
+      ) : null}
     </tr>
   ));
 }
@@ -278,15 +344,27 @@ export function ExpenseDataTable({
   currentFilters,
   pagination,
   fallbackBranchName,
+  ...kindProps
 }: ExpenseDataTableProps) {
   const router = useRouter();
+
+  const employeeOnEditRow = kind === "employee" ? (kindProps as EmployeeExpenseDataTableProps).onEditRow : undefined;
+  const employeeOnDeleteRow = kind === "employee" ? (kindProps as EmployeeExpenseDataTableProps).onDeleteRow : undefined;
+  const businessOnEditRow = kind === "business" ? (kindProps as BusinessExpenseDataTableProps).onEditRow : undefined;
+  const businessOnDeleteRow = kind === "business" ? (kindProps as BusinessExpenseDataTableProps).onDeleteRow : undefined;
+  const hasActions =
+    (kind === "employee" && Boolean(employeeOnEditRow && employeeOnDeleteRow)) ||
+    (kind === "business" && Boolean(businessOnEditRow && businessOnDeleteRow));
 
   if (items.length === 0) {
     return <TableEmptyState message={emptyMessage} />;
   }
 
   const tableMinWidthClassName = getTableMinWidthClassName(kind);
-  const headerConfigs = getHeaderConfigs(kind);
+  const baseHeaderConfigs = getHeaderConfigs(kind);
+  const headerConfigs: HeaderConfig[] = hasActions
+    ? [...baseHeaderConfigs, { key: "actions", label: "", sticky: "right" as const, width: 56 }]
+    : baseHeaderConfigs;
   const stickySpecs = computeStickySpecs(headerConfigs);
   const stickyLeftWidth = getStickyEdgeTotalWidth(headerConfigs, "left") || undefined;
 
@@ -313,6 +391,7 @@ export function ExpenseDataTable({
               <col className="w-72" />
               <col className="w-36" />
               <col className="w-36" />
+              {hasActions ? <col className="w-14" /> : null}
             </colgroup>
           ) : (
             <colgroup>
@@ -324,6 +403,7 @@ export function ExpenseDataTable({
               <col className="w-36" />
               <col className="w-36" />
               <col className="w-44" />
+              {hasActions ? <col className="w-14" /> : null}
             </colgroup>
           )}
 
@@ -351,7 +431,9 @@ export function ExpenseDataTable({
                     )}
                     style={getStickyHeaderCellStyle(stickySpecs[index])}
                   >
-                    {headerConfig.label}
+                    {headerConfig.label || (
+                      <span className="sr-only">Actions</span>
+                    )}
                   </th>
                 ),
               )}
@@ -360,8 +442,8 @@ export function ExpenseDataTable({
 
           <tbody>
             {kind === "employee"
-              ? renderEmployeeRows(items, stickySpecs)
-              : renderBusinessRows(items, fallbackBranchName ?? "Branch", stickySpecs)}
+              ? renderEmployeeRows(items, stickySpecs, employeeOnEditRow, employeeOnDeleteRow)
+              : renderBusinessRows(items, fallbackBranchName ?? "Branch", stickySpecs, businessOnEditRow, businessOnDeleteRow)}
           </tbody>
         </table>
       </TableScrollArea>

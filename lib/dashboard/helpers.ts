@@ -1,5 +1,6 @@
 import type { BranchFilterState, DashboardSummary } from "@/lib/dashboard/types";
 import type { LowStockRow, RecentExpenseRow, RecentOrderRow } from "@/lib/dashboard/types";
+import type { UserRole } from "@/lib/users/types";
 
 type BranchOptionLike = {
   value: string;
@@ -96,6 +97,33 @@ export function buildCanonicalExpenseCreateHref({
   return buildBranchScopedHref("/dashboard/expenses/new", resolvedBranchId ?? "", {
     type,
   });
+}
+
+type CanonicalUserCreateHrefOptions = {
+  currentBranchId?: string | null;
+  initialBranchId?: string | null;
+  branchOptions?: BranchOptionLike[];
+  role?: UserRole;
+};
+
+export function buildCanonicalUserCreateHref({
+  currentBranchId,
+  initialBranchId,
+  branchOptions,
+  role = "staff",
+}: CanonicalUserCreateHrefOptions) {
+  // Admin accounts are branchless — omit branchId from the canonical URL.
+  if (role === "admin") {
+    return `/dashboard/users/new?role=${encodeURIComponent(role)}`;
+  }
+
+  const resolvedBranchId = resolveCanonicalExpenseBranchId({
+    currentBranchId,
+    initialBranchId,
+    branchOptions,
+  });
+
+  return buildBranchScopedHref("/dashboard/users/new", resolvedBranchId ?? "", { role });
 }
 
 export function hasDashboardData(

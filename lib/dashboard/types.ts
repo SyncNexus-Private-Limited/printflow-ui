@@ -328,3 +328,27 @@ export type ActiveUsersPageData = {
   summary: ActiveUsersPageSummary;
   result: PaginatedListResult<ActiveUserRow>;
 };
+
+export type UserManagementRow = {
+  id: string;
+  fullName: string;
+  username: string;
+  role: string;
+  branchId: string | null;
+  branchName: string | null;
+  isActive: boolean;
+  isLocked: boolean;
+  createdAt: string;
+};
+
+export type UserManagementPageSummary = {
+  totalUsers: number;
+  activeUsers: number;
+  inactiveUsers: number;
+  lockedUsers: number;
+};
+
+export type UserManagementPageData = {
+  summary: UserManagementPageSummary;
+  result: PaginatedListResult<UserManagementRow>;
+};

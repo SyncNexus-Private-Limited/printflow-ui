@@ -5,7 +5,7 @@ import { ChevronDown, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { buildCanonicalExpenseCreateHref } from "@/lib/dashboard/helpers";
+import { buildCanonicalExpenseCreateHref, buildCanonicalUserCreateHref } from "@/lib/dashboard/helpers";
 import {
   buildDashboardHref,
   dashboardNavigation,
@@ -283,7 +283,12 @@ export function DashboardSidebar({
                             initialBranchId,
                             type: "business",
                           })
-                        : buildDashboardHref(child.href, navigationFilters);
+                        : child.href === "/dashboard/users/new"
+                          ? buildCanonicalUserCreateHref({
+                              currentBranchId,
+                              initialBranchId,
+                            })
+                          : buildDashboardHref(child.href, navigationFilters);
 
                     return (
                       <li key={child.label} className="list-none">

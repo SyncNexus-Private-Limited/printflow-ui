@@ -3,9 +3,13 @@ import {
   createExpenseFieldNames,
   expenseTypeValues,
   paymentModeValues,
+  updateBusinessExpenseFieldNames,
+  updateEmployeeExpenseFieldNames,
   type CreateExpenseFieldName,
   type ExpenseType,
   type PaymentMode,
+  type UpdateBusinessExpenseFieldName,
+  type UpdateEmployeeExpenseFieldName,
 } from "@/lib/expenses/types";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -109,6 +113,94 @@ export type CreateExpenseFormValues = {
   employeeId: string;
   orderId: string;
 };
+
+export const updateEmployeeExpenseSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(1, "Title is required")
+    .max(120, "Title must be 120 characters or less"),
+  categoryId: requiredUuid("Category"),
+  amount: z
+    .string()
+    .trim()
+    .min(1, "Amount is required")
+    .refine((value) => amountPattern.test(value), "Enter a valid amount with up to 2 decimal places")
+    .refine((value) => Number(value) > 0, "Amount must be greater than 0"),
+  paymentMode: paymentModeSchema,
+  expenseDate: z
+    .string()
+    .trim()
+    .min(1, "Expense date is required")
+    .refine((value) => isoDatePattern.test(value), "Enter a valid expense date")
+    .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)), "Enter a valid expense date"),
+  remarks: optionalTrimmedString(500),
+  employeeId: requiredUuid("Employee"),
+  orderId: optionalUuid("Linked order"),
+});
+
+export type UpdateEmployeeExpenseInput = z.infer<typeof updateEmployeeExpenseSchema>;
+
+export function getUpdateEmployeeExpenseFieldErrors(error: z.ZodError) {
+  const fieldErrors: Partial<Record<UpdateEmployeeExpenseFieldName, string>> = {};
+
+  for (const issue of error.issues) {
+    const fieldName = issue.path[0];
+
+    if (typeof fieldName !== "string") continue;
+    if (!(updateEmployeeExpenseFieldNames as readonly string[]).includes(fieldName)) continue;
+
+    const typedFieldName = fieldName as UpdateEmployeeExpenseFieldName;
+
+    if (!fieldErrors[typedFieldName]) fieldErrors[typedFieldName] = issue.message;
+  }
+
+  return fieldErrors;
+}
+
+export const updateBusinessExpenseSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(1, "Title is required")
+    .max(120, "Title must be 120 characters or less"),
+  categoryId: requiredUuid("Category"),
+  amount: z
+    .string()
+    .trim()
+    .min(1, "Amount is required")
+    .refine((value) => amountPattern.test(value), "Enter a valid amount with up to 2 decimal places")
+    .refine((value) => Number(value) > 0, "Amount must be greater than 0"),
+  paymentMode: paymentModeSchema,
+  expenseDate: z
+    .string()
+    .trim()
+    .min(1, "Expense date is required")
+    .refine((value) => isoDatePattern.test(value), "Enter a valid expense date")
+    .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)), "Enter a valid expense date"),
+  remarks: optionalTrimmedString(500),
+  vendorId: optionalUuid("Vendor"),
+  orderVendorId: optionalUuid("Linked order vendor"),
+});
+
+export type UpdateBusinessExpenseInput = z.infer<typeof updateBusinessExpenseSchema>;
+
+export function getUpdateBusinessExpenseFieldErrors(error: z.ZodError) {
+  const fieldErrors: Partial<Record<UpdateBusinessExpenseFieldName, string>> = {};
+
+  for (const issue of error.issues) {
+    const fieldName = issue.path[0];
+
+    if (typeof fieldName !== "string") continue;
+    if (!(updateBusinessExpenseFieldNames as readonly string[]).includes(fieldName)) continue;
+
+    const typedFieldName = fieldName as UpdateBusinessExpenseFieldName;
+
+    if (!fieldErrors[typedFieldName]) fieldErrors[typedFieldName] = issue.message;
+  }
+
+  return fieldErrors;
+}
 
 export function getCreateExpenseFieldErrors(error: z.ZodError) {
   const fieldErrors: Partial<Record<CreateExpenseFieldName, string>> = {};

@@ -6,7 +6,7 @@ import type { LucideIcon } from "lucide-react";
 import { Boxes, ChevronDown, Plus, Receipt, ShoppingBag, Truck, UserRound, Users, X } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { buildCanonicalExpenseCreateHref } from "@/lib/dashboard/helpers";
+import { buildCanonicalExpenseCreateHref, buildCanonicalUserCreateHref } from "@/lib/dashboard/helpers";
 import { cn } from "@/lib/utils/cn";
 
 type CreateAction = {
@@ -122,13 +122,15 @@ function getCreateActions(
       disabledReason: "Coming soon",
     },
     {
-      key: "staff-account",
-      label: "Add Staff Account",
-      shortLabel: "Staff",
-      href: buildCreateActionHref("/dashboard/users/new", currentBranchValue),
+      key: "user",
+      label: "Add User",
+      shortLabel: "User",
+      href: buildCanonicalUserCreateHref({
+        currentBranchId: currentBranchValue,
+        initialBranchId,
+        branchOptions,
+      }),
       icon: Users,
-      disabled: true,
-      disabledReason: "Coming soon",
     },
   ];
 }

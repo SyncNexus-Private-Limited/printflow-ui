@@ -78,6 +78,7 @@ async function loadCurrentUser(session: SessionPayload, sessionToken: string, to
       LEFT JOIN user_auth ua ON ua.user_id = u.id
       LEFT JOIN branches b ON b.id = u.branch_id
       WHERE u.is_active = true
+        AND COALESCE(ua.is_locked, false) = false
       LIMIT 1
     `,
     [session.sessionId, session.userId, tokenHash, touchSession, sessionTouchIntervalSeconds, session.username],

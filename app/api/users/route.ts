@@ -1,6 +1,6 @@
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { UserMutationError, createUser } from "@/lib/users/mutations";
-import { createUserSchema, getCreateUserFieldErrors } from "@/lib/users/schema";
+import { createUserSchema, getCreateUserFieldErrors, toCreateUserInput } from "@/lib/users/schema";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -31,8 +31,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { confirmPassword: _confirmPassword, ...input } = parsed.data;
-    const result = await createUser(currentUser, input);
+    const result = await createUser(currentUser, toCreateUserInput(parsed.data));
 
     return NextResponse.json({ success: true, data: result });
   } catch (error) {

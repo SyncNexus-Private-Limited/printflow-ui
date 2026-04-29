@@ -46,7 +46,7 @@ import {
 import { cn, suggestCanonicalClasses } from "@/lib/utils/cn";
 import { ChevronLeft, ChevronRight, ChevronsUpDown } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 type DashboardPaginationProps<
   TFilters extends DashboardBaseFilterState = DashboardPageFilterState,
@@ -95,20 +95,31 @@ export function DashboardPagination<
     isOrderVariant ||
     isActiveUsersVariant ||
     isUsersVariant;
-  const resolvePageHref = (path: string, filters: TFilters) => {
-    if (isExpenseVariant)
-      return buildExpensePageHref(path, filters as unknown as ExpensePageFilterState);
-    if (isCustomerVariant)
-      return buildCustomerPageHref(path, filters as unknown as CustomerPageFilterState);
-    if (isInventoryVariant)
-      return buildInventoryPageHref(path, filters as unknown as InventoryPageFilterState);
-    if (isOrderVariant) return buildOrderPageHref(path, filters as unknown as OrderPageFilterState);
-    if (isActiveUsersVariant)
-      return buildActiveUsersPageHref(path, filters as unknown as ActiveUserPageFilterState);
-    if (isUsersVariant)
-      return buildUsersPageHref(path, filters as unknown as UserManagementPageFilterState);
-    return buildDashboardPageHref(path, filters as unknown as DashboardPageFilterState);
-  };
+  const resolvePageHref = useCallback(
+    (path: string, filters: TFilters) => {
+      if (isExpenseVariant)
+        return buildExpensePageHref(path, filters as unknown as ExpensePageFilterState);
+      if (isCustomerVariant)
+        return buildCustomerPageHref(path, filters as unknown as CustomerPageFilterState);
+      if (isInventoryVariant)
+        return buildInventoryPageHref(path, filters as unknown as InventoryPageFilterState);
+      if (isOrderVariant)
+        return buildOrderPageHref(path, filters as unknown as OrderPageFilterState);
+      if (isActiveUsersVariant)
+        return buildActiveUsersPageHref(path, filters as unknown as ActiveUserPageFilterState);
+      if (isUsersVariant)
+        return buildUsersPageHref(path, filters as unknown as UserManagementPageFilterState);
+      return buildDashboardPageHref(path, filters as unknown as DashboardPageFilterState);
+    },
+    [
+      isActiveUsersVariant,
+      isCustomerVariant,
+      isExpenseVariant,
+      isInventoryVariant,
+      isOrderVariant,
+      isUsersVariant,
+    ],
+  );
   const resolvePaginationHref = (
     path: string,
     filters: TFilters,

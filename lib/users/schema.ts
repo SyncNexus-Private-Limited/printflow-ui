@@ -93,6 +93,21 @@ export const createUserSchema = z
 
 export type CreateUserInput = Omit<z.infer<typeof createUserSchema>, "confirmPassword">;
 
+export function toCreateUserInput(data: z.infer<typeof createUserSchema>): CreateUserInput {
+  return {
+    role: data.role,
+    branchId: data.branchId,
+    fullName: data.fullName,
+    phone: data.phone,
+    alternatePhone: data.alternatePhone,
+    email: data.email,
+    address: data.address,
+    username: data.username,
+    password: data.password,
+    isActive: data.isActive,
+  };
+}
+
 export function getCreateUserFieldErrors(error: z.ZodError) {
   const fieldErrors: Partial<Record<CreateUserFieldName, string>> = {};
 
@@ -148,6 +163,19 @@ export const updateUserSchema = z
   });
 
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+
+export function toUpdateUserInput(data: UpdateUserInput): UpdateUserInput {
+  return {
+    fullName: data.fullName,
+    phone: data.phone,
+    alternatePhone: data.alternatePhone,
+    email: data.email,
+    address: data.address,
+    role: data.role,
+    branchId: data.branchId,
+    isActive: data.isActive,
+  };
+}
 
 export function getUpdateUserFieldErrors(error: z.ZodError) {
   const fieldErrors: Partial<Record<UpdateUserFieldName, string>> = {};

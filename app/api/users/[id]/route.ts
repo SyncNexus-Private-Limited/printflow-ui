@@ -8,7 +8,7 @@ import {
   updateUserStatus,
   toggleUserLock,
 } from "@/lib/users/mutations";
-import { updateUserSchema, getUpdateUserFieldErrors } from "@/lib/users/schema";
+import { updateUserSchema, getUpdateUserFieldErrors, toUpdateUserInput } from "@/lib/users/schema";
 import { getUserById, getUserBranchesForCreation } from "@/lib/users/queries";
 
 export const runtime = "nodejs";
@@ -98,8 +98,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     if (data.action === "update-profile") {
-      const { action: _, ...profileInput } = data;
-      const parsed = updateUserSchema.safeParse(profileInput);
+      const parsed = updateUserSchema.safeParse(toUpdateUserInput(data));
 
       if (!parsed.success) {
         const fieldErrors = getUpdateUserFieldErrors(parsed.error);

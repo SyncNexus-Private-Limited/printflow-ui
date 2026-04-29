@@ -147,7 +147,7 @@ export function RowActionMenu({ actions, label = "Row actions" }: RowActionMenuP
               aria-label={label}
               style={{ top: position.top, right: position.right }}
               className={cn(
-                "fixed z-[60] min-w-[160px] overflow-hidden rounded-2xl border border-[rgb(var(--border)/0.72)]",
+                "fixed z-60 min-w-40 overflow-hidden rounded-2xl border border-[rgb(var(--border)/0.72)]",
                 "bg-[rgb(var(--card)/0.98)] shadow-[0_12px_32px_-16px_rgb(var(--shadow)/0.28)] backdrop-blur-xl",
                 "py-1",
               )}

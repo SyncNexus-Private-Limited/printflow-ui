@@ -65,3 +65,56 @@ export type CreateUserApiResponse =
       message: string;
       fieldErrors?: Partial<Record<CreateUserFieldName, string>>;
     };
+
+export type EditUserRow = {
+  id: string;
+  fullName: string;
+  phone: string;
+  alternatePhone: string;
+  email: string;
+  address: string;
+  role: UserRole;
+  branchId: string;
+  branchName: string | null;
+  isActive: boolean;
+  username: string;
+  updatedAt: string;
+};
+
+export type EditUserFormPageData = {
+  user: EditUserRow;
+  branchOptions: UserBranchOption[];
+  canSelectBranch: boolean;
+};
+
+export const updateUserFieldNames = [
+  "fullName",
+  "phone",
+  "alternatePhone",
+  "email",
+  "address",
+  "role",
+  "branchId",
+  "isActive",
+] as const;
+
+export type UpdateUserFieldName = (typeof updateUserFieldNames)[number];
+
+export type UpdateUserFormValues = {
+  fullName: string;
+  phone: string;
+  alternatePhone: string;
+  email: string;
+  address: string;
+  role: UserRole;
+  branchId: string;
+  isActive: boolean;
+};
+
+export type UpdateUserApiResponse =
+  | { success: true }
+  | {
+      success: false;
+      message: string;
+      fieldErrors?: Partial<Record<UpdateUserFieldName, string>>;
+    };

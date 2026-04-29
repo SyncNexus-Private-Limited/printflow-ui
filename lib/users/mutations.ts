@@ -1,7 +1,7 @@
 import "server-only";
 import type { AuthenticatedUser } from "@/lib/auth/current-user";
 import { getPool } from "@/lib/db/postgres";
-import type { CreateUserInput } from "@/lib/users/schema";
+import type { CreateUserInput, UpdateUserInput } from "@/lib/users/schema";
 
 type MutationFieldErrors = Partial<Record<string, string>>;
 
@@ -136,5 +136,176 @@ export async function createUser(
     throw new UserMutationError("Unable to create the user account right now.", { status: 500 });
   } finally {
     client.release();
+  }
+}
+
+export async function updateUser(
+  currentUser: AuthenticatedUser,
+  targetUserId: string,
+  input: UpdateUserInput,
+): Promise<void> {
+  if (currentUser.role !== "admin") {
+    throw new UserMutationError("Only administrators can edit user accounts.", { status: 403 });
+  }
+
+  const db = getPool();
+
+  const branchId = input.branchId || null;
+  if (input.role !== "admin" && !branchId) {
+    throw new UserMutationError("A branch is required for this role.", {
+      status: 400,
+      fieldErrors: { branchId: "Select a valid, active branch." },
+    });
+  }
+
+  if (branchId) {
+    const { rows: branchRows } = await db.query<{ id: string }>(
+      `SELECT id::text AS id FROM branches WHERE id = $1::uuid AND is_active = true LIMIT 1`,
+      [branchId],
+    );
+
+    if (!branchRows[0]) {
+      throw new UserMutationError("The selected branch is not available.", {
+        status: 400,
+        fieldErrors: { branchId: "Select a valid, active branch." },
+      });
+    }
+  }
+
+  const { rowCount } = await db.query(
+    `
+      UPDATE users
+      SET
+        full_name = $2,
+        phone = $3,
+        alternate_phone = $4,
+        email = $5,
+        address = $6,
+        role = $7::user_role,
+        branch_id = $8::uuid,
+        is_active = $9,
+        updated_at = now()
+      WHERE id = $1::uuid
+    `,
+    [
+      targetUserId,
+      input.fullName,
+      input.phone,
+      input.alternatePhone ?? null,
+      input.email ?? null,
+      input.address ?? null,
+      input.role,
+      branchId,
+      input.isActive,
+    ],
+  );
+
+  if (!rowCount) {
+    throw new UserMutationError("User not found.", { status: 404 });
+  }
+
+  if (!input.isActive) {
+    await db.query(
+      `UPDATE app_sessions SET is_revoked = true WHERE user_id = $1::uuid AND is_revoked = false`,
+      [targetUserId],
+    );
+  }
+}
+
+export async function updateUserStatus(
+  currentUser: AuthenticatedUser,
+  targetUserId: string,
+  isActive: boolean,
+): Promise<void> {
+  if (currentUser.role !== "admin") {
+    throw new UserMutationError("Only administrators can change account status.", { status: 403 });
+  }
+
+  if (currentUser.userId === targetUserId) {
+    throw new UserMutationError("You cannot change your own account status.", { status: 400 });
+  }
+
+  const db = getPool();
+  const { rowCount } = await db.query(
+    `UPDATE users SET is_active = $2, updated_at = now() WHERE id = $1::uuid`,
+    [targetUserId, isActive],
+  );
+
+  if (!rowCount) {
+    throw new UserMutationError("User not found.", { status: 404 });
+  }
+
+  if (!isActive) {
+    await db.query(
+      `UPDATE app_sessions SET is_revoked = true WHERE user_id = $1::uuid AND is_revoked = false`,
+      [targetUserId],
+    );
+  }
+}
+
+export async function toggleUserLock(
+  currentUser: AuthenticatedUser,
+  targetUserId: string,
+  isLocked: boolean,
+): Promise<void> {
+  if (currentUser.role !== "admin") {
+    throw new UserMutationError("Only administrators can lock or unlock accounts.", { status: 403 });
+  }
+
+  if (currentUser.userId === targetUserId) {
+    throw new UserMutationError("You cannot lock or unlock your own account.", { status: 400 });
+  }
+
+  const db = getPool();
+  const { rowCount } = await db.query(
+    `UPDATE user_auth
+     SET is_locked = $2${!isLocked ? ", failed_attempts = 0" : ""},
+         updated_at = now()
+     WHERE user_id = $1::uuid`,
+    [targetUserId, isLocked],
+  );
+
+  if (!rowCount) {
+    throw new UserMutationError("User not found.", { status: 404 });
+  }
+
+  if (isLocked) {
+    await db.query(
+      `UPDATE app_sessions SET is_revoked = true WHERE user_id = $1::uuid AND is_revoked = false`,
+      [targetUserId],
+    );
+  }
+}
+
+export async function resetUserPassword(
+  currentUser: AuthenticatedUser,
+  targetUserId: string,
+  newPassword: string,
+): Promise<void> {
+  if (currentUser.role !== "admin") {
+    throw new UserMutationError("Only administrators can reset passwords.", { status: 403 });
+  }
+
+  if (!newPassword || newPassword.length < 8) {
+    throw new UserMutationError("Password must be at least 8 characters.", {
+      status: 400,
+      fieldErrors: { password: "Password must be at least 8 characters." },
+    });
+  }
+
+  const db = getPool();
+  // pgcrypto crypt() handles the hashing — same as the create_user_with_auth path.
+  const { rowCount } = await db.query(
+    `UPDATE user_auth
+     SET password_hash = crypt($2, gen_salt('bf', 10)),
+         failed_attempts = 0,
+         is_locked = false,
+         updated_at = now()
+     WHERE user_id = $1::uuid`,
+    [targetUserId, newPassword],
+  );
+
+  if (!rowCount) {
+    throw new UserMutationError("User not found.", { status: 404 });
   }
 }

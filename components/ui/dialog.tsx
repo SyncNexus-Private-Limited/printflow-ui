@@ -44,6 +44,10 @@ export function Dialog({
   const titleId = useId();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  // Stable ref so the effect doesn't re-run (and re-focus the close button)
+  // whenever the caller recreates the onClose callback on each render.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -56,7 +60,7 @@ export function Dialog({
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
         e.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
 
@@ -91,7 +95,8 @@ export function Dialog({
       document.body.style.overflow = prev;
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isOpen, onClose]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   if (!isOpen || typeof document === "undefined") return null;
 

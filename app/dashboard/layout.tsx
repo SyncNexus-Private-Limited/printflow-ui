@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { SessionHeartbeat } from "@/components/dashboard/session-heartbeat";
 import { getCurrentUser } from "@/lib/auth/current-user";
@@ -27,11 +28,18 @@ async function DashboardShellWrapper({
 }) {
   const currentUser = await currentUserPromise;
 
+  // Session revoked or user locked: JWT is still valid so middleware won't
+  // clear the cookie, causing a /dashboard ↔ /login redirect loop.
+  // Route through /api/auth/clear to strip the cookie first.
+  if (!currentUser) {
+    redirect("/api/auth/clear");
+  }
+
   return (
     <DashboardShell
-      initialBranchId={currentUser?.branchId ?? null}
-      initialBranchName={currentUser?.branchName ?? null}
-      canSelectAllBranches={currentUser?.role === "admin"}
+      initialBranchId={currentUser.branchId ?? null}
+      initialBranchName={currentUser.branchName ?? null}
+      canSelectAllBranches={currentUser.role === "admin"}
     >
       {children}
     </DashboardShell>

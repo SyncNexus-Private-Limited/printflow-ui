@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { userRoleValues, createUserFieldNames, type CreateUserFieldName } from "@/lib/users/types";
+import { userRoleValues, createUserFieldNames, updateUserFieldNames, type CreateUserFieldName, type UpdateUserFieldName } from "@/lib/users/types";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const usernamePattern = /^[a-z0-9_.-]+$/i;
@@ -103,6 +103,69 @@ export function getCreateUserFieldErrors(error: z.ZodError) {
     if (!(createUserFieldNames as readonly string[]).includes(fieldName)) continue;
 
     const typedFieldName = fieldName as CreateUserFieldName;
+    if (!fieldErrors[typedFieldName]) fieldErrors[typedFieldName] = issue.message;
+  }
+
+  return fieldErrors;
+}
+
+export const updateUserSchema = z
+  .object({
+    fullName: z
+      .string()
+      .trim()
+      .min(1, "Full name is required")
+      .max(120, "Full name must be 120 characters or less"),
+    phone: z
+      .string()
+      .trim()
+      .min(1, "Phone number is required")
+      .max(30, "Phone number must be 30 characters or less")
+      .refine((v) => phonePattern.test(v), "Enter a valid phone number"),
+    alternatePhone: optionalTrimmedString(30).refine(
+      (v) => !v || phonePattern.test(v),
+      "Enter a valid alternate phone number",
+    ),
+    email: z.preprocess(
+      (value) => {
+        const trimmed = trimString(value);
+        return typeof trimmed === "string" && trimmed.length === 0 ? undefined : trimmed;
+      },
+      z
+        .string()
+        .max(120, "Email must be 120 characters or less")
+        .email("Enter a valid email address")
+        .optional(),
+    ),
+    address: optionalTrimmedString(300),
+    role: userRoleSchema,
+    branchId: z.string().trim(),
+    isActive: z.boolean().default(true),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role !== "admin") {
+      if (!data.branchId || !uuidPattern.test(data.branchId)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Branch is required for this role",
+          path: ["branchId"],
+        });
+      }
+    }
+  });
+
+export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+
+export function getUpdateUserFieldErrors(error: z.ZodError) {
+  const fieldErrors: Partial<Record<UpdateUserFieldName, string>> = {};
+
+  for (const issue of error.issues) {
+    const fieldName = issue.path[0];
+
+    if (typeof fieldName !== "string") continue;
+    if (!(updateUserFieldNames as readonly string[]).includes(fieldName)) continue;
+
+    const typedFieldName = fieldName as UpdateUserFieldName;
     if (!fieldErrors[typedFieldName]) fieldErrors[typedFieldName] = issue.message;
   }
 

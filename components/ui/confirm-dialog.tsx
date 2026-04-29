@@ -50,7 +50,7 @@ export function ConfirmDialog({
 
   return (
     <Dialog isOpen={isOpen} onClose={onClose} title={title} size="sm">
-      <div className="px-5 pb-5 pt-4">
+      <div className="px-5 pt-4 pb-5">
         <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-2xl bg-[rgb(var(--danger)/0.1)]">
           <AlertTriangle
             className="h-5 w-5 text-[rgb(var(--danger))]"
@@ -68,10 +68,10 @@ export function ConfirmDialog({
         <div className="mb-5">
           <label
             htmlFor="confirm-keyword-input"
-            className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted-foreground))]"
+            className="mb-1.5 block text-[11px] font-semibold tracking-[0.16em] text-[rgb(var(--muted-foreground))] uppercase"
           >
             Type&nbsp;
-            <span className="font-mono normal-case tracking-normal text-[rgb(var(--foreground))]">
+            <span className="font-mono tracking-normal text-[rgb(var(--foreground))] normal-case">
               {confirmKeyword}
             </span>
             &nbsp;to confirm

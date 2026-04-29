@@ -93,7 +93,9 @@ export default async function BusinessExpensesPage({ searchParams }: BusinessExp
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
             title="Business Expenses"
-            branchOptions={[{ label: currentUser.branchName ?? "Branch", value: currentUser.branchId ?? "all" }]}
+            branchOptions={[
+              { label: currentUser.branchName ?? "Branch", value: currentUser.branchId ?? "all" },
+            ]}
             selectedBranchValue={currentUser.branchId ?? "all"}
             branchFilterDisabled
           />

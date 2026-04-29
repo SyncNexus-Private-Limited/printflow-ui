@@ -1,7 +1,13 @@
 import "server-only";
 import type { AuthenticatedUser } from "@/lib/auth/current-user";
 import { getPool } from "@/lib/db/postgres";
-import { userRoleValues, type EditUserRow, type UserBranchOption, type UserFormPageData, type UserRole } from "@/lib/users/types";
+import {
+  userRoleValues,
+  type EditUserRow,
+  type UserBranchOption,
+  type UserFormPageData,
+  type UserRole,
+} from "@/lib/users/types";
 
 export function normalizeUserSearchParam(value: string | string[] | undefined) {
   if (Array.isArray(value)) {
@@ -12,10 +18,14 @@ export function normalizeUserSearchParam(value: string | string[] | undefined) {
 
 export function coerceUserRole(value: string | string[] | undefined): UserRole {
   const normalized = normalizeUserSearchParam(value);
-  return (userRoleValues as readonly string[]).includes(normalized ?? "") ? (normalized as UserRole) : "staff";
+  return (userRoleValues as readonly string[]).includes(normalized ?? "")
+    ? (normalized as UserRole)
+    : "staff";
 }
 
-export async function getUserBranchesForCreation(currentUser: AuthenticatedUser): Promise<UserBranchOption[]> {
+export async function getUserBranchesForCreation(
+  currentUser: AuthenticatedUser,
+): Promise<UserBranchOption[]> {
   if (currentUser.role !== "admin") {
     return currentUser.branchId
       ? [{ id: currentUser.branchId, name: currentUser.branchName ?? "Your branch" }]

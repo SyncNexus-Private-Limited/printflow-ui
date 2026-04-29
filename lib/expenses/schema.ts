@@ -71,7 +71,10 @@ const baseExpenseSchema = z.object({
     .string()
     .trim()
     .min(1, "Amount is required")
-    .refine((value) => amountPattern.test(value), "Enter a valid amount with up to 2 decimal places")
+    .refine(
+      (value) => amountPattern.test(value),
+      "Enter a valid amount with up to 2 decimal places",
+    )
     .refine((value) => Number(value) > 0, "Amount must be greater than 0"),
   paymentMode: paymentModeSchema,
   expenseDate: z
@@ -79,7 +82,10 @@ const baseExpenseSchema = z.object({
     .trim()
     .min(1, "Expense date is required")
     .refine((value) => isoDatePattern.test(value), "Enter a valid expense date")
-    .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)), "Enter a valid expense date"),
+    .refine(
+      (value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)),
+      "Enter a valid expense date",
+    ),
   remarks: optionalTrimmedString(500),
 });
 
@@ -96,7 +102,10 @@ const employeeExpenseSchema = baseExpenseSchema.extend({
 });
 
 export const expenseTypeQuerySchema = expenseTypeSchema;
-export const createExpenseSchema = z.discriminatedUnion("type", [businessExpenseSchema, employeeExpenseSchema]);
+export const createExpenseSchema = z.discriminatedUnion("type", [
+  businessExpenseSchema,
+  employeeExpenseSchema,
+]);
 
 export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;
 export type CreateExpenseFormValues = {
@@ -125,7 +134,10 @@ export const updateEmployeeExpenseSchema = z.object({
     .string()
     .trim()
     .min(1, "Amount is required")
-    .refine((value) => amountPattern.test(value), "Enter a valid amount with up to 2 decimal places")
+    .refine(
+      (value) => amountPattern.test(value),
+      "Enter a valid amount with up to 2 decimal places",
+    )
     .refine((value) => Number(value) > 0, "Amount must be greater than 0"),
   paymentMode: paymentModeSchema,
   expenseDate: z
@@ -133,7 +145,10 @@ export const updateEmployeeExpenseSchema = z.object({
     .trim()
     .min(1, "Expense date is required")
     .refine((value) => isoDatePattern.test(value), "Enter a valid expense date")
-    .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)), "Enter a valid expense date"),
+    .refine(
+      (value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)),
+      "Enter a valid expense date",
+    ),
   remarks: optionalTrimmedString(500),
   employeeId: requiredUuid("Employee"),
   orderId: optionalUuid("Linked order"),
@@ -169,7 +184,10 @@ export const updateBusinessExpenseSchema = z.object({
     .string()
     .trim()
     .min(1, "Amount is required")
-    .refine((value) => amountPattern.test(value), "Enter a valid amount with up to 2 decimal places")
+    .refine(
+      (value) => amountPattern.test(value),
+      "Enter a valid amount with up to 2 decimal places",
+    )
     .refine((value) => Number(value) > 0, "Amount must be greater than 0"),
   paymentMode: paymentModeSchema,
   expenseDate: z
@@ -177,7 +195,10 @@ export const updateBusinessExpenseSchema = z.object({
     .trim()
     .min(1, "Expense date is required")
     .refine((value) => isoDatePattern.test(value), "Enter a valid expense date")
-    .refine((value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)), "Enter a valid expense date"),
+    .refine(
+      (value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)),
+      "Enter a valid expense date",
+    ),
   remarks: optionalTrimmedString(500),
   vendorId: optionalUuid("Vendor"),
   orderVendorId: optionalUuid("Linked order vendor"),

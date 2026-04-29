@@ -1,7 +1,7 @@
-import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { UserMutationError, createUser } from "@/lib/users/mutations";
 import { createUserSchema, getCreateUserFieldErrors } from "@/lib/users/schema";
+import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 

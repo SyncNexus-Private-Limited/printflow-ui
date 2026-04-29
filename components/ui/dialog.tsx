@@ -95,7 +95,7 @@ export function Dialog({
       document.body.style.overflow = prev;
       document.removeEventListener("keydown", handleKeyDown);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [isOpen]);
 
   if (!isOpen || typeof document === "undefined") return null;
@@ -125,10 +125,7 @@ export function Dialog({
       >
         <div className="flex shrink-0 items-center justify-between gap-4 border-b border-[rgb(var(--border)/0.62)] px-5 py-4">
           <div className="min-w-0">
-            <p
-              id={titleId}
-              className="text-base font-semibold text-[rgb(var(--card-foreground))]"
-            >
+            <p id={titleId} className="text-base font-semibold text-[rgb(var(--card-foreground))]">
               {title}
             </p>
             {description ? (
@@ -141,7 +138,7 @@ export function Dialog({
             type="button"
             className={cn(
               "flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--background))]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+              "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
             )}
             onClick={onClose}
             aria-label="Close dialog"

@@ -2,9 +2,7 @@
 
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
-import {
-  TABLE_HEADER_CELL_CLASS,
-} from "@/lib/dashboard/list-page-classes";
+import { TABLE_HEADER_CELL_CLASS } from "@/lib/dashboard/list-page-classes";
 import {
   type HeaderSortConfig,
   getSortDirection,
@@ -56,7 +54,7 @@ export function SortableHeaderCell<TSortValue extends string>({
         type="button"
         className={cn(
           "flex w-full items-center gap-3 rounded-xl transition-colors",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+          "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
           align === "right" ? "justify-end text-right" : "justify-between text-left",
           activeDirection
             ? "text-[rgb(var(--card-foreground))]"

@@ -27,8 +27,7 @@ const accentClasses: Record<MetricCardAccent, string> = {
     "border-[rgb(var(--metric-amber)/0.14)] bg-[linear-gradient(180deg,rgb(var(--card)/0.98)_0%,rgb(var(--metric-amber-soft)/0.88)_100%)] text-[rgb(var(--metric-amber-ink))] shadow-[0_24px_52px_-42px_rgb(var(--metric-amber)/0.18)]",
   violet:
     "border-[rgb(var(--metric-violet)/0.12)] bg-[linear-gradient(180deg,rgb(var(--card)/0.98)_0%,rgb(var(--metric-violet-soft)/0.86)_100%)] text-[rgb(var(--metric-violet-ink))] shadow-[0_24px_52px_-42px_rgb(var(--metric-violet)/0.18)]",
-  rose:
-    "border-[rgb(var(--metric-rose)/0.12)] bg-[linear-gradient(180deg,rgb(var(--card)/0.98)_0%,rgb(var(--metric-rose-soft)/0.86)_100%)] text-[rgb(var(--metric-rose-ink))] shadow-[0_24px_52px_-42px_rgb(var(--metric-rose)/0.18)]",
+  rose: "border-[rgb(var(--metric-rose)/0.12)] bg-[linear-gradient(180deg,rgb(var(--card)/0.98)_0%,rgb(var(--metric-rose-soft)/0.86)_100%)] text-[rgb(var(--metric-rose-ink))] shadow-[0_24px_52px_-42px_rgb(var(--metric-rose)/0.18)]",
   orange:
     "border-[rgb(var(--metric-orange)/0.12)] bg-[linear-gradient(180deg,rgb(var(--card)/0.98)_0%,rgb(var(--metric-orange-soft)/0.86)_100%)] text-[rgb(var(--metric-orange-ink))] shadow-[0_24px_52px_-42px_rgb(var(--metric-orange)/0.18)]",
 };
@@ -39,7 +38,7 @@ export function MetricCard({ title, value, href, accent, meta }: MetricCardProps
       href={href}
       className={cn(
         "group block rounded-3xl border p-4 transition-[transform,box-shadow] duration-200 hover:-translate-y-0.5 sm:p-5",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+        "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
         "hover:shadow-[0_28px_54px_-42px_rgb(var(--shadow)/0.24)]",
         accentClasses[accent],
       )}
@@ -47,8 +46,12 @@ export function MetricCard({ title, value, href, accent, meta }: MetricCardProps
       <div className="space-y-3.5">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1.5">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[rgb(var(--foreground)/0.82)]">{title}</p>
-            <p className="text-3xl font-semibold tracking-tight text-[rgb(var(--card-foreground))]">{value}</p>
+            <p className="text-sm font-semibold tracking-[0.18em] text-[rgb(var(--foreground)/0.82)] uppercase">
+              {title}
+            </p>
+            <p className="text-3xl font-semibold tracking-tight text-[rgb(var(--card-foreground))]">
+              {value}
+            </p>
           </div>
           <div className="mt-1 h-3 w-3 rounded-full bg-current opacity-80 transition-transform group-hover:scale-125" />
         </div>
@@ -58,7 +61,9 @@ export function MetricCard({ title, value, href, accent, meta }: MetricCardProps
               {index > 0 ? <span aria-hidden="true">&middot;</span> : null}
               <span className="inline-flex items-baseline gap-1.5">
                 <span>{item.label}</span>
-                <span className="font-semibold text-[rgb(var(--card-foreground))]">{item.value}</span>
+                <span className="font-semibold text-[rgb(var(--card-foreground))]">
+                  {item.value}
+                </span>
               </span>
             </Fragment>
           ))}

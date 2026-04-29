@@ -1,11 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import {
-  buildThemeCookieValue,
-  isThemeName,
-  type ThemeName,
-} from "@/lib/ui/client-preferences";
+import { buildThemeCookieValue, isThemeName, type ThemeName } from "@/lib/ui/client-preferences";
 
 type ThemeContextValue = {
   theme: ThemeName;
@@ -68,7 +64,13 @@ function applyThemeSynchronously(theme: ThemeName) {
   });
 }
 
-export function ThemeProvider({ children, initialTheme }: { children: ReactNode; initialTheme: ThemeName }) {
+export function ThemeProvider({
+  children,
+  initialTheme,
+}: {
+  children: ReactNode;
+  initialTheme: ThemeName;
+}) {
   const [theme, setThemeState] = useState<ThemeName>(() => resolveInitialTheme(initialTheme));
   const [isHydrated, setIsHydrated] = useState(false);
 

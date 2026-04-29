@@ -50,7 +50,7 @@ function FieldLabel({ htmlFor, children }: { htmlFor: string; children: string }
   return (
     <label
       htmlFor={htmlFor}
-      className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted-foreground))]"
+      className="block text-[11px] font-semibold tracking-[0.16em] text-[rgb(var(--muted-foreground))] uppercase"
     >
       {children}
     </label>
@@ -58,14 +58,12 @@ function FieldLabel({ htmlFor, children }: { htmlFor: string; children: string }
 }
 
 function FieldError({ message }: { message?: string }) {
-  return message ? (
-    <p className="text-xs text-[rgb(var(--danger))]">{message}</p>
-  ) : null;
+  return message ? <p className="text-xs text-[rgb(var(--danger))]">{message}</p> : null;
 }
 
 function LoadingShimmer() {
   return (
-    <div className="space-y-5 px-5 pb-6 pt-4" aria-busy="true" aria-label="Loading expense details">
+    <div className="space-y-5 px-5 pt-4 pb-6" aria-busy="true" aria-label="Loading expense details">
       {[1, 2, 3].map((row) => (
         <div key={row} className="grid gap-4 sm:grid-cols-2">
           {[1, 2].map((col) => (
@@ -99,7 +97,9 @@ export function BusinessExpenseEditDialog({
     control,
     formState: { errors, isSubmitting },
   } = useForm<UpdateBusinessExpenseFormValues>({
-    resolver: zodResolver(updateBusinessExpenseSchema) as unknown as Resolver<UpdateBusinessExpenseFormValues>,
+    resolver: zodResolver(
+      updateBusinessExpenseSchema,
+    ) as unknown as Resolver<UpdateBusinessExpenseFormValues>,
     defaultValues: {
       title: "",
       categoryId: "",
@@ -204,7 +204,7 @@ export function BusinessExpenseEditDialog({
   const filteredOrderVendorOptions =
     options && selectedVendorId.length > 0
       ? options.orderVendors.filter((ov) => ov.vendorId === selectedVendorId)
-      : options?.orderVendors ?? [];
+      : (options?.orderVendors ?? []);
 
   return (
     <Dialog
@@ -222,7 +222,7 @@ export function BusinessExpenseEditDialog({
         </div>
       ) : (
         <form onSubmit={onSubmit} noValidate>
-          <div className="space-y-5 px-5 pb-2 pt-4">
+          <div className="space-y-5 px-5 pt-4 pb-2">
             {serverError ? (
               <div className="rounded-2xl border border-[rgb(var(--danger)/0.18)] bg-[rgb(var(--danger)/0.08)] px-4 py-3 text-sm text-[rgb(var(--danger))]">
                 {serverError}
@@ -277,7 +277,11 @@ export function BusinessExpenseEditDialog({
 
               <div className="space-y-1.5">
                 <FieldLabel htmlFor="edit-biz-payment-mode">Payment mode</FieldLabel>
-                <Select id="edit-biz-payment-mode" disabled={isSubmitting} {...register("paymentMode")}>
+                <Select
+                  id="edit-biz-payment-mode"
+                  disabled={isSubmitting}
+                  {...register("paymentMode")}
+                >
                   {paymentModeValues.map((mode) => (
                     <option key={mode} value={mode}>
                       {paymentModeLabels[mode]}

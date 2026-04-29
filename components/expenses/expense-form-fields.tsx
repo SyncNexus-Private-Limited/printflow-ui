@@ -6,7 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { CreateExpenseFormValues } from "@/lib/expenses/schema";
-import { paymentModeLabels, paymentModeValues, type CreateExpenseFieldName, type ExpenseFormPageData, type ExpenseType } from "@/lib/expenses/types";
+import {
+  paymentModeLabels,
+  paymentModeValues,
+  type CreateExpenseFieldName,
+  type ExpenseFormPageData,
+  type ExpenseType,
+} from "@/lib/expenses/types";
 
 type ExpenseFormFieldsProps = Pick<
   ExpenseFormPageData,
@@ -28,7 +34,10 @@ type ExpenseFormFieldsProps = Pick<
   onBranchChange: (nextBranchId: string) => void;
 };
 
-function getFieldErrorMessage(errors: FieldErrors<CreateExpenseFormValues>, fieldName: CreateExpenseFieldName) {
+function getFieldErrorMessage(
+  errors: FieldErrors<CreateExpenseFormValues>,
+  fieldName: CreateExpenseFieldName,
+) {
   const fieldError = errors[fieldName];
 
   if (!fieldError || typeof fieldError !== "object" || !("message" in fieldError)) {
@@ -78,7 +87,9 @@ export function ExpenseFormFields({
       <section className="space-y-3">
         <div className="space-y-1">
           <p className="text-sm font-medium text-[rgb(var(--foreground))]">Expense type</p>
-          <p className="text-sm text-[rgb(var(--muted-foreground))]">Pick the expense flow before filling the details.</p>
+          <p className="text-sm text-[rgb(var(--muted-foreground))]">
+            Pick the expense flow before filling the details.
+          </p>
         </div>
         <ExpenseTypeSwitch value={selectedType} disabled={isSubmitting} onChange={onTypeChange} />
       </section>
@@ -114,7 +125,12 @@ export function ExpenseFormFields({
 
         <div className="space-y-2">
           <FieldLabel htmlFor="expense-category">Category</FieldLabel>
-          <Select id="expense-category" disabled={isSubmitting} defaultValue="" {...register("categoryId")}>
+          <Select
+            id="expense-category"
+            disabled={isSubmitting}
+            defaultValue=""
+            {...register("categoryId")}
+          >
             <option value="" disabled>
               Select a category
             </option>
@@ -156,7 +172,12 @@ export function ExpenseFormFields({
 
         <div className="space-y-2">
           <FieldLabel htmlFor="expense-date">Expense date</FieldLabel>
-          <Input id="expense-date" type="date" disabled={isSubmitting} {...register("expenseDate")} />
+          <Input
+            id="expense-date"
+            type="date"
+            disabled={isSubmitting}
+            {...register("expenseDate")}
+          />
           <FieldError message={getFieldErrorMessage(errors, "expenseDate")} />
         </div>
       </section>
@@ -165,7 +186,12 @@ export function ExpenseFormFields({
         <section className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <FieldLabel htmlFor="expense-vendor">Vendor</FieldLabel>
-            <Select id="expense-vendor" disabled={isSubmitting || vendorOptions.length === 0} defaultValue="" {...register("vendorId")}>
+            <Select
+              id="expense-vendor"
+              disabled={isSubmitting || vendorOptions.length === 0}
+              defaultValue=""
+              {...register("vendorId")}
+            >
               <option value="">No vendor</option>
               {vendorOptions.map((vendor) => (
                 <option key={vendor.id} value={vendor.id}>
@@ -173,7 +199,9 @@ export function ExpenseFormFields({
                 </option>
               ))}
             </Select>
-            <p className="text-sm text-[rgb(var(--muted-foreground))]">Use vendor to narrow linked order-vendor records when needed.</p>
+            <p className="text-sm text-[rgb(var(--muted-foreground))]">
+              Use vendor to narrow linked order-vendor records when needed.
+            </p>
             <FieldError message={getFieldErrorMessage(errors, "vendorId")} />
           </div>
 
@@ -225,8 +253,15 @@ export function ExpenseFormFields({
 
           <div className="space-y-2">
             <FieldLabel htmlFor="expense-order">Related order</FieldLabel>
-            <Select id="expense-order" disabled={isSubmitting || orderOptions.length === 0} defaultValue="" {...register("orderId")}>
-              <option value="">{orderOptions.length === 0 ? "No recent orders available" : "No linked order"}</option>
+            <Select
+              id="expense-order"
+              disabled={isSubmitting || orderOptions.length === 0}
+              defaultValue=""
+              {...register("orderId")}
+            >
+              <option value="">
+                {orderOptions.length === 0 ? "No recent orders available" : "No linked order"}
+              </option>
               {orderOptions.map((order) => (
                 <option key={order.id} value={order.id}>
                   {order.orderCode} - {order.customerName}
@@ -251,7 +286,9 @@ export function ExpenseFormFields({
 
       <section className="rounded-[22px] border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--muted)/0.42)] p-4">
         <div className="space-y-1">
-          <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">Receipts coming next</p>
+          <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">
+            Receipts coming next
+          </p>
           <p className="text-sm text-[rgb(var(--muted-foreground))]">
             Attachment uploads are intentionally left out until the real storage flow is ready.
           </p>

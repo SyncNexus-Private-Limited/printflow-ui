@@ -43,9 +43,7 @@ export type ColumnStickyDef = {
  * The result is stable: the same input always produces the same output,
  * so it is safe to compute once outside of render or inside useMemo.
  */
-export function computeStickySpecs<T extends ColumnStickyDef>(
-  columns: T[],
-): (StickySpec | null)[] {
+export function computeStickySpecs<T extends ColumnStickyDef>(columns: T[]): (StickySpec | null)[] {
   const specs: (StickySpec | null)[] = columns.map(() => null);
 
   // --- left-sticky ---

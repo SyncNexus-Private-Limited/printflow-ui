@@ -1,6 +1,7 @@
 # printflow-ui
 
 ## Project setup
+
 - Install dependencies:
 
 ```bash
@@ -17,11 +18,23 @@ npm run dev
 - Useful local checks:
 
 ```bash
+npm run format:check
+npm run lint
 npm run typecheck
 npm run build
 ```
 
+## Code quality
+
+- `npm run format`: format with Prettier.
+- `npm run format:check`: check Prettier formatting.
+- `npm run lint`: run ESLint.
+- `npm run lint:fix`: run ESLint fixes.
+
+Prettier handles formatting, Tailwind class sorting, and PostgreSQL SQL formatting. ESLint handles Next.js, TypeScript, React, and code-quality checks without fighting Prettier.
+
 ## Database overview
+
 - This project uses SQL-first migrations in `db/migrations`.
 - Migration files use `-- migrate:up` and `-- migrate:down`.
 - Applied migrations are tracked in the `schema_migrations` table.
@@ -29,6 +42,7 @@ npm run build
 - Migration checksums are validated before apply and rollback.
 
 ## Environment variables
+
 - `DATABASE_URL`: PostgreSQL connection string used by all DB tooling.
 - `APP_ENV`: Optional explicit app environment. Falls back to `NODE_ENV`.
 - `ALLOW_DESTRUCTIVE_DB_COMMANDS`: Must be `"true"` to run destructive local/test DB commands.
@@ -42,6 +56,7 @@ npm run build
 - `ACTIVE_USER_WINDOW_MINUTES`: Active user window in minutes.
 
 ## DB commands
+
 - `npm run db:new -- <name>`: Create a timestamped SQL migration template.
 - `npm run db:migrate`: Apply pending migrations on `DATABASE_URL`.
 - `npm run db:rollback`: Roll back the latest applied migration.
@@ -51,6 +66,7 @@ npm run build
 - `npm run db:reset:dev -- --confirm <db_name>`: Reset local/test data, reapply migrations, and seed.
 
 ## Safe usage rules
+
 - Production should run only `npm run db:migrate`.
 - `db:reset:dev` and `db:seed:dev` are local/test only.
 - Destructive commands require:
@@ -60,6 +76,7 @@ npm run build
 - Production rollback is blocked by default.
 
 ## Common commands
+
 - Run the app:
 
 ```bash
@@ -103,6 +120,7 @@ npm run db:rollback -- --dry-run
 ```
 
 ## Important notes
+
 - `npm run` flags must be passed after `--`.
 - Correct:
 
@@ -130,9 +148,11 @@ Role-based access is defined in `lib/auth/permissions.ts`. Every guarded action 
 A minimal `ToastProvider` / `useToast()` lives in `lib/ui/toast-context.tsx`, mirroring the `GlobalLoaderContext` pattern. `ToastContainer` (fixed bottom-right) and `ToastItem` (glass card with variant icon) are in `components/ui/toast.tsx`. Both are wired up in `GlobalUiProvider`.
 
 ## Dashboard frontend architecture
+
 All six list pages (orders, customers, inventory, employee-expenses, business-expenses, active-users) share a common set of primitives:
 
 **`lib/dashboard/`**
+
 - `href-utils.ts` — `normalizeHref`, `isSameHref`
 - `filter-utils.ts` — `normalizeAmountRange`
 - `list-page-classes.ts` — `TABLE_HEADER_CELL_CLASS`, `TABLE_BODY_CELL_CLASS`, `FILTER_FIELD_LABEL_CLASS`
@@ -140,6 +160,7 @@ All six list pages (orders, customers, inventory, employee-expenses, business-ex
 - `sticky-column-utils.ts` — `ColumnStickyDef`, `StickySpec`, `computeStickySpecs`, sticky cell class/style helpers
 
 **`components/dashboard/`**
+
 - `filter-drawer-shell.tsx` — shared filter drawer overlay, header, and footer
 - `use-filter-drawer.ts` — state hook (open/close, draft filters, pending transition, focus management)
 - `applied-filter-pills.tsx` — pill row renderer; branch name pill is always first; filter items that match a table `DataPill` value pass a `tone` from the corresponding helper in `data-pill.tsx`
@@ -156,10 +177,12 @@ Page-specific files keep only: column definitions, `<colgroup>`, row rendering, 
 The top nav (`components/dashboard/top-navbar.tsx`) uses a CSS `order` + `flex-wrap` trick to reposition the branch selector between breakpoints without rendering it twice.
 
 **Mobile / sm (< 768px) — two rows:**
+
 - Row 1: hamburger + brand (left) · Create + `NavActionsOverflow` (right)
 - Row 2: branch selector (full width)
 
 **md+ (≥ 768px) — single row:**
+
 - hamburger + brand · … auto gap … · branch selector · Create · Theme · Logout
 
 `NavActionsOverflow` is a small dropdown (⋯ button) that surfaces Theme toggle and Logout on screens below `md`. It is `md:hidden` and must not be rendered on larger screens.

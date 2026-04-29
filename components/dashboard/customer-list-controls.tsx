@@ -2,7 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { AppliedFilterPills, type AppliedFilterSummaryItem } from "@/components/dashboard/applied-filter-pills";
+import {
+  AppliedFilterPills,
+  type AppliedFilterSummaryItem,
+} from "@/components/dashboard/applied-filter-pills";
 import { FilterDrawerShell } from "@/components/dashboard/filter-drawer-shell";
 import { FilterTriggerButton } from "@/components/dashboard/filter-trigger-button";
 import { useFilterDrawer } from "@/components/dashboard/use-filter-drawer";
@@ -72,7 +75,8 @@ function getActiveFilterCount(filters: CustomerPageFilterState) {
   let count = 0;
 
   if (filters.dateField !== "created") count += 1;
-  if (getCustomerQuickDatePreset({ from: filters.from, to: filters.to }) !== "this-month") count += 1;
+  if (getCustomerQuickDatePreset({ from: filters.from, to: filters.to }) !== "this-month")
+    count += 1;
   if (filters.type) count += 1;
   if (filters.name) count += 1;
   if (filters.phone) count += 1;
@@ -133,43 +137,62 @@ function capitalizeFirst(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
-function buildAppliedFilterSummaryItems(filters: CustomerPageFilterState, branchName: string): AppliedFilterSummaryItem[] {
+function buildAppliedFilterSummaryItems(
+  filters: CustomerPageFilterState,
+  branchName: string,
+): AppliedFilterSummaryItem[] {
   const items: AppliedFilterSummaryItem[] = [{ key: "branch", label: `Branch: ${branchName}` }];
 
   if (filters.type) {
-    items.push({ key: "type", label: `Type: ${capitalizeFirst(filters.type)}`, tone: getCustomerTypeTone(filters.type) });
+    items.push({
+      key: "type",
+      label: `Type: ${capitalizeFirst(filters.type)}`,
+      tone: getCustomerTypeTone(filters.type),
+    });
   }
 
   if (filters.name) items.push({ key: "name", label: `Name: ${filters.name}` });
   if (filters.phone) items.push({ key: "phone", label: `Phone: ${filters.phone}` });
-  if (filters.alternatePhone) items.push({ key: "alt-phone", label: `Alt. phone: ${filters.alternatePhone}` });
-  if (filters.customerCode) items.push({ key: "customer-code", label: `Code: ${filters.customerCode}` });
-  if (filters.customerNumericId) items.push({ key: "customer-id", label: `ID: ${filters.customerNumericId}` });
-  if (filters.studioName) items.push({ key: "studio-name", label: `Studio: ${filters.studioName}` });
+  if (filters.alternatePhone)
+    items.push({ key: "alt-phone", label: `Alt. phone: ${filters.alternatePhone}` });
+  if (filters.customerCode)
+    items.push({ key: "customer-code", label: `Code: ${filters.customerCode}` });
+  if (filters.customerNumericId)
+    items.push({ key: "customer-id", label: `ID: ${filters.customerNumericId}` });
+  if (filters.studioName)
+    items.push({ key: "studio-name", label: `Studio: ${filters.studioName}` });
   if (filters.address) items.push({ key: "address", label: `Address: ${filters.address}` });
 
   if (filters.hasAvatar === "with") items.push({ key: "has-avatar", label: "Has avatar" });
   else if (filters.hasAvatar === "without") items.push({ key: "no-avatar", label: "No avatar" });
 
-  if (filters.hasAlternatePhone === "with") items.push({ key: "has-alt-phone", label: "Has alt. phone" });
-  else if (filters.hasAlternatePhone === "without") items.push({ key: "no-alt-phone", label: "No alt. phone" });
+  if (filters.hasAlternatePhone === "with")
+    items.push({ key: "has-alt-phone", label: "Has alt. phone" });
+  else if (filters.hasAlternatePhone === "without")
+    items.push({ key: "no-alt-phone", label: "No alt. phone" });
 
   if (filters.hasStudioName === "with") items.push({ key: "has-studio", label: "Has studio" });
-  else if (filters.hasStudioName === "without") items.push({ key: "no-studio", label: "No studio" });
+  else if (filters.hasStudioName === "without")
+    items.push({ key: "no-studio", label: "No studio" });
 
   if (filters.hasAddress === "with") items.push({ key: "has-address", label: "Has address" });
   else if (filters.hasAddress === "without") items.push({ key: "no-address", label: "No address" });
 
   if (filters.hasOrders !== "all") {
-    items.push({ key: "has-orders", label: filters.hasOrders === "yes" ? "Has orders" : "No orders" });
+    items.push({
+      key: "has-orders",
+      label: filters.hasOrders === "yes" ? "Has orders" : "No orders",
+    });
   }
 
   const orderCountMin = filters.orderCountMin;
   const orderCountMax = filters.orderCountMax;
 
   if (orderCountMin || orderCountMax) {
-    if (orderCountMin && orderCountMax) items.push({ key: "order-count", label: `Orders: ${orderCountMin}–${orderCountMax}` });
-    else if (orderCountMin) items.push({ key: "order-count", label: `Min ${orderCountMin} orders` });
+    if (orderCountMin && orderCountMax)
+      items.push({ key: "order-count", label: `Orders: ${orderCountMin}–${orderCountMax}` });
+    else if (orderCountMin)
+      items.push({ key: "order-count", label: `Min ${orderCountMin} orders` });
     else items.push({ key: "order-count", label: `Max ${orderCountMax} orders` });
   }
 
@@ -184,7 +207,8 @@ function buildAppliedFilterSummaryItems(filters: CustomerPageFilterState, branch
   const payableMax = formatSummaryAmount(filters.totalPayableMax);
 
   if (payableMin || payableMax) {
-    if (payableMin && payableMax) items.push({ key: "payable", label: `Payable: ${payableMin}–${payableMax}` });
+    if (payableMin && payableMax)
+      items.push({ key: "payable", label: `Payable: ${payableMin}–${payableMax}` });
     else if (payableMin) items.push({ key: "payable", label: `Min payable ${payableMin}` });
     else items.push({ key: "payable", label: `Max payable ${payableMax}` });
   }
@@ -193,23 +217,35 @@ function buildAppliedFilterSummaryItems(filters: CustomerPageFilterState, branch
   const outstandingMax = formatSummaryAmount(filters.outstandingMax);
 
   if (outstandingMin || outstandingMax) {
-    if (outstandingMin && outstandingMax) items.push({ key: "outstanding", label: `Outstanding: ${outstandingMin}–${outstandingMax}` });
-    else if (outstandingMin) items.push({ key: "outstanding", label: `Min outstanding ${outstandingMin}` });
+    if (outstandingMin && outstandingMax)
+      items.push({ key: "outstanding", label: `Outstanding: ${outstandingMin}–${outstandingMax}` });
+    else if (outstandingMin)
+      items.push({ key: "outstanding", label: `Min outstanding ${outstandingMin}` });
     else items.push({ key: "outstanding", label: `Max outstanding ${outstandingMax}` });
   }
 
   if (filters.lastOrderStatus) {
-    items.push({ key: "last-order-status", label: `Last status: ${capitalizeFirst(filters.lastOrderStatus)}` });
+    items.push({
+      key: "last-order-status",
+      label: `Last status: ${capitalizeFirst(filters.lastOrderStatus)}`,
+    });
   }
 
   if (filters.lastPaymentStatus) {
-    items.push({ key: "last-payment-status", label: `Last payment: ${capitalizeFirst(filters.lastPaymentStatus)}` });
+    items.push({
+      key: "last-payment-status",
+      label: `Last payment: ${capitalizeFirst(filters.lastPaymentStatus)}`,
+    });
   }
 
   return items;
 }
 
-export function CustomerListControls({ currentPath, currentFilters, selectedBranchName }: CustomerListControlsProps) {
+export function CustomerListControls({
+  currentPath,
+  currentFilters,
+  selectedBranchName,
+}: CustomerListControlsProps) {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
   const currentHref = useMemo(
@@ -217,7 +253,10 @@ export function CustomerListControls({ currentPath, currentFilters, selectedBran
     [currentFilters, currentPath],
   );
   const activeFilterCount = useMemo(() => getActiveFilterCount(currentFilters), [currentFilters]);
-  const primaryFilterSummary = useMemo(() => buildPrimaryFilterSummary(currentFilters), [currentFilters]);
+  const primaryFilterSummary = useMemo(
+    () => buildPrimaryFilterSummary(currentFilters),
+    [currentFilters],
+  );
   const appliedFilterItems = useMemo(
     () => buildAppliedFilterSummaryItems(currentFilters, selectedBranchName),
     [currentFilters, selectedBranchName],
@@ -242,11 +281,16 @@ export function CustomerListControls({ currentPath, currentFilters, selectedBran
   const baseId = filterPanelId.split("-filter-panel")[0];
   const advancedPanelId = `${baseId}-advanced-filters`;
 
-  const currentDatePreset = getCustomerQuickDatePreset({ from: draftFilters.from, to: draftFilters.to });
+  const currentDatePreset = getCustomerQuickDatePreset({
+    from: draftFilters.from,
+    to: draftFilters.to,
+  });
   const advancedFilterCount = useMemo(() => getAdvancedFilterCount(draftFilters), [draftFilters]);
 
   const drawerSubtitle =
-    activeFilterCount > 0 ? `${activeFilterCount} active filters` : "Filter by type, date, and activity";
+    activeFilterCount > 0
+      ? `${activeFilterCount} active filters`
+      : "Filter by type, date, and activity";
 
   const handleFilterToggle = () => {
     if (!isOpen) {
@@ -255,14 +299,18 @@ export function CustomerListControls({ currentPath, currentFilters, selectedBran
     toggleFilterDrawer();
   };
 
-  const updateDraftFilters = (updater: (currentValue: CustomerPageFilterState) => CustomerPageFilterState) => {
+  const updateDraftFilters = (
+    updater: (currentValue: CustomerPageFilterState) => CustomerPageFilterState,
+  ) => {
     setDraftFilters((currentValue) => updater(currentValue));
   };
 
   const handleDatePresetSelect = (preset: CustomerQuickDatePreset) => {
     if (preset === "custom") return;
     const nextDateRange =
-      preset === "last-month" ? getLastMonthCustomerDateRange() : getCurrentMonthDashboardDateRange();
+      preset === "last-month"
+        ? getLastMonthCustomerDateRange()
+        : getCurrentMonthDashboardDateRange();
     updateDraftFilters((currentValue) => ({
       ...currentValue,
       from: nextDateRange.from,
@@ -271,7 +319,10 @@ export function CustomerListControls({ currentPath, currentFilters, selectedBran
   };
 
   const handleApplyFilters = () => {
-    const nextHref = buildCustomerPageHref(currentPath, currentFilters, { ...draftFilters, page: 1 });
+    const nextHref = buildCustomerPageHref(currentPath, currentFilters, {
+      ...draftFilters,
+      page: 1,
+    });
 
     setPendingAction("apply");
     startTransition(() => {
@@ -344,7 +395,7 @@ export function CustomerListControls({ currentPath, currentFilters, selectedBran
                     onClick={() => handleDatePresetSelect(preset)}
                     className={cn(
                       "rounded-full border px-3 py-2 text-xs font-semibold capitalize transition-colors",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+                      "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
                       isActive
                         ? "border-[rgb(var(--primary)/0.38)] bg-[rgb(var(--primary-soft))] text-[rgb(var(--primary-soft-foreground))]"
                         : "border-[rgb(var(--border))] bg-[rgb(var(--background))] text-[rgb(var(--muted-foreground))] hover:text-[rgb(var(--foreground))]",
@@ -639,9 +690,13 @@ export function CustomerListControls({ currentPath, currentFilters, selectedBran
               onClick={() => setIsAdvancedOpen((currentValue) => !currentValue)}
             >
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">Activity filters</p>
+                <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">
+                  Activity filters
+                </p>
                 <p className="text-xs text-[rgb(var(--muted-foreground))]">
-                  {advancedFilterCount > 0 ? `${advancedFilterCount} selected` : "Orders, payable, and outstanding"}
+                  {advancedFilterCount > 0
+                    ? `${advancedFilterCount} selected`
+                    : "Orders, payable, and outstanding"}
                 </p>
               </div>
 
@@ -737,7 +792,8 @@ export function CustomerListControls({ currentPath, currentFilters, selectedBran
                       onChange={(event) =>
                         updateDraftFilters((currentValue) => ({
                           ...currentValue,
-                          lastOrderDateFrom: event.target.value.length > 0 ? event.target.value : null,
+                          lastOrderDateFrom:
+                            event.target.value.length > 0 ? event.target.value : null,
                         }))
                       }
                       className="h-11 rounded-2xl bg-[rgb(var(--background))]"
@@ -752,7 +808,8 @@ export function CustomerListControls({ currentPath, currentFilters, selectedBran
                       onChange={(event) =>
                         updateDraftFilters((currentValue) => ({
                           ...currentValue,
-                          lastOrderDateTo: event.target.value.length > 0 ? event.target.value : null,
+                          lastOrderDateTo:
+                            event.target.value.length > 0 ? event.target.value : null,
                         }))
                       }
                       className="h-11 rounded-2xl bg-[rgb(var(--background))]"
@@ -773,7 +830,8 @@ export function CustomerListControls({ currentPath, currentFilters, selectedBran
                       onChange={(event) =>
                         updateDraftFilters((currentValue) => ({
                           ...currentValue,
-                          totalPayableMin: event.target.value.length > 0 ? event.target.value : null,
+                          totalPayableMin:
+                            event.target.value.length > 0 ? event.target.value : null,
                         }))
                       }
                       className="h-11 rounded-2xl bg-[rgb(var(--background))]"
@@ -792,7 +850,8 @@ export function CustomerListControls({ currentPath, currentFilters, selectedBran
                       onChange={(event) =>
                         updateDraftFilters((currentValue) => ({
                           ...currentValue,
-                          totalPayableMax: event.target.value.length > 0 ? event.target.value : null,
+                          totalPayableMax:
+                            event.target.value.length > 0 ? event.target.value : null,
                         }))
                       }
                       className="h-11 rounded-2xl bg-[rgb(var(--background))]"
@@ -848,7 +907,8 @@ export function CustomerListControls({ currentPath, currentFilters, selectedBran
                       onChange={(event) =>
                         updateDraftFilters((currentValue) => ({
                           ...currentValue,
-                          lastOrderStatus: event.target.value.length > 0 ? event.target.value : null,
+                          lastOrderStatus:
+                            event.target.value.length > 0 ? event.target.value : null,
                         }))
                       }
                       className="h-11 rounded-2xl bg-[rgb(var(--background))]"
@@ -869,7 +929,8 @@ export function CustomerListControls({ currentPath, currentFilters, selectedBran
                       onChange={(event) =>
                         updateDraftFilters((currentValue) => ({
                           ...currentValue,
-                          lastPaymentStatus: event.target.value.length > 0 ? event.target.value : null,
+                          lastPaymentStatus:
+                            event.target.value.length > 0 ? event.target.value : null,
                         }))
                       }
                       className="h-11 rounded-2xl bg-[rgb(var(--background))]"

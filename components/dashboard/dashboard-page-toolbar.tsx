@@ -13,7 +13,11 @@ import { CalendarRange, ChevronDown, Download, MoreHorizontal, Plus } from "luci
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { isCurrentMonthDashboardDateRange, buildDashboardDateRangeHref, buildDashboardPageHref } from "@/lib/dashboard/page-filters";
+import {
+  isCurrentMonthDashboardDateRange,
+  buildDashboardDateRangeHref,
+  buildDashboardPageHref,
+} from "@/lib/dashboard/page-filters";
 import type {
   DashboardDateRange,
   DashboardPageFilterState,
@@ -57,13 +61,15 @@ function normalizeDateRangeForNavigation(dateRange: DashboardDateRange) {
 
 function normalizeHref(href: string) {
   const url = new URL(href, "https://printflow.local");
-  const normalizedSearchParams = Array.from(url.searchParams.entries()).sort(([leftKey, leftValue], [rightKey, rightValue]) => {
-    if (leftKey === rightKey) {
-      return leftValue.localeCompare(rightValue);
-    }
+  const normalizedSearchParams = Array.from(url.searchParams.entries()).sort(
+    ([leftKey, leftValue], [rightKey, rightValue]) => {
+      if (leftKey === rightKey) {
+        return leftValue.localeCompare(rightValue);
+      }
 
-    return leftKey.localeCompare(rightKey);
-  });
+      return leftKey.localeCompare(rightKey);
+    },
+  );
   const normalizedQuery = new URLSearchParams(normalizedSearchParams).toString();
 
   return normalizedQuery ? `${url.pathname}?${normalizedQuery}` : url.pathname;
@@ -73,7 +79,10 @@ function isSameHref(leftHref: string, rightHref: string) {
   return normalizeHref(leftHref) === normalizeHref(rightHref);
 }
 
-function buildActionButtonLabel(createAction: DashboardPageToolbarAction | undefined, createLabel?: string) {
+function buildActionButtonLabel(
+  createAction: DashboardPageToolbarAction | undefined,
+  createLabel?: string,
+) {
   if (createLabel) {
     return createLabel;
   }
@@ -102,16 +111,24 @@ export function DashboardPageToolbar({
   const [draftTo, setDraftTo] = useState(selectedTo ?? "");
   const [isMoreActionsOpen, setIsMoreActionsOpen] = useState(false);
   const routeSignature = `${pathname}?${searchParams.toString()}`;
-  const currentHref = useMemo(() => buildDashboardPageHref(currentPath, currentFilters), [currentFilters, currentPath]);
-  const resolvedMoreActions = moreActions && moreActions.length > 0 ? moreActions : DEFAULT_MORE_ACTIONS;
+  const currentHref = useMemo(
+    () => buildDashboardPageHref(currentPath, currentFilters),
+    [currentFilters, currentPath],
+  );
+  const resolvedMoreActions =
+    moreActions && moreActions.length > 0 ? moreActions : DEFAULT_MORE_ACTIONS;
   const appliedDateRange = {
     from: selectedFrom,
     to: selectedTo,
   };
   const isCurrentMonthRange = isCurrentMonthDashboardDateRange(appliedDateRange);
-  const appliedDateRangeLabel = isCurrentMonthRange ? "Current month" : formatDateRangeLabel(selectedFrom, selectedTo);
+  const appliedDateRangeLabel = isCurrentMonthRange
+    ? "Current month"
+    : formatDateRangeLabel(selectedFrom, selectedTo);
   const isDateRangeDirty = draftFrom !== (selectedFrom ?? "") || draftTo !== (selectedTo ?? "");
-  const isExportDisabled = exportAction ? Boolean(exportAction.disabled) || !exportAction.href : true;
+  const isExportDisabled = exportAction
+    ? Boolean(exportAction.disabled) || !exportAction.href
+    : true;
   const canResetDateRange = isDateRangeDirty || !isCurrentMonthRange;
   const isExpenseVariant = variant === "expense";
 
@@ -190,7 +207,9 @@ export function DashboardPageToolbar({
     navigateToHref(nextHref);
   };
 
-  const handleToolbarAction = (action: DashboardPageToolbarAction | DashboardPageToolbarMenuAction | undefined) => {
+  const handleToolbarAction = (
+    action: DashboardPageToolbarAction | DashboardPageToolbarMenuAction | undefined,
+  ) => {
     if (!action || action.disabled || !action.href) {
       return;
     }
@@ -212,10 +231,13 @@ export function DashboardPageToolbar({
         )}
       >
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-          <form className="flex min-w-0 items-center gap-2 sm:gap-2.5" onSubmit={handleDateRangeSubmit}>
-            <label className="relative min-w-0 flex-1 sm:flex-none sm:w-42 lg:w-44">
+          <form
+            className="flex min-w-0 items-center gap-2 sm:gap-2.5"
+            onSubmit={handleDateRangeSubmit}
+          >
+            <label className="relative min-w-0 flex-1 sm:w-42 sm:flex-none lg:w-44">
               <span className="sr-only">From date</span>
-              <span className="pointer-events-none absolute left-3 top-1/2 hidden -translate-y-1/2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted-foreground))] sm:inline">
+              <span className="pointer-events-none absolute top-1/2 left-3 hidden -translate-y-1/2 text-[10px] font-semibold tracking-[0.12em] text-[rgb(var(--muted-foreground))] uppercase sm:inline">
                 From
               </span>
               <input
@@ -226,9 +248,9 @@ export function DashboardPageToolbar({
               />
             </label>
 
-            <label className="relative min-w-0 flex-1 sm:flex-none sm:w-42 lg:w-44">
+            <label className="relative min-w-0 flex-1 sm:w-42 sm:flex-none lg:w-44">
               <span className="sr-only">To date</span>
-              <span className="pointer-events-none absolute left-3 top-1/2 hidden -translate-y-1/2 text-[10px] font-semibold uppercase tracking-[0.12em] text-[rgb(var(--muted-foreground))] sm:inline">
+              <span className="pointer-events-none absolute top-1/2 left-3 hidden -translate-y-1/2 text-[10px] font-semibold tracking-[0.12em] text-[rgb(var(--muted-foreground))] uppercase sm:inline">
                 To
               </span>
               <input
@@ -239,7 +261,10 @@ export function DashboardPageToolbar({
               />
             </label>
 
-            <Button type="submit" className="h-10 rounded-2xl px-4 shadow-[0_18px_38px_-24px_rgb(var(--shadow)/0.42)]">
+            <Button
+              type="submit"
+              className="h-10 rounded-2xl px-4 shadow-[0_18px_38px_-24px_rgb(var(--shadow)/0.42)]"
+            >
               Apply
             </Button>
             <Button
@@ -255,7 +280,6 @@ export function DashboardPageToolbar({
           </form>
 
           <div className="flex items-center justify-end gap-2">
-
             <Button
               type="button"
               variant="secondary"
@@ -263,7 +287,11 @@ export function DashboardPageToolbar({
               disabled={isExportDisabled}
               onClick={() => handleToolbarAction(exportAction)}
               aria-label={exportAction?.label ?? "Export"}
-              title={exportAction?.disabled ? exportAction.disabledReason ?? exportAction.label : exportAction?.label ?? "Export"}
+              title={
+                exportAction?.disabled
+                  ? (exportAction.disabledReason ?? exportAction.label)
+                  : (exportAction?.label ?? "Export")
+              }
             >
               <Download className="h-4 w-4" aria-hidden="true" strokeWidth={1.9} />
               {/* <span className="sr-only sm:ml-2 sm:not-sr-only">{exportAction?.label ?? "Export"}</span> */}
@@ -305,7 +333,7 @@ export function DashboardPageToolbar({
                   role="menu"
                   aria-label="More actions"
                   className={suggestCanonicalClasses(
-                    "absolute right-0 top-full z-40 mt-2 w-56 overflow-hidden rounded-3xl",
+                    "absolute top-full right-0 z-40 mt-2 w-56 overflow-hidden rounded-3xl",
                     "border border-[rgb(var(--border)/0.78)] bg-[rgb(var(--card)/0.94)] p-1.5 shadow-[0_24px_52px_-36px_rgb(var(--shadow)/0.2)] backdrop-blur-xl",
                   )}
                 >
@@ -322,16 +350,24 @@ export function DashboardPageToolbar({
                         }}
                         className={cn(
                           "flex w-full flex-col rounded-2xl px-3 py-2 text-left transition-colors",
-                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+                          "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
                           action.disabled
                             ? "cursor-not-allowed opacity-72"
                             : "hover:bg-[rgb(var(--muted)/0.72)] focus-visible:bg-[rgb(var(--muted)/0.72)]",
                         )}
-                        title={action.disabled ? `${action.label} (${action.disabledReason ?? "Unavailable"})` : action.label}
+                        title={
+                          action.disabled
+                            ? `${action.label} (${action.disabledReason ?? "Unavailable"})`
+                            : action.label
+                        }
                       >
-                        <span className="text-sm font-semibold text-[rgb(var(--card-foreground))]">{action.label}</span>
+                        <span className="text-sm font-semibold text-[rgb(var(--card-foreground))]">
+                          {action.label}
+                        </span>
                         <span className="mt-0.5 text-xs text-[rgb(var(--muted-foreground))]">
-                          {action.disabled ? action.disabledReason ?? "Unavailable" : "Open action"}
+                          {action.disabled
+                            ? (action.disabledReason ?? "Unavailable")
+                            : "Open action"}
                         </span>
                       </button>
                     ))}
@@ -346,7 +382,9 @@ export function DashboardPageToolbar({
   }
 
   const createButtonLabel = buildActionButtonLabel(createAction, createLabel);
-  const isCreateDisabled = createAction ? Boolean(createAction.disabled) || !createAction.href : true;
+  const isCreateDisabled = createAction
+    ? Boolean(createAction.disabled) || !createAction.href
+    : true;
 
   return (
     <section
@@ -355,21 +393,24 @@ export function DashboardPageToolbar({
       )}
     >
       <div className="flex flex-wrap items-center gap-2.5 lg:gap-3">
-        <form className="flex min-w-0 flex-1 flex-wrap items-center gap-2.5" onSubmit={handleDateRangeSubmit}>
+        <form
+          className="flex min-w-0 flex-1 flex-wrap items-center gap-2.5"
+          onSubmit={handleDateRangeSubmit}
+        >
           <div
             className={suggestCanonicalClasses(
               "flex min-w-0 flex-1 flex-wrap items-center gap-2 rounded-[20px] border border-[rgb(var(--border)/0.72)] bg-[rgb(var(--background)/0.72)] px-2.5 py-2 shadow-[0_16px_36px_-32px_rgb(var(--shadow)/0.14)] backdrop-blur-lg",
             )}
           >
             <div className="flex items-center gap-2 pr-1">
-              <span
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[rgb(var(--primary-soft))] text-[rgb(var(--primary-soft-foreground))]"
-              >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[rgb(var(--primary-soft))] text-[rgb(var(--primary-soft-foreground))]">
                 <CalendarRange className="h-4 w-4" aria-hidden="true" strokeWidth={1.9} />
               </span>
               <div className="min-w-0">
                 <p className="text-xs font-medium text-[rgb(var(--foreground))]">Date range</p>
-                <p className="truncate text-[11px] text-[rgb(var(--muted-foreground))]">{appliedDateRangeLabel}</p>
+                <p className="truncate text-[11px] text-[rgb(var(--muted-foreground))]">
+                  {appliedDateRangeLabel}
+                </p>
               </div>
             </div>
 
@@ -383,7 +424,9 @@ export function DashboardPageToolbar({
                   className="h-9 min-w-0 rounded-xl border-[rgb(var(--border)/0.8)] bg-[rgb(var(--card)/0.94)] px-3 sm:w-38"
                 />
               </label>
-              <span className="hidden text-xs text-[rgb(var(--muted-foreground))] sm:inline">to</span>
+              <span className="hidden text-xs text-[rgb(var(--muted-foreground))] sm:inline">
+                to
+              </span>
               <label className="min-w-0 flex-1 sm:flex-none">
                 <span className="sr-only">To date</span>
                 <Input
@@ -428,7 +471,11 @@ export function DashboardPageToolbar({
             className="h-9 rounded-xl px-3.5"
             disabled={isExportDisabled}
             onClick={() => handleToolbarAction(exportAction)}
-            title={exportAction?.disabled ? exportAction.disabledReason ?? exportAction.label : exportAction?.label ?? "Export"}
+            title={
+              exportAction?.disabled
+                ? (exportAction.disabledReason ?? exportAction.label)
+                : (exportAction?.label ?? "Export")
+            }
           >
             <Download className="mr-2 h-4 w-4" aria-hidden="true" strokeWidth={1.9} />
             {exportAction?.label ?? "Export"}
@@ -470,7 +517,7 @@ export function DashboardPageToolbar({
                 role="menu"
                 aria-label="More actions"
                 className={suggestCanonicalClasses(
-                  "absolute right-0 top-[calc(100%+0.55rem)] z-40 w-56 overflow-hidden rounded-[20px]",
+                  "absolute top-[calc(100%+0.55rem)] right-0 z-40 w-56 overflow-hidden rounded-[20px]",
                   "border border-[rgb(var(--border)/0.78)] bg-[rgb(var(--card)/0.94)] p-1.5 shadow-[0_24px_52px_-36px_rgb(var(--shadow)/0.2)] backdrop-blur-lg",
                 )}
               >
@@ -487,16 +534,22 @@ export function DashboardPageToolbar({
                       }}
                       className={cn(
                         "flex w-full flex-col rounded-2xl px-3 py-2 text-left transition-colors",
-                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+                        "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
                         action.disabled
                           ? "cursor-not-allowed opacity-72"
                           : "hover:bg-[rgb(var(--muted)/0.72)] focus-visible:bg-[rgb(var(--muted)/0.72)]",
                       )}
-                      title={action.disabled ? `${action.label} (${action.disabledReason ?? "Unavailable"})` : action.label}
+                      title={
+                        action.disabled
+                          ? `${action.label} (${action.disabledReason ?? "Unavailable"})`
+                          : action.label
+                      }
                     >
-                      <span className="text-sm font-semibold text-[rgb(var(--card-foreground))]">{action.label}</span>
+                      <span className="text-sm font-semibold text-[rgb(var(--card-foreground))]">
+                        {action.label}
+                      </span>
                       <span className="mt-0.5 text-xs text-[rgb(var(--muted-foreground))]">
-                        {action.disabled ? action.disabledReason ?? "Unavailable" : "Open action"}
+                        {action.disabled ? (action.disabledReason ?? "Unavailable") : "Open action"}
                       </span>
                     </button>
                   ))}
@@ -510,7 +563,11 @@ export function DashboardPageToolbar({
             className="h-9 rounded-xl px-4 shadow-[0_20px_40px_-28px_rgb(var(--shadow)/0.4)]"
             disabled={isCreateDisabled}
             onClick={() => handleToolbarAction(createAction)}
-            title={createAction?.disabled ? createAction.disabledReason ?? createButtonLabel : createButtonLabel}
+            title={
+              createAction?.disabled
+                ? (createAction.disabledReason ?? createButtonLabel)
+                : createButtonLabel
+            }
           >
             <Plus className="mr-2 h-4 w-4" aria-hidden="true" strokeWidth={1.9} />
             {createButtonLabel}

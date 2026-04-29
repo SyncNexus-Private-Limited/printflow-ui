@@ -8,7 +8,11 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasPermission } from "@/lib/auth/permissions";
 import { parseUsersPageFilters } from "@/lib/dashboard/users-page-filters";
 import { buildBranchFilterOptions } from "@/lib/dashboard/helpers";
-import { getUsersPageData, getUserManagementRoleOptions, getDashboardContext } from "@/lib/dashboard/queries";
+import {
+  getUsersPageData,
+  getUserManagementRoleOptions,
+  getDashboardContext,
+} from "@/lib/dashboard/queries";
 import { formatCompactNumber } from "@/lib/utils/format";
 
 type UsersPageProps = {
@@ -107,7 +111,9 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
             title="Users"
-            branchOptions={[{ label: currentUser.branchName ?? "Branch", value: currentUser.branchId ?? "all" }]}
+            branchOptions={[
+              { label: currentUser.branchName ?? "Branch", value: currentUser.branchId ?? "all" },
+            ]}
             selectedBranchValue={currentUser.branchId ?? "all"}
             branchFilterDisabled
           />

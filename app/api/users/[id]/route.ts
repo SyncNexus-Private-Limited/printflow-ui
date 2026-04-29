@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasPermission } from "@/lib/auth/permissions";
-import { UserMutationError, updateUser, updateUserStatus, toggleUserLock } from "@/lib/users/mutations";
+import {
+  UserMutationError,
+  updateUser,
+  updateUserStatus,
+  toggleUserLock,
+} from "@/lib/users/mutations";
 import { updateUserSchema, getUpdateUserFieldErrors } from "@/lib/users/schema";
 import { getUserById, getUserBranchesForCreation } from "@/lib/users/queries";
 
@@ -18,10 +23,7 @@ function getUnauthorizedResponse() {
   return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
 }
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const currentUser = await getCurrentUser({ touchSession: true });
 
   if (!currentUser) {
@@ -57,10 +59,7 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const currentUser = await getCurrentUser({ touchSession: true });
 
   if (!currentUser) {

@@ -24,7 +24,10 @@ export function buildThemeCookieValue(theme: ThemeName, isSecure: boolean) {
   return cookieParts.join("; ");
 }
 
-export function getPreHydrationUiBootstrapScript(hasThemeCookie: boolean, fallbackTheme: ThemeName) {
+export function getPreHydrationUiBootstrapScript(
+  hasThemeCookie: boolean,
+  fallbackTheme: ThemeName,
+) {
   const hasThemeCookieLiteral = hasThemeCookie ? "true" : "false";
   const fallbackThemeLiteral = JSON.stringify(fallbackTheme);
   const sidebarStorageKeyLiteral = JSON.stringify(DESKTOP_SIDEBAR_STORAGE_KEY);

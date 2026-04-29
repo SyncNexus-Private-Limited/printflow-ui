@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { userRoleValues, createUserFieldNames, updateUserFieldNames, type CreateUserFieldName, type UpdateUserFieldName } from "@/lib/users/types";
+import {
+  userRoleValues,
+  createUserFieldNames,
+  updateUserFieldNames,
+  type CreateUserFieldName,
+  type UpdateUserFieldName,
+} from "@/lib/users/types";
 import { requiresBranch } from "@/lib/users/role-rules";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -42,17 +48,10 @@ export const createUserSchema = z
       (v) => !v || phonePattern.test(v),
       "Enter a valid alternate phone number",
     ),
-    email: z.preprocess(
-      (value) => {
-        const trimmed = trimString(value);
-        return typeof trimmed === "string" && trimmed.length === 0 ? undefined : trimmed;
-      },
-      z
-        .string()
-        .max(120, "Email must be 120 characters or less")
-        .email("Enter a valid email address")
-        .optional(),
-    ),
+    email: z.preprocess((value) => {
+      const trimmed = trimString(value);
+      return typeof trimmed === "string" && trimmed.length === 0 ? undefined : trimmed;
+    }, z.string().max(120, "Email must be 120 characters or less").email("Enter a valid email address").optional()),
     address: optionalTrimmedString(300),
     username: z
       .string()
@@ -127,17 +126,10 @@ export const updateUserSchema = z
       (v) => !v || phonePattern.test(v),
       "Enter a valid alternate phone number",
     ),
-    email: z.preprocess(
-      (value) => {
-        const trimmed = trimString(value);
-        return typeof trimmed === "string" && trimmed.length === 0 ? undefined : trimmed;
-      },
-      z
-        .string()
-        .max(120, "Email must be 120 characters or less")
-        .email("Enter a valid email address")
-        .optional(),
-    ),
+    email: z.preprocess((value) => {
+      const trimmed = trimString(value);
+      return typeof trimmed === "string" && trimmed.length === 0 ? undefined : trimmed;
+    }, z.string().max(120, "Email must be 120 characters or less").email("Enter a valid email address").optional()),
     address: optionalTrimmedString(300),
     role: userRoleSchema,
     branchId: z.string().trim(),

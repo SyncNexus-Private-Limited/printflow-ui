@@ -1,20 +1,20 @@
-import "server-only";
-import { getActiveUserWindowMinutes } from "@/lib/auth/session";
 import type { AuthenticatedUser } from "@/lib/auth/current-user";
-import { getPool } from "@/lib/db/postgres";
+import { getActiveUserWindowMinutes } from "@/lib/auth/session";
+import type {
+  ActiveUserPageFilterState,
+  ActiveUserSortValue,
+} from "@/lib/dashboard/active-users-page-filters";
 import type { CustomerPageFilterState } from "@/lib/dashboard/customer-page-filters";
 import type { ExpensePageFilterState } from "@/lib/dashboard/expense-page-filters";
-import type { OrderPageFilterState } from "@/lib/dashboard/order-page-filters";
-import type { ActiveUserPageFilterState, ActiveUserSortValue } from "@/lib/dashboard/active-users-page-filters";
-import type { UserManagementPageFilterState, UserManagementSortValue } from "@/lib/dashboard/users-page-filters";
 import {
   INVENTORY_LOW_STOCK_THRESHOLD,
   type InventoryPageFilterState,
   type InventorySortValue,
 } from "@/lib/dashboard/inventory-page-filters";
+import type { OrderPageFilterState } from "@/lib/dashboard/order-page-filters";
 import {
-  type ActiveUserRow,
   type ActiveUserRoleOption,
+  type ActiveUserRow,
   type ActiveUsersPageData,
   type ActiveUsersPageSummary,
   type BranchFilterState,
@@ -24,8 +24,8 @@ import {
   type CustomerDetailRow,
   type CustomersPageData,
   type CustomersPageSummary,
-  type DashboardSummary,
   type DashboardPageFilterState,
+  type DashboardSummary,
   type EmployeeExpenseDetailRow,
   type EmployeeExpensesPageData,
   type ExpenseRangeSummary,
@@ -35,15 +35,14 @@ import {
   type InventoryPageSummary,
   type InventoryVendorOption,
   type LowStockRow,
-  type OrderCustomerOption,
   type OrderCreatorOption,
+  type OrderCustomerOption,
   type OrderDetailRow,
   type OrderFilterOptions,
   type OrderInventoryOption,
   type OrderOfferItemOption,
   type OrdersPageData,
   type OrdersPageSummary,
-  type OrdersSummary,
   type OrderVendorOption,
   type RecentExpenseRow,
   type RecentOrderRow,
@@ -51,7 +50,13 @@ import {
   type UserManagementPageSummary,
   type UserManagementRow,
 } from "@/lib/dashboard/types";
+import type {
+  UserManagementPageFilterState,
+  UserManagementSortValue,
+} from "@/lib/dashboard/users-page-filters";
+import { getPool } from "@/lib/db/postgres";
 import { branchFilterSchema } from "@/lib/validations/dashboard";
+import "server-only";
 
 const NO_BRANCH_SCOPE_ID = "00000000-0000-0000-0000-000000000000";
 
@@ -292,7 +297,6 @@ export async function getDashboardSummary(branchId: string | null): Promise<Dash
   };
 }
 
-
 function buildPaginationState(totalItems: number, filters: DashboardPageFilterState) {
   const totalPages = Math.max(1, Math.ceil(totalItems / filters.pageSize));
   const page = Math.min(Math.max(filters.page, 1), totalPages);
@@ -388,10 +392,16 @@ function getBusinessExpensesOrderByClause(filters: ExpensePageFilterState) {
   }
 }
 
-function buildEmployeeExpensesQueryParts(branchId: string | null, filters: ExpensePageFilterState): ExpenseQueryParts {
+function buildEmployeeExpensesQueryParts(
+  branchId: string | null,
+  filters: ExpensePageFilterState,
+): ExpenseQueryParts {
   const values: Array<number | string | null> = [branchId];
   const whereParts = ["($1::uuid IS NULL OR ee.branch_id = $1::uuid)"];
-  const joins = ["JOIN users u ON u.id = ee.user_id", "JOIN expense_categories ec ON ec.id = ee.category_id"];
+  const joins = [
+    "JOIN users u ON u.id = ee.user_id",
+    "JOIN expense_categories ec ON ec.id = ee.category_id",
+  ];
   const dateColumnExpression = getExpenseDateColumnExpression("ee", filters);
 
   if (filters.from) {
@@ -445,7 +455,10 @@ function buildEmployeeExpensesQueryParts(branchId: string | null, filters: Expen
   };
 }
 
-function buildBusinessExpensesQueryParts(branchId: string | null, filters: ExpensePageFilterState): ExpenseQueryParts {
+function buildBusinessExpensesQueryParts(
+  branchId: string | null,
+  filters: ExpensePageFilterState,
+): ExpenseQueryParts {
   const values: Array<number | string | null> = [branchId];
   const whereParts = ["($1::uuid IS NULL OR be.branch_id = $1::uuid)"];
   const joins = [
@@ -915,8 +928,7 @@ function buildCustomerQueryParts(
         )
       )`);
 
-  const dateCol =
-    filters.dateField === "updated" ? "c.updated_at::date" : "c.created_at::date";
+  const dateCol = filters.dateField === "updated" ? "c.updated_at::date" : "c.created_at::date";
 
   if (filters.from) {
     values.push(filters.from);
@@ -1216,7 +1228,11 @@ export async function getEmployeeExpensesPageData(
   );
   const summary = summaryRows[0];
   const pagination = buildPaginationState(summary.entryCountInRange, filters);
-  const listQueryParams = [...queryParts.values, pagination.pageSize, (pagination.page - 1) * pagination.pageSize];
+  const listQueryParams = [
+    ...queryParts.values,
+    pagination.pageSize,
+    (pagination.page - 1) * pagination.pageSize,
+  ];
   const limitParameterIndex = queryParts.values.length + 1;
   const offsetParameterIndex = queryParts.values.length + 2;
   const { rows } = await db.query<EmployeeExpenseDetailRow>(
@@ -1272,7 +1288,11 @@ export async function getBusinessExpensesPageData(
   );
   const summary = summaryRows[0];
   const pagination = buildPaginationState(summary.entryCountInRange, filters);
-  const listQueryParams = [...queryParts.values, pagination.pageSize, (pagination.page - 1) * pagination.pageSize];
+  const listQueryParams = [
+    ...queryParts.values,
+    pagination.pageSize,
+    (pagination.page - 1) * pagination.pageSize,
+  ];
   const limitParameterIndex = queryParts.values.length + 1;
   const offsetParameterIndex = queryParts.values.length + 2;
   const { rows } = await db.query<BusinessExpenseDetailRow>(
@@ -1591,8 +1611,7 @@ function buildInventoryQueryParts(
 
   // Date filter — only applied when explicitly set (inventory has no default date range)
   if (filters.from || filters.to) {
-    const dateCol =
-      filters.dateField === "created" ? "i.created_at::date" : "i.updated_at::date";
+    const dateCol = filters.dateField === "created" ? "i.created_at::date" : "i.updated_at::date";
 
     if (filters.from) {
       values.push(filters.from);
@@ -1869,7 +1888,9 @@ export async function getActiveUsersPageData(
   };
 }
 
-export async function getActiveUserRoleOptions(branchId: string | null): Promise<ActiveUserRoleOption[]> {
+export async function getActiveUserRoleOptions(
+  branchId: string | null,
+): Promise<ActiveUserRoleOption[]> {
   const db = getPool();
   const { rows } = await db.query<ActiveUserRoleOption>(
     `
@@ -2087,7 +2108,9 @@ export async function getUsersPageData(
   };
 }
 
-export async function getUserManagementRoleOptions(branchId: string | null): Promise<ActiveUserRoleOption[]> {
+export async function getUserManagementRoleOptions(
+  branchId: string | null,
+): Promise<ActiveUserRoleOption[]> {
   const db = getPool();
   const { rows } = await db.query<ActiveUserRoleOption>(
     `

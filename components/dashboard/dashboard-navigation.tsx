@@ -1,5 +1,8 @@
 import type { DashboardPageFilterState } from "@/lib/dashboard/types";
-import { DEFAULT_DASHBOARD_PAGE_SIZE, buildDashboardNavigationHref } from "@/lib/dashboard/page-filters";
+import {
+  DEFAULT_DASHBOARD_PAGE_SIZE,
+  buildDashboardNavigationHref,
+} from "@/lib/dashboard/page-filters";
 import type { LucideIcon } from "lucide-react";
 import { Boxes, Home, Receipt, ShoppingBag, Users } from "lucide-react";
 
@@ -29,7 +32,10 @@ export type DashboardBreadcrumb = {
   href?: string;
 };
 
-type DashboardNavigationFilters = Pick<DashboardPageFilterState, "branchId" | "from" | "to" | "pageSize">;
+type DashboardNavigationFilters = Pick<
+  DashboardPageFilterState,
+  "branchId" | "from" | "to" | "pageSize"
+>;
 
 export const dashboardNavigation: DashboardNavItem[] = [
   {
@@ -76,7 +82,10 @@ export const dashboardNavigation: DashboardNavItem[] = [
   },
 ];
 
-export function buildDashboardHref(href: string, branchIdOrFilters: string | DashboardNavigationFilters | null) {
+export function buildDashboardHref(
+  href: string,
+  branchIdOrFilters: string | DashboardNavigationFilters | null,
+) {
   const filters =
     typeof branchIdOrFilters === "string" || branchIdOrFilters === null
       ? {
@@ -102,7 +111,10 @@ export function getDashboardGroupFallback(item: Extract<DashboardNavItem, { type
   return item.children[0];
 }
 
-export function getDashboardBreadcrumbs(pathname: string, filters: DashboardNavigationFilters): DashboardBreadcrumb[] {
+export function getDashboardBreadcrumbs(
+  pathname: string,
+  filters: DashboardNavigationFilters,
+): DashboardBreadcrumb[] {
   const homeHref = buildDashboardHref("/dashboard", filters);
 
   if (pathname === "/dashboard") {
@@ -111,14 +123,13 @@ export function getDashboardBreadcrumbs(pathname: string, filters: DashboardNavi
 
   for (const item of dashboardNavigation) {
     if (item.type === "link" && isDashboardRouteActive(pathname, item.href)) {
-      return [
-        { label: "Home", href: homeHref },
-        { label: item.breadcrumbLabel ?? item.label },
-      ];
+      return [{ label: "Home", href: homeHref }, { label: item.breadcrumbLabel ?? item.label }];
     }
 
     if (item.type === "group") {
-      const activeChild = item.children.find((child) => isDashboardRouteActive(pathname, child.href));
+      const activeChild = item.children.find((child) =>
+        isDashboardRouteActive(pathname, child.href),
+      );
 
       if (activeChild) {
         return [

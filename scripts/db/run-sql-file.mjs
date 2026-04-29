@@ -30,23 +30,22 @@ const [filePath] = cliFlags.positionals;
 try {
   if (!filePath) {
     throw new Error(
-      "Usage: node scripts/db/run-sql-file.mjs <path-to-sql> --purpose=<migration|dev> [--no-transaction]"
+      "Usage: node scripts/db/run-sql-file.mjs <path-to-sql> --purpose=<migration|dev> [--no-transaction]",
     );
   }
 
   if (!cliFlags.purpose) {
     throw new Error(
-      "run-sql-file requires an explicit purpose. Use --purpose=migration or --purpose=dev."
+      "run-sql-file requires an explicit purpose. Use --purpose=migration or --purpose=dev.",
     );
   }
 
   if (!["migration", "dev"].includes(cliFlags.purpose)) {
-    throw new Error('Invalid --purpose value. Use --purpose=migration or --purpose=dev.');
+    throw new Error("Invalid --purpose value. Use --purpose=migration or --purpose=dev.");
   }
 
   const transaction = !cliFlags.noTransaction;
-  const requiresDestructiveGuard =
-    cliFlags.purpose === "dev" && isGuardedDevSqlPath(filePath);
+  const requiresDestructiveGuard = cliFlags.purpose === "dev" && isGuardedDevSqlPath(filePath);
   const preflight = requiresDestructiveGuard
     ? await assertDestructiveCommandPreconditions({
         commandName: `run-sql-file ${filePath}`,

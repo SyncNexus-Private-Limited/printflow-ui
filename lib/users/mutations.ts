@@ -108,9 +108,7 @@ async function logUserAudit(
       userId,
       action,
       JSON.stringify(snapshot),
-      changedFields && Object.keys(changedFields).length > 0
-        ? JSON.stringify(changedFields)
-        : null,
+      changedFields && Object.keys(changedFields).length > 0 ? JSON.stringify(changedFields) : null,
       changedBy,
     ],
   );
@@ -313,13 +311,15 @@ export async function updateUser(
     if (snapshot.phone !== input.phone)
       changedFields.phone = { from: snapshot.phone, to: input.phone };
     if ((snapshot.alternatePhone ?? null) !== (input.alternatePhone ?? null))
-      changedFields.alternatePhone = { from: snapshot.alternatePhone, to: input.alternatePhone ?? null };
+      changedFields.alternatePhone = {
+        from: snapshot.alternatePhone,
+        to: input.alternatePhone ?? null,
+      };
     if ((snapshot.email ?? null) !== (input.email ?? null))
       changedFields.email = { from: snapshot.email, to: input.email ?? null };
     if ((snapshot.address ?? null) !== (input.address ?? null))
       changedFields.address = { from: snapshot.address, to: input.address ?? null };
-    if (snapshot.role !== input.role)
-      changedFields.role = { from: snapshot.role, to: input.role };
+    if (snapshot.role !== input.role) changedFields.role = { from: snapshot.role, to: input.role };
     if ((snapshot.branchId ?? null) !== (branchId ?? null))
       changedFields.branchId = { from: snapshot.branchId, to: branchId };
     if (snapshot.isActive !== input.isActive)
@@ -446,7 +446,9 @@ export async function toggleUserLock(
   isLocked: boolean,
 ): Promise<void> {
   if (!hasPermission(currentUser, "users:lock")) {
-    throw new UserMutationError("Only administrators can lock or unlock accounts.", { status: 403 });
+    throw new UserMutationError("Only administrators can lock or unlock accounts.", {
+      status: 403,
+    });
   }
 
   if (currentUser.userId === targetUserId) {

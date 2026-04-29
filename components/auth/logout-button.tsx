@@ -17,7 +17,7 @@ export function LogoutButton({ iconOnly = false, className, title }: LogoutButto
   const router = useRouter();
   const { showBlockingLoader } = useGlobalLoader();
   const [isPending, setIsPending] = useState(false);
-  const accessibleLabel = isPending ? "Signing out..." : title ?? "Sign out";
+  const accessibleLabel = isPending ? "Signing out..." : (title ?? "Sign out");
 
   const handleLogout = async () => {
     setIsPending(true);
@@ -50,11 +50,13 @@ export function LogoutButton({ iconOnly = false, className, title }: LogoutButto
     >
       {iconOnly ? (
         <>
-          <LogOut className="h-[18px] w-[18px]" aria-hidden="true" strokeWidth={1.8} />
+          <LogOut className="h-4.5 w-4.5" aria-hidden="true" strokeWidth={1.8} />
           <span className="sr-only">{accessibleLabel}</span>
         </>
+      ) : isPending ? (
+        "Signing out..."
       ) : (
-        isPending ? "Signing out..." : "Sign out"
+        "Sign out"
       )}
     </Button>
   );

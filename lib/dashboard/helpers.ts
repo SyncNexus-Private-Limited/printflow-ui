@@ -14,7 +14,12 @@ type CanonicalExpenseCreateHrefOptions = {
 };
 
 function isCanonicalExpenseBranchId(value: string | null | undefined): value is string {
-  return Boolean(value) && value !== "all" && value !== "__branch-placeholder__" && value !== "unavailable";
+  return (
+    Boolean(value) &&
+    value !== "all" &&
+    value !== "__branch-placeholder__" &&
+    value !== "unavailable"
+  );
 }
 
 export function buildBranchFilterOptions(context: BranchFilterState) {
@@ -77,7 +82,9 @@ export function resolveCanonicalExpenseBranchId({
     return initialBranchId;
   }
 
-  const firstValidBranchOption = branchOptions.find((branchOption) => isCanonicalExpenseBranchId(branchOption.value));
+  const firstValidBranchOption = branchOptions.find((branchOption) =>
+    isCanonicalExpenseBranchId(branchOption.value),
+  );
 
   return firstValidBranchOption?.value ?? null;
 }

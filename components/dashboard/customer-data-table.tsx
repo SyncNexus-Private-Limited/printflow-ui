@@ -25,7 +25,12 @@ import {
 } from "@/lib/dashboard/sticky-column-utils";
 import type { CustomerDetailRow, DashboardPaginationState } from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils/cn";
-import { formatCompactNumber, formatCurrency, formatDate, formatEnumLabel } from "@/lib/utils/format";
+import {
+  formatCompactNumber,
+  formatCurrency,
+  formatDate,
+  formatEnumLabel,
+} from "@/lib/utils/format";
 
 type CustomerDataTableProps = {
   items: CustomerDetailRow[];
@@ -121,7 +126,11 @@ export function CustomerDataTable({
 
   return (
     <DataTableContainer>
-      <TableScrollArea className="bg-[rgb(var(--card)/0.98)]" viewportClassName="pb-0" stickyLeftWidth={stickyLeftWidth}>
+      <TableScrollArea
+        className="bg-[rgb(var(--card)/0.98)]"
+        viewportClassName="pb-0"
+        stickyLeftWidth={stickyLeftWidth}
+      >
         <table className="w-max min-w-full border-collapse text-left text-sm">
           <colgroup>
             <col className="w-56" />
@@ -170,14 +179,14 @@ export function CustomerDataTable({
             {items.map((customer) => (
               <tr
                 key={customer.id}
-                className="group border-b border-[rgb(var(--border)/0.58)] transition-colors hover:bg-[rgb(var(--muted)/0.28)] last:border-b-0"
+                className="group border-b border-[rgb(var(--border)/0.58)] transition-colors last:border-b-0 hover:bg-[rgb(var(--muted)/0.28)]"
               >
                 <td
                   className={cn(TABLE_BODY_CELL_CLASS, getStickyBodyCellClass(stickySpecs[0]))}
                   style={getStickyBodyCellStyle(stickySpecs[0])}
                 >
                   <div className="space-y-0.5">
-                    <p className="wrap-break-word font-semibold leading-6 text-[rgb(var(--card-foreground))]">
+                    <p className="leading-6 font-semibold wrap-break-word text-[rgb(var(--card-foreground))]">
                       {customer.name}
                     </p>
                     {customer.customerCode ? (
@@ -201,12 +210,12 @@ export function CustomerDataTable({
                   <p className="text-[rgb(var(--foreground)/0.72)]">{customer.studioName ?? "—"}</p>
                 </td>
                 <td className={cn(TABLE_BODY_CELL_CLASS, "text-right")}>
-                  <p className="whitespace-nowrap font-medium tabular-nums text-[rgb(var(--card-foreground))]">
+                  <p className="font-medium whitespace-nowrap text-[rgb(var(--card-foreground))] tabular-nums">
                     {formatCompactNumber(customer.orderCount)}
                   </p>
                 </td>
                 <td className={cn(TABLE_BODY_CELL_CLASS, "text-right")}>
-                  <p className="whitespace-nowrap font-medium tabular-nums text-[rgb(var(--card-foreground))]">
+                  <p className="font-medium whitespace-nowrap text-[rgb(var(--card-foreground))] tabular-nums">
                     {formatCurrency(customer.totalPayable)}
                   </p>
                 </td>
@@ -216,18 +225,18 @@ export function CustomerDataTable({
                       {formatCurrency(customer.totalOutstanding)}
                     </DataPill>
                   ) : (
-                    <p className="whitespace-nowrap font-medium tabular-nums text-[rgb(var(--muted-foreground))]">
+                    <p className="font-medium whitespace-nowrap text-[rgb(var(--muted-foreground))] tabular-nums">
                       {formatCurrency(customer.totalOutstanding)}
                     </p>
                   )}
                 </td>
                 <td className={TABLE_BODY_CELL_CLASS}>
-                  <p className="whitespace-nowrap font-medium text-[rgb(var(--card-foreground))]">
+                  <p className="font-medium whitespace-nowrap text-[rgb(var(--card-foreground))]">
                     {customer.lastOrderDate ? formatDate(customer.lastOrderDate) : "—"}
                   </p>
                 </td>
                 <td className={TABLE_BODY_CELL_CLASS}>
-                  <p className="whitespace-nowrap font-medium text-[rgb(var(--card-foreground))]">
+                  <p className="font-medium whitespace-nowrap text-[rgb(var(--card-foreground))]">
                     {formatDate(customer.createdAt)}
                   </p>
                 </td>

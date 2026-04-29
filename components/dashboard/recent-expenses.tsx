@@ -8,9 +8,14 @@ type RecentExpensesProps = {
 
 export function RecentExpenses({ expenses }: RecentExpensesProps) {
   return (
-    <SectionCard title="Recent Expenses" description="Latest employee and business expense activity.">
+    <SectionCard
+      title="Recent Expenses"
+      description="Latest employee and business expense activity."
+    >
       {expenses.length === 0 ? (
-        <p className="text-sm text-[rgb(var(--muted-foreground))]">No recent expenses found for this branch.</p>
+        <p className="text-sm text-[rgb(var(--muted-foreground))]">
+          No recent expenses found for this branch.
+        </p>
       ) : (
         <div className="space-y-3">
           {expenses.map((expense) => (
@@ -20,15 +25,21 @@ export function RecentExpenses({ expenses }: RecentExpensesProps) {
             >
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="font-medium text-[rgb(var(--card-foreground))]">{expense.title ?? expense.type}</p>
+                  <p className="font-medium text-[rgb(var(--card-foreground))]">
+                    {expense.title ?? expense.type}
+                  </p>
                   <p className="text-sm text-[rgb(var(--muted-foreground))]">
                     {expense.title ? `${expense.type} / ` : ""}
                     {expense.category} / {expense.context}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-[rgb(var(--card-foreground))]">{formatCurrency(expense.amount)}</p>
-                  <p className="text-sm text-[rgb(var(--muted-foreground))]">{formatDate(expense.expenseDate)}</p>
+                  <p className="font-semibold text-[rgb(var(--card-foreground))]">
+                    {formatCurrency(expense.amount)}
+                  </p>
+                  <p className="text-sm text-[rgb(var(--muted-foreground))]">
+                    {formatDate(expense.expenseDate)}
+                  </p>
                 </div>
               </div>
             </div>

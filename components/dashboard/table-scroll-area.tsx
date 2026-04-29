@@ -16,7 +16,12 @@ type TableScrollAreaProps = {
   stickyLeftWidth?: number;
 };
 
-export function TableScrollArea({ children, className, viewportClassName, stickyLeftWidth }: TableScrollAreaProps) {
+export function TableScrollArea({
+  children,
+  className,
+  viewportClassName,
+  stickyLeftWidth,
+}: TableScrollAreaProps) {
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [scrollState, setScrollState] = useState<ScrollState>({
     canScrollLeft: false,
@@ -34,7 +39,9 @@ export function TableScrollArea({ children, className, viewportClassName, sticky
       const hasHorizontalOverflow = viewport.scrollWidth > viewport.clientWidth + 1;
       const nextScrollState = {
         canScrollLeft: hasHorizontalOverflow && viewport.scrollLeft > 1,
-        canScrollRight: hasHorizontalOverflow && viewport.scrollLeft + viewport.clientWidth < viewport.scrollWidth - 1,
+        canScrollRight:
+          hasHorizontalOverflow &&
+          viewport.scrollLeft + viewport.clientWidth < viewport.scrollWidth - 1,
       };
 
       setScrollState((currentState) => {
@@ -78,7 +85,10 @@ export function TableScrollArea({ children, className, viewportClassName, sticky
 
   return (
     <div className={cn("relative", className)}>
-      <div ref={viewportRef} className={cn("dashboard-scrollbar overflow-x-auto pb-2", viewportClassName)}>
+      <div
+        ref={viewportRef}
+        className={cn("dashboard-scrollbar overflow-x-auto pb-2", viewportClassName)}
+      >
         {children}
       </div>
 
@@ -96,7 +106,6 @@ export function TableScrollArea({ children, className, viewportClassName, sticky
           aria-hidden="true"
         />
       ) : null}
-
     </div>
   );
 }

@@ -32,6 +32,7 @@ npm run db:new -- <migration_name>
 ```
 
 Use a descriptive snake_case name that summarises the change. Examples:
+
 - `add_notes_to_orders`
 - `create_vendor_contacts_table`
 - `add_payment_mode_enum_value`
@@ -40,11 +41,8 @@ This produces a timestamped file in `db/migrations/` with the required markers:
 
 ```sql
 -- migrate:up
-
 -- Write the forward migration here.
-
 -- migrate:down
-
 -- Write the rollback migration here.
 ```
 
@@ -60,15 +58,15 @@ Translate it to SQL and fill in both sections. Always write the down section to 
 
 **Common patterns:**
 
-| Intent | Up | Down |
-|---|---|---|
-| Add nullable column | `ALTER TABLE t ADD COLUMN col type;` | `ALTER TABLE t DROP COLUMN col;` |
-| Add NOT NULL with default | `ALTER TABLE t ADD COLUMN col type NOT NULL DEFAULT val;` | `ALTER TABLE t DROP COLUMN col;` |
-| Create table | `CREATE TABLE t (...);` | `DROP TABLE t;` |
-| Add index | `CREATE INDEX idx_name ON t(col);` | `DROP INDEX idx_name;` |
-| Add enum value | `ALTER TYPE enum_name ADD VALUE 'new_val';` | *(see note below)* |
-| Rename column | `ALTER TABLE t RENAME COLUMN old TO new;` | `ALTER TABLE t RENAME COLUMN new TO old;` |
-| Drop column | `ALTER TABLE t DROP COLUMN col;` | `ALTER TABLE t ADD COLUMN col type;` — restore with original constraints |
+| Intent                    | Up                                                        | Down                                                                     |
+| ------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Add nullable column       | `ALTER TABLE t ADD COLUMN col type;`                      | `ALTER TABLE t DROP COLUMN col;`                                         |
+| Add NOT NULL with default | `ALTER TABLE t ADD COLUMN col type NOT NULL DEFAULT val;` | `ALTER TABLE t DROP COLUMN col;`                                         |
+| Create table              | `CREATE TABLE t (...);`                                   | `DROP TABLE t;`                                                          |
+| Add index                 | `CREATE INDEX idx_name ON t(col);`                        | `DROP INDEX idx_name;`                                                   |
+| Add enum value            | `ALTER TYPE enum_name ADD VALUE 'new_val';`               | _(see note below)_                                                       |
+| Rename column             | `ALTER TABLE t RENAME COLUMN old TO new;`                 | `ALTER TABLE t RENAME COLUMN new TO old;`                                |
+| Drop column               | `ALTER TABLE t DROP COLUMN col;`                          | `ALTER TABLE t ADD COLUMN col type;` — restore with original constraints |
 
 > **Enum rollback caveat:** PostgreSQL does not support removing enum values once added. If the down section cannot cleanly undo, write a comment explaining why and what manual steps are needed. Flag this to the user explicitly.
 

@@ -35,10 +35,7 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
 
   const headerBranchOptions = branchOptions.map((b) => ({ label: b.name, value: b.id }));
   const headerSelectedBranchValue =
-    user.branchId ||
-    branchOptions[0]?.id ||
-    currentUser.branchId ||
-    "unavailable";
+    user.branchId || branchOptions[0]?.id || currentUser.branchId || "unavailable";
 
   const roleLabelLower = userRoleLabels[user.role]?.toLowerCase() ?? user.role;
   const sectionDescription =

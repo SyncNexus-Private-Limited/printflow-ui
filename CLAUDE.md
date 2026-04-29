@@ -1,33 +1,45 @@
 # CLAUDE.md — printflow-ui
 
 ## Project
+
 Internal print/order management system for multiple branches. Manages orders, customers, inventory, payments, employees, and expenses. Business invariants (pricing, totals, inventory deduction, order codes) live in PostgreSQL.
 
 ## Architecture
+
 ```
 React UI (Server Components by default)
   -> Next.js Route Handlers (/app/api/*)
   -> PostgreSQL (functions / triggers / tables)
 ```
+
 - Pages fetch data server-side via `lib/dashboard/queries.ts` (marked `server-only`)
 - Client components scoped to interactive islands (forms, filters, list controls)
 - Route handlers: validate → authorize → call DB → return typed response
 - PostgreSQL is source of truth for all financial totals, inventory counts, and order codes
 
 ## Stack
-| Layer | Choice |
-|---|---|
-| Framework | Next.js 15 (App Router) |
-| Language | TypeScript 5 (strict) |
-| Styling | Tailwind CSS 4 (`@import "tailwindcss"`) |
-| Forms | React Hook Form + `@hookform/resolvers` |
-| Validation | Zod 4 |
-| DB client | `pg` (direct SQL, no ORM) |
-| Auth tokens | `jose` (JWT, HS256, HTTP-only cookie) |
-| Icons | `lucide-react` |
-| State | Server Components + React context only |
+
+| Layer       | Choice                                   |
+| ----------- | ---------------------------------------- |
+| Framework   | Next.js 15 (App Router)                  |
+| Language    | TypeScript 5 (strict)                    |
+| Styling     | Tailwind CSS 4 (`@import "tailwindcss"`) |
+| Forms       | React Hook Form + `@hookform/resolvers`  |
+| Validation  | Zod 4                                    |
+| DB client   | `pg` (direct SQL, no ORM)                |
+| Auth tokens | `jose` (JWT, HS256, HTTP-only cookie)    |
+| Icons       | `lucide-react`                           |
+| State       | Server Components + React context only   |
+
+## Code Quality
+
+- Prettier 3 formats code; `prettier-plugin-tailwindcss` sorts Tailwind classes
+- SQL is formatted through `prettier-plugin-sql` using PostgreSQL dialect
+- ESLint 9 uses Next.js `core-web-vitals` + `next/typescript`
+- `eslint-config-prettier` keeps lint rules from fighting Prettier
 
 ## File Map
+
 ```
 app/
   (auth)/login/         # Login page (public)
@@ -86,8 +98,14 @@ middleware.ts           # Protects /dashboard/*, redirects /login if already aut
 ```
 
 ## Commands
+
 ```bash
-npm run dev / build / start / typecheck
+npm run dev / build / start
+npm run typecheck
+npm run lint
+npm run lint:fix
+npm run format:check
+npm run format
 
 # DB — always run npm run db:target first to confirm env
 npm run db:target
@@ -100,9 +118,11 @@ npm run db:dump                    # schema-only pg_dump
 npm run db:seed:dev -- --confirm printflow_dev
 npm run db:reset:dev -- --confirm printflow_dev
 ```
+
 **`--` is required:** `npm run db:reset:dev -- --confirm printflow_dev` ✅ (without `--`, flag is silently ignored ❌)
 
 ## DB Workflow
+
 - Migrations in `db/migrations/` use `-- migrate:up` / `-- migrate:down` blocks
 - Applied migrations tracked in `schema_migrations`; checksums validated on apply/rollback
 - Use `npm run db:new -- <name>` for all new migrations. Do not rename existing files
@@ -111,37 +131,41 @@ npm run db:reset:dev -- --confirm printflow_dev
 - Production: runs only `db:migrate`. Rollback blocked unless `ALLOW_PRODUCTION_ROLLBACK=true`
 
 ### Destructive commands — all 3 gates required:
+
 1. `ALLOW_DESTRUCTIVE_DB_COMMANDS=true`
 2. Connected DB name in `DEV_DB_NAME_ALLOWLIST`
 3. `-- --confirm <exact_db_name>` on command line
 
 ## Environment Variables
-| Variable | Purpose |
-|---|---|
-| `DATABASE_URL` | PostgreSQL connection string |
-| `APP_SECRET` | Signs JWT session tokens |
-| `APP_BASE_URL` | Base URL |
-| `NODE_ENV` | Standard Node env |
-| `APP_ENV` | Optional; falls back to `NODE_ENV` |
-| `SESSION_COOKIE_NAME` | Default: `dlms_session` |
-| `SESSION_MAX_AGE` | Default: 604800 |
-| `ACTIVE_USER_WINDOW_MINUTES` | Default: 15 |
-| `ALLOW_DESTRUCTIVE_DB_COMMANDS` | `"true"` for destructive local/test commands |
-| `ALLOW_PRODUCTION_ROLLBACK` | `"true"` to allow production rollback |
-| `DEV_DB_NAME_ALLOWLIST` | Comma-separated DB names for destructive commands |
-| `POSTGRES_POOL_MAX` / `POSTGRES_IDLE_TIMEOUT_MS` / `POSTGRES_CONNECTION_TIMEOUT_MS` | Optional pool config |
-| `LOG_POSTGRES_POOL` | `"true"` to log pool init |
-| `SESSION_TOUCH_INTERVAL_SECONDS` | Default: 60 |
+
+| Variable                                                                            | Purpose                                           |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------- |
+| `DATABASE_URL`                                                                      | PostgreSQL connection string                      |
+| `APP_SECRET`                                                                        | Signs JWT session tokens                          |
+| `APP_BASE_URL`                                                                      | Base URL                                          |
+| `NODE_ENV`                                                                          | Standard Node env                                 |
+| `APP_ENV`                                                                           | Optional; falls back to `NODE_ENV`                |
+| `SESSION_COOKIE_NAME`                                                               | Default: `dlms_session`                           |
+| `SESSION_MAX_AGE`                                                                   | Default: 604800                                   |
+| `ACTIVE_USER_WINDOW_MINUTES`                                                        | Default: 15                                       |
+| `ALLOW_DESTRUCTIVE_DB_COMMANDS`                                                     | `"true"` for destructive local/test commands      |
+| `ALLOW_PRODUCTION_ROLLBACK`                                                         | `"true"` to allow production rollback             |
+| `DEV_DB_NAME_ALLOWLIST`                                                             | Comma-separated DB names for destructive commands |
+| `POSTGRES_POOL_MAX` / `POSTGRES_IDLE_TIMEOUT_MS` / `POSTGRES_CONNECTION_TIMEOUT_MS` | Optional pool config                              |
+| `LOG_POSTGRES_POOL`                                                                 | `"true"` to log pool init                         |
+| `SESSION_TOUCH_INTERVAL_SECONDS`                                                    | Default: 60                                       |
 
 - Read `.env.local.example` for variable names only. Never print `.env` values. Never commit secrets.
 - `DATABASE_URL` and `APP_SECRET` are server-side only. Do not modify `.env` files unless explicitly asked.
 
 ## DB Schema
+
 **Core tables:** `branches`, `users`, `user_auth`, `app_sessions`, `customers`, `vendors`, `inventory`, `inventory_pricing`, `orders`, `order_items`, `payments`, `order_vendors`, `offer_items`, `order_offer_items`, `branch_expenses`, `employee_expenses`, `expense_categories`, `expense_attachments`, `order_sequences`
 
 **Enums:** `user_role` (admin/manager/operator/staff), `order_status`, `payment_mode`, `payment_status`, `inventory_unit`, `customer_type`
 
 **Key DB functions:**
+
 - `authenticate_user(username, password)` → `uuid | null`
 - `create_user_with_auth(admin_id, ...)` → `uuid` (admin-only)
 - `generate_order_code(branch_id, order_date)` → `text`
@@ -149,6 +173,7 @@ npm run db:reset:dev -- --confirm printflow_dev
 - `set_updated_at()` — generic trigger
 
 **Key triggers:**
+
 - `trigger_set_order_code` — auto-generates `order_code` on INSERT to `orders`
 - `trg_validate_order_header` — guards immutable fields, branch match, derived field writes
 - `trg_apply_order_item_inventory` — deducts/restores inventory on `order_items` changes
@@ -159,6 +184,7 @@ npm run db:reset:dev -- --confirm printflow_dev
 - `set_updated_at` on all timestamped tables
 
 ## Auth Rules
+
 - Login: React Hook Form + Zod (`loginSchema` in `lib/validations/auth.ts`)
 - Login API validates server-side → `SELECT authenticate_user($1, $2)`
 - `authenticate_user` handles account lock (5 failed attempts), inactive check, bcrypt via `pgcrypto`
@@ -175,6 +201,7 @@ npm run db:reset:dev -- --confirm printflow_dev
 All permission logic lives in `lib/auth/permissions.ts`. This is the single source of truth — do not inline role checks elsewhere.
 
 **Helpers:**
+
 - `hasPermission(user, permission)` — boolean; use for conditional rendering and non-throwing checks
 - `assertPermission(user, permission)` — throws `PermissionError` (`.status === 403`); use in server mutations and API handlers before any DB mutation
 - `canAccessBranch(user, branchId)` — data-scope guard (orthogonal to permission grants); admins bypass, all others must match their own `branchId`
@@ -197,6 +224,7 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 **To add a permission:** (1) add to `Permission` union in `permissions.ts`, (2) grant to appropriate roles in `ROLE_PERMISSIONS`, (3) enforce in the relevant server mutation / API handler / page.
 
 ## API Rules
+
 - Route Handlers under `app/api/*`. Set `export const runtime = "nodejs"` for DB access
 - Validate all payloads with Zod `safeParse`; return structured field errors on failure
 - Authorize before any DB mutation via `getCurrentUser()`
@@ -207,6 +235,7 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 - Derived order fields (`total_amount`, `payable_amount`, `paid_amount`, `payment_status`) are DB-managed — do not set directly
 
 ## UI Rules
+
 - Use existing components from `components/`. Avoid new UI primitives unless necessary
 - Tailwind CSS 4: `@import "tailwindcss"`. Do not use `@tailwind base/components/utilities`
 - CSS variable tokens from `app/globals.css`. Reference as `rgb(var(--token))` in inline styles or utilities
@@ -219,6 +248,7 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 - Conditional class merging: `lib/utils/cn.ts`
 
 ### Toast system
+
 - `lib/ui/toast-context.tsx` — `ToastProvider`, `useToast()` hook; mirrors `GlobalLoaderContext` pattern
 - `components/ui/toast.tsx` — `ToastContainer` (fixed bottom-right, `z-100`) + `ToastItem` (glass card, variant icon)
 - `ToastProvider` wraps inside `GlobalUiProvider`; `<ToastContainer />` rendered alongside `<GlobalLoader />`
@@ -226,9 +256,11 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 - **Do not use `useSearchParams()`** for one-shot URL-param detection in components rendered from async server component boundaries without an explicit `<Suspense>` wrapper — the hook may return stale/empty values during hydration. Use `window.location.search` instead.
 
 ### Dashboard list page conventions
+
 All six list pages share a common structure:
 
 **Filter controls (`*-list-controls.tsx`)**
+
 - Use `useFilterDrawer` for open/close state, draft filters, pending transition, and focus management
 - Render `<FilterDrawerShell>`, `<FilterTriggerButton>`, `<AppliedFilterPills>` — do not re-implement
 - `buildAppliedFilterSummaryItems` must always prepend `{ key: "branch", label: "Branch: [name]" }` first, using `selectedBranchName` prop from page
@@ -236,6 +268,7 @@ All six list pages share a common structure:
 - `handleApplyFilters` and `handleResetFilters` are page-specific and must stay in the page file
 
 **Data tables (`*-data-table.tsx`)**
+
 - Use `DataTableContainer` (glass card wrapper) and `TableScrollArea` (horizontal scroll with shadow indicators)
 - Column definitions use `ColumnStickyDef` mixin (`sticky?: "left" | "right"`, `width?`, `stickyOrder?`). Call `computeStickySpecs(columns)` once; pass result through header map and row render
 - Sticky body `<td>`: use `getStickyBodyCellClass` + `getStickyBodyCellStyle`; parent `<tr>` must carry `group` Tailwind class for hover overlay
@@ -244,16 +277,19 @@ All six list pages share a common structure:
 - `.table-sticky-body-cell` CSS class in `globals.css` handles opaque background and hover overlay — do not override with Tailwind background utilities on those cells
 
 **Pages**
+
 - Pass `selectedBranchName={context.selectedBranchName}` to every `*ListControls`
 - `context.selectedBranchName` is always a non-null string resolved by `getDashboardContext`
 
 ### Dashboard overview page (`/dashboard`)
+
 - `DashboardHeader` renders a time-aware greeting when `greetingName` is provided and the current path is `/dashboard`: `Good [morning/afternoon/evening], [FirstName].`
 - `greetingBranchName` renders the subtext: `Here's what's happening at [Branch] today.`
 - `getGreetingWord()` runs client-side; `suppressHydrationWarning` on the `<h1>` suppresses SSR/client mismatch at hour boundaries
 - Pass `greetingName={currentUser.fullName.split(" ")[0] || currentUser.username}` and `greetingBranchName={context.selectedBranchName}` from the page server component
 
 ### Top nav conventions (`components/dashboard/top-navbar.tsx`)
+
 - CSS `order` + `flex-wrap` repositions branch selector between breakpoints without duplication
 - `md` (768px) is the single breakpoint: two-row (< 768px) → single-row (≥ 768px). Do not change without updating all related breakpoint classes
 - Two-row (< 768px): Row 1 = hamburger + brand + actions; Row 2 = BranchFilter full-width (`order-3 w-full`)
@@ -262,12 +298,14 @@ All six list pages share a common structure:
 - Do not add permanent controls to nav without considering all three tiers (mobile, tablet, desktop)
 
 ### Create menu conventions (`components/dashboard/create-menu.tsx`)
+
 - Mobile bottom sheet rendered via `createPortal(..., document.body)` — not optional. Nav's `sticky + z-index + backdrop-filter` promotes compositing layer, trapping `position: fixed` children relative to nav box. Without portal, sheet appears near top of screen
 - Desktop/mobile threshold: `(min-width: 768px)` matching nav's `md` breakpoint. Below → bottom sheet (portal). At 768px+ → anchored dropdown (absolute, no portal)
 - Do not revert `z-[70]` to `z-70` — `z-70` is not a standard Tailwind v4 class
 - `onBlurCapture` on wrapper div guarded with `if (!isDesktopViewport) return` — portal content is outside wrapper's DOM subtree, so `wrapperRef.current?.contains(...)` always fails on mobile and would prematurely close the sheet
 
 ## Development Rules
+
 - Inspect relevant files before editing
 - Make minimal, targeted changes. Preserve existing naming and structure
 - Avoid broad refactors unless explicitly requested
@@ -276,9 +314,11 @@ All six list pages share a common structure:
 - Prefer existing utilities, types, and components
 - TypeScript strict. Avoid `any` unless unavoidable and justified
 - `lib/db/postgres.ts` and `lib/auth/current-user.ts` are `server-only` — do not import from client components
-- Validate after edits: `npm run typecheck`, `npm run build`
+- Validate after edits: `npm run format:check`, `npm run lint`, `npm run typecheck`; run `npm run build` for broader app changes
+- Use `npm run format` only when intentionally formatting touched files or doing a formatting-only pass
 
 ## Safety Rules
+
 - Never run `db:reset:dev` or `db:seed:dev` unless explicitly requested and all 3 gates confirmed
 - Never edit applied migrations without explicit confirmation
 - Never run production rollback without explicit confirmation and `ALLOW_PRODUCTION_ROLLBACK=true`
@@ -288,6 +328,7 @@ All six list pages share a common structure:
 - Do not add ORMs, Redux, Zustand, TanStack Query, SWR, or other state libraries without explicit approval
 
 ## Do Not
+
 - Introduce an ORM or global state library
 - Compute pricing or order totals in application code — use the DB
 - Manually set `order_code`, `total_amount`, `payable_amount`, `paid_amount`, or `payment_status` in INSERT/UPDATE — DB-managed
@@ -299,7 +340,9 @@ All six list pages share a common structure:
 - Claim scripts, files, or DB objects exist unless verified in the repository
 
 ## Post-Task Format
+
 After completing a task, summarize:
+
 - **Files changed** (paths)
 - **Commands run** and outcomes
 - **Commands not run** and why

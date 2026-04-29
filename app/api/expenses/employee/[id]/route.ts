@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { ExpenseMutationError, deleteEmployeeExpense, updateEmployeeExpense } from "@/lib/expenses/mutations";
-import { updateEmployeeExpenseSchema, getUpdateEmployeeExpenseFieldErrors } from "@/lib/expenses/schema";
+import {
+  ExpenseMutationError,
+  deleteEmployeeExpense,
+  updateEmployeeExpense,
+} from "@/lib/expenses/mutations";
+import {
+  updateEmployeeExpenseSchema,
+  getUpdateEmployeeExpenseFieldErrors,
+} from "@/lib/expenses/schema";
 import {
   getEmployeeExpenseDetail,
   getExpenseCategories,
@@ -19,10 +26,7 @@ function notFoundResponse() {
   return NextResponse.json({ success: false, message: "Expense not found." }, { status: 404 });
 }
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const currentUser = await getCurrentUser({ touchSession: true });
 
   if (!currentUser) return unauthorizedResponse();
@@ -54,10 +58,7 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const currentUser = await getCurrentUser({ touchSession: true });
 
   if (!currentUser) return unauthorizedResponse();
@@ -99,10 +100,7 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const currentUser = await getCurrentUser({ touchSession: true });
 
   if (!currentUser) return unauthorizedResponse();

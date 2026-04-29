@@ -7,7 +7,12 @@ import { useForm, type Resolver } from "react-hook-form";
 import { ExpenseFormFields } from "@/components/expenses/expense-form-fields";
 import { Button } from "@/components/ui/button";
 import { createExpenseSchema, type CreateExpenseFormValues } from "@/lib/expenses/schema";
-import type { CreateExpenseApiResponse, CreateExpenseFieldName, ExpenseFormPageData, ExpenseType } from "@/lib/expenses/types";
+import type {
+  CreateExpenseApiResponse,
+  CreateExpenseFieldName,
+  ExpenseFormPageData,
+  ExpenseType,
+} from "@/lib/expenses/types";
 import { useGlobalLoader } from "@/lib/ui/global-loader-context";
 
 type ExpenseFormProps = ExpenseFormPageData;
@@ -16,7 +21,10 @@ function getTodayDateValue() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function buildDefaultValues(selectedType: ExpenseType, selectedBranchId: string): CreateExpenseFormValues {
+function buildDefaultValues(
+  selectedType: ExpenseType,
+  selectedBranchId: string,
+): CreateExpenseFormValues {
   return {
     type: selectedType,
     branchId: selectedBranchId,
@@ -56,7 +64,7 @@ export function ExpenseForm(props: ExpenseFormProps) {
     resolver: zodResolver(createExpenseSchema) as unknown as Resolver<CreateExpenseFormValues>,
     defaultValues,
   });
-  const selectedVendorId = props.selectedType === "business" ? watch("vendorId") ?? "" : "";
+  const selectedVendorId = props.selectedType === "business" ? (watch("vendorId") ?? "") : "";
 
   useEffect(() => {
     reset(defaultValues);
@@ -99,7 +107,9 @@ export function ExpenseForm(props: ExpenseFormProps) {
 
       if (!response.ok || !data || !("success" in data) || !data.success) {
         if (data && "fieldErrors" in data && data.fieldErrors) {
-          for (const [fieldName, message] of Object.entries(data.fieldErrors) as Array<[CreateExpenseFieldName, string]>) {
+          for (const [fieldName, message] of Object.entries(data.fieldErrors) as Array<
+            [CreateExpenseFieldName, string]
+          >) {
             if (!message) {
               continue;
             }
@@ -111,7 +121,9 @@ export function ExpenseForm(props: ExpenseFormProps) {
           }
         }
 
-        setServerError(data && "message" in data ? data.message : "Unable to save this expense right now.");
+        setServerError(
+          data && "message" in data ? data.message : "Unable to save this expense right now.",
+        );
         hideBlockingLoader();
         return;
       }
@@ -146,7 +158,11 @@ export function ExpenseForm(props: ExpenseFormProps) {
 
       <div className="flex items-center justify-end gap-3">
         <Button type="submit" disabled={isSubmitting} className="rounded-2xl px-5">
-          {isSubmitting ? "Saving..." : props.selectedType === "business" ? "Add Business Expense" : "Add Employee Expense"}
+          {isSubmitting
+            ? "Saving..."
+            : props.selectedType === "business"
+              ? "Add Business Expense"
+              : "Add Employee Expense"}
         </Button>
       </div>
     </form>

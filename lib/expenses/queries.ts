@@ -41,7 +41,10 @@ export function resolveExpenseType(value: string | string[] | undefined): Expens
   return expenseTypeQuerySchema.parse(normalizeExpenseSearchParam(value));
 }
 
-export async function getExpenseBranchesForUser(currentUser: AuthenticatedUser, db?: Queryable): Promise<ExpenseBranchOption[]> {
+export async function getExpenseBranchesForUser(
+  currentUser: AuthenticatedUser,
+  db?: Queryable,
+): Promise<ExpenseBranchOption[]> {
   if (currentUser.role !== "admin") {
     return currentUser.branchId
       ? [
@@ -65,7 +68,10 @@ export async function getExpenseBranchesForUser(currentUser: AuthenticatedUser, 
   return rows;
 }
 
-export async function getExpenseCategories(type: ExpenseType, db?: Queryable): Promise<ExpenseCategoryOption[]> {
+export async function getExpenseCategories(
+  type: ExpenseType,
+  db?: Queryable,
+): Promise<ExpenseCategoryOption[]> {
   const scopes = type === "business" ? ["branch", "both"] : ["employee", "both"];
   const { rows } = await getQueryable(db).query<ExpenseCategoryOption>(
     `
@@ -85,7 +91,10 @@ export async function getExpenseCategories(type: ExpenseType, db?: Queryable): P
   return rows;
 }
 
-export async function getExpenseEmployees(branchId: string | null, db?: Queryable): Promise<ExpenseEmployeeOption[]> {
+export async function getExpenseEmployees(
+  branchId: string | null,
+  db?: Queryable,
+): Promise<ExpenseEmployeeOption[]> {
   const { rows } = await getQueryable(db).query<ExpenseEmployeeOption>(
     `
       SELECT
@@ -105,7 +114,10 @@ export async function getExpenseEmployees(branchId: string | null, db?: Queryabl
   return rows;
 }
 
-export async function getExpenseVendors(branchId: string | null, db?: Queryable): Promise<ExpenseVendorOption[]> {
+export async function getExpenseVendors(
+  branchId: string | null,
+  db?: Queryable,
+): Promise<ExpenseVendorOption[]> {
   const { rows } = await getQueryable(db).query<ExpenseVendorOption>(
     `
       SELECT DISTINCT
@@ -133,7 +145,10 @@ export async function getExpenseVendors(branchId: string | null, db?: Queryable)
   return rows;
 }
 
-export async function getExpenseOrders(branchId: string, db?: Queryable): Promise<ExpenseOrderOption[]> {
+export async function getExpenseOrders(
+  branchId: string,
+  db?: Queryable,
+): Promise<ExpenseOrderOption[]> {
   const { rows } = await getQueryable(db).query<ExpenseOrderOption>(
     `
       SELECT
@@ -160,7 +175,10 @@ export async function getExpenseOrders(branchId: string, db?: Queryable): Promis
   return rows;
 }
 
-export async function getExpenseOrderVendors(branchId: string, db?: Queryable): Promise<ExpenseOrderVendorOption[]> {
+export async function getExpenseOrderVendors(
+  branchId: string,
+  db?: Queryable,
+): Promise<ExpenseOrderVendorOption[]> {
   const { rows } = await getQueryable(db).query<ExpenseOrderVendorOption>(
     `
       SELECT
@@ -191,14 +209,23 @@ export async function getExpenseFormPageData(
   type: ExpenseType,
   db?: Queryable,
 ): Promise<ExpenseFormPageData> {
-  const [branchOptions, categoryOptions, employees, vendors, orders, orderVendors] = await Promise.all([
-    getExpenseBranchesForUser(currentUser, db),
-    getExpenseCategories(type, db),
-    type === "employee" ? getExpenseEmployees(branchId, db) : Promise.resolve<ExpenseEmployeeOption[]>([]),
-    type === "business" ? getExpenseVendors(branchId, db) : Promise.resolve<ExpenseVendorOption[]>([]),
-    type === "employee" ? getExpenseOrders(branchId, db) : Promise.resolve<ExpenseOrderOption[]>([]),
-    type === "business" ? getExpenseOrderVendors(branchId, db) : Promise.resolve<ExpenseOrderVendorOption[]>([]),
-  ]);
+  const [branchOptions, categoryOptions, employees, vendors, orders, orderVendors] =
+    await Promise.all([
+      getExpenseBranchesForUser(currentUser, db),
+      getExpenseCategories(type, db),
+      type === "employee"
+        ? getExpenseEmployees(branchId, db)
+        : Promise.resolve<ExpenseEmployeeOption[]>([]),
+      type === "business"
+        ? getExpenseVendors(branchId, db)
+        : Promise.resolve<ExpenseVendorOption[]>([]),
+      type === "employee"
+        ? getExpenseOrders(branchId, db)
+        : Promise.resolve<ExpenseOrderOption[]>([]),
+      type === "business"
+        ? getExpenseOrderVendors(branchId, db)
+        : Promise.resolve<ExpenseOrderVendorOption[]>([]),
+    ]);
 
   const selectedBranch = branchOptions.find((option) => option.id === branchId);
 

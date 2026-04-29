@@ -85,7 +85,9 @@ function isValidOrderDateField(value: string | undefined): value is OrderDateFie
   return orderDateFieldValues.includes(value as OrderDateField);
 }
 
-function isValidPaymentModeValue(value: string | undefined): value is (typeof paymentModeValues)[number] {
+function isValidPaymentModeValue(
+  value: string | undefined,
+): value is (typeof paymentModeValues)[number] {
   return paymentModeValues.includes(value as (typeof paymentModeValues)[number]);
 }
 
@@ -169,8 +171,12 @@ export function parseOrderPageFilters(
   const paidMax = normalizeAmountInput(normalizeDashboardSearchParam(searchParams?.paidMax));
   const normalizedPaid = normalizeAmountRange(paidMin, paidMax);
 
-  const outstandingMin = normalizeAmountInput(normalizeDashboardSearchParam(searchParams?.outstandingMin));
-  const outstandingMax = normalizeAmountInput(normalizeDashboardSearchParam(searchParams?.outstandingMax));
+  const outstandingMin = normalizeAmountInput(
+    normalizeDashboardSearchParam(searchParams?.outstandingMin),
+  );
+  const outstandingMax = normalizeAmountInput(
+    normalizeDashboardSearchParam(searchParams?.outstandingMax),
+  );
   const normalizedOutstanding = normalizeAmountRange(outstandingMin, outstandingMax);
 
   return {
@@ -205,7 +211,10 @@ export function buildOrderPageHref(
 
   const normalizedPayable = normalizeAmountRange(nextFilters.payableMin, nextFilters.payableMax);
   const normalizedPaid = normalizeAmountRange(nextFilters.paidMin, nextFilters.paidMax);
-  const normalizedOutstanding = normalizeAmountRange(nextFilters.outstandingMin, nextFilters.outstandingMax);
+  const normalizedOutstanding = normalizeAmountRange(
+    nextFilters.outstandingMin,
+    nextFilters.outstandingMax,
+  );
 
   const searchParams = new URLSearchParams();
 

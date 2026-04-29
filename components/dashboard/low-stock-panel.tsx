@@ -10,7 +10,9 @@ export function LowStockPanel({ items }: LowStockPanelProps) {
   return (
     <SectionCard title="Low Stock Inventory" description="Items that need attention soon.">
       {items.length === 0 ? (
-        <p className="text-sm text-[rgb(var(--muted-foreground))]">No low stock items found for this branch.</p>
+        <p className="text-sm text-[rgb(var(--muted-foreground))]">
+          No low stock items found for this branch.
+        </p>
       ) : (
         <div className="space-y-3">
           {items.map((item) => (
@@ -26,7 +28,9 @@ export function LowStockPanel({ items }: LowStockPanelProps) {
               </div>
               <div className="text-right">
                 <p className="text-sm text-[rgb(var(--muted-foreground))]">Quantity</p>
-                <p className="font-semibold text-[rgb(var(--metric-amber-ink))]">{formatCompactNumber(item.quantity)}</p>
+                <p className="font-semibold text-[rgb(var(--metric-amber-ink))]">
+                  {formatCompactNumber(item.quantity)}
+                </p>
               </div>
             </div>
           ))}

@@ -45,7 +45,10 @@ export function BranchFilter({
   return (
     <div className={cn("w-full min-w-0", className)}>
       <label
-        className={cn("mb-2 block text-sm font-medium text-[rgb(var(--foreground))]", hideLabel && "sr-only mb-0")}
+        className={cn(
+          "mb-2 block text-sm font-medium text-[rgb(var(--foreground))]",
+          hideLabel && "sr-only mb-0",
+        )}
         htmlFor={id}
       >
         Branch
@@ -68,11 +71,7 @@ export function BranchFilter({
             });
           }}
         >
-          {!selectedOption ? (
-            <option value={resolvedValue}>
-              {selectedLabel}
-            </option>
-          ) : null}
+          {!selectedOption ? <option value={resolvedValue}>{selectedLabel}</option> : null}
           {options.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
@@ -84,16 +83,19 @@ export function BranchFilter({
           className={cn(
             "flex h-10 items-center gap-3 rounded-2xl border border-[rgb(var(--border))] bg-[rgb(var(--background))] px-3.5 pr-10 shadow-[0_16px_40px_-34px_rgb(var(--shadow)/0.18)] transition-colors",
             "peer-focus-visible:ring-2 peer-focus-visible:ring-[rgb(var(--primary)/0.35)] peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-transparent",
-            !isDisabled && "peer-hover:border-[rgb(var(--border)/1)] peer-hover:bg-[rgb(var(--card))]",
+            !isDisabled &&
+              "peer-hover:border-[rgb(var(--border)/1)] peer-hover:bg-[rgb(var(--card))]",
             isDisabled && "opacity-60",
             selectClassName,
           )}
           title={selectedLabel}
         >
-          <span className="hidden shrink-0 text-[10px] font-semibold uppercase tracking-[0.18em] text-[rgb(var(--muted-foreground))] sm:inline">
+          <span className="hidden shrink-0 text-[10px] font-semibold tracking-[0.18em] text-[rgb(var(--muted-foreground))] uppercase sm:inline">
             Branch
           </span>
-          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[rgb(var(--foreground))]">{selectedLabel}</span>
+          <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[rgb(var(--foreground))]">
+            {selectedLabel}
+          </span>
         </div>
         <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[rgb(var(--muted-foreground))]">
           {isPending ? (

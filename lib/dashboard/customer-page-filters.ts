@@ -190,16 +190,28 @@ export function parseCustomerPageFilters(
   const hasAvatarValue = normalizeDashboardSearchParam(searchParams?.hasAvatar);
   const hasOrdersValue = normalizeDashboardSearchParam(searchParams?.hasOrders);
 
-  const orderCountMin = normalizeAmountInput(normalizeDashboardSearchParam(searchParams?.orderCountMin));
-  const orderCountMax = normalizeAmountInput(normalizeDashboardSearchParam(searchParams?.orderCountMax));
+  const orderCountMin = normalizeAmountInput(
+    normalizeDashboardSearchParam(searchParams?.orderCountMin),
+  );
+  const orderCountMax = normalizeAmountInput(
+    normalizeDashboardSearchParam(searchParams?.orderCountMax),
+  );
   const normalizedOrderCount = normalizeAmountRange(orderCountMin, orderCountMax);
 
-  const totalPayableMin = normalizeAmountInput(normalizeDashboardSearchParam(searchParams?.totalPayableMin));
-  const totalPayableMax = normalizeAmountInput(normalizeDashboardSearchParam(searchParams?.totalPayableMax));
+  const totalPayableMin = normalizeAmountInput(
+    normalizeDashboardSearchParam(searchParams?.totalPayableMin),
+  );
+  const totalPayableMax = normalizeAmountInput(
+    normalizeDashboardSearchParam(searchParams?.totalPayableMax),
+  );
   const normalizedPayable = normalizeAmountRange(totalPayableMin, totalPayableMax);
 
-  const outstandingMin = normalizeAmountInput(normalizeDashboardSearchParam(searchParams?.outstandingMin));
-  const outstandingMax = normalizeAmountInput(normalizeDashboardSearchParam(searchParams?.outstandingMax));
+  const outstandingMin = normalizeAmountInput(
+    normalizeDashboardSearchParam(searchParams?.outstandingMin),
+  );
+  const outstandingMax = normalizeAmountInput(
+    normalizeDashboardSearchParam(searchParams?.outstandingMax),
+  );
   const normalizedOutstanding = normalizeAmountRange(outstandingMin, outstandingMax);
 
   const lastOrderDateFromValue = normalizeDashboardSearchParam(searchParams?.lastOrderDateFrom);
@@ -212,12 +224,20 @@ export function parseCustomerPageFilters(
     type: isValidCustomerType(typeValue) ? typeValue : null,
     name: normalizeCustomerTextInput(normalizeDashboardSearchParam(searchParams?.name)),
     phone: normalizeCustomerTextInput(normalizeDashboardSearchParam(searchParams?.phone)),
-    alternatePhone: normalizeCustomerTextInput(normalizeDashboardSearchParam(searchParams?.alternatePhone)),
-    customerCode: normalizeCustomerTextInput(normalizeDashboardSearchParam(searchParams?.customerCode)),
-    customerNumericId: normalizeCustomerTextInput(normalizeDashboardSearchParam(searchParams?.customerNumericId)),
+    alternatePhone: normalizeCustomerTextInput(
+      normalizeDashboardSearchParam(searchParams?.alternatePhone),
+    ),
+    customerCode: normalizeCustomerTextInput(
+      normalizeDashboardSearchParam(searchParams?.customerCode),
+    ),
+    customerNumericId: normalizeCustomerTextInput(
+      normalizeDashboardSearchParam(searchParams?.customerNumericId),
+    ),
     studioName: normalizeCustomerTextInput(normalizeDashboardSearchParam(searchParams?.studioName)),
     address: normalizeCustomerTextInput(normalizeDashboardSearchParam(searchParams?.address)),
-    hasAlternatePhone: isValidCustomerPresence(hasAlternatePhoneValue) ? hasAlternatePhoneValue : "all",
+    hasAlternatePhone: isValidCustomerPresence(hasAlternatePhoneValue)
+      ? hasAlternatePhoneValue
+      : "all",
     hasStudioName: isValidCustomerPresence(hasStudioNameValue) ? hasStudioNameValue : "all",
     hasAddress: isValidCustomerPresence(hasAddressValue) ? hasAddressValue : "all",
     hasAvatar: isValidCustomerPresence(hasAvatarValue) ? hasAvatarValue : "all",
@@ -225,15 +245,21 @@ export function parseCustomerPageFilters(
     orderCountMin: normalizedOrderCount.min,
     orderCountMax: normalizedOrderCount.max,
     lastOrderDateFrom:
-      lastOrderDateFromValue && isValidDateInput(lastOrderDateFromValue) ? lastOrderDateFromValue : null,
+      lastOrderDateFromValue && isValidDateInput(lastOrderDateFromValue)
+        ? lastOrderDateFromValue
+        : null,
     lastOrderDateTo:
       lastOrderDateToValue && isValidDateInput(lastOrderDateToValue) ? lastOrderDateToValue : null,
     totalPayableMin: normalizedPayable.min,
     totalPayableMax: normalizedPayable.max,
     outstandingMin: normalizedOutstanding.min,
     outstandingMax: normalizedOutstanding.max,
-    lastOrderStatus: normalizeCustomerTextInput(normalizeDashboardSearchParam(searchParams?.lastOrderStatus)),
-    lastPaymentStatus: normalizeCustomerTextInput(normalizeDashboardSearchParam(searchParams?.lastPaymentStatus)),
+    lastOrderStatus: normalizeCustomerTextInput(
+      normalizeDashboardSearchParam(searchParams?.lastOrderStatus),
+    ),
+    lastPaymentStatus: normalizeCustomerTextInput(
+      normalizeDashboardSearchParam(searchParams?.lastPaymentStatus),
+    ),
   };
 }
 
@@ -243,9 +269,18 @@ export function buildCustomerPageHref(
   overrides?: Partial<CustomerPageFilterState>,
 ): string {
   const nextFilters = { ...filters, ...overrides };
-  const normalizedPayable = normalizeAmountRange(nextFilters.totalPayableMin, nextFilters.totalPayableMax);
-  const normalizedOutstanding = normalizeAmountRange(nextFilters.outstandingMin, nextFilters.outstandingMax);
-  const normalizedOrderCount = normalizeAmountRange(nextFilters.orderCountMin, nextFilters.orderCountMax);
+  const normalizedPayable = normalizeAmountRange(
+    nextFilters.totalPayableMin,
+    nextFilters.totalPayableMax,
+  );
+  const normalizedOutstanding = normalizeAmountRange(
+    nextFilters.outstandingMin,
+    nextFilters.outstandingMax,
+  );
+  const normalizedOrderCount = normalizeAmountRange(
+    nextFilters.orderCountMin,
+    nextFilters.orderCountMax,
+  );
   const searchParams = new URLSearchParams();
 
   if (nextFilters.branchId) {

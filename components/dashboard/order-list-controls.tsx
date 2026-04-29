@@ -2,7 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { AppliedFilterPills, type AppliedFilterSummaryItem } from "@/components/dashboard/applied-filter-pills";
+import {
+  AppliedFilterPills,
+  type AppliedFilterSummaryItem,
+} from "@/components/dashboard/applied-filter-pills";
 import { FilterDrawerShell } from "@/components/dashboard/filter-drawer-shell";
 import { FilterTriggerButton } from "@/components/dashboard/filter-trigger-button";
 import { useFilterDrawer } from "@/components/dashboard/use-filter-drawer";
@@ -46,41 +49,61 @@ function toDraftFilters(filters: OrderPageFilterState): OrderPageFilterState {
 
 function getOrderStatusLabel(status: string): string {
   switch (status) {
-    case "pending":     return "Pending";
-    case "processing":  return "Processing";
-    case "completed":   return "Completed";
-    case "delivered":   return "Delivered";
-    case "cancelled":   return "Cancelled";
-    default:            return status;
+    case "pending":
+      return "Pending";
+    case "processing":
+      return "Processing";
+    case "completed":
+      return "Completed";
+    case "delivered":
+      return "Delivered";
+    case "cancelled":
+      return "Cancelled";
+    default:
+      return status;
   }
 }
 
 function getOrderPaymentStatusLabel(status: string): string {
   switch (status) {
-    case "paid":    return "Paid";
-    case "partial": return "Partial";
-    case "pending": return "Unpaid";
-    default:        return status;
+    case "paid":
+      return "Paid";
+    case "partial":
+      return "Partial";
+    case "pending":
+      return "Unpaid";
+    default:
+      return status;
   }
 }
 
 function getOrderStatusTone(status: string): DataPillTone {
   switch (status) {
-    case "pending":     return "amber";
-    case "processing":  return "blue";
-    case "completed":   return "emerald";
-    case "delivered":   return "violet";
-    case "cancelled":   return "rose";
-    default:            return "neutral";
+    case "pending":
+      return "amber";
+    case "processing":
+      return "blue";
+    case "completed":
+      return "emerald";
+    case "delivered":
+      return "violet";
+    case "cancelled":
+      return "rose";
+    default:
+      return "neutral";
   }
 }
 
 function getOrderPaymentStatusTone(status: string): DataPillTone {
   switch (status) {
-    case "paid":    return "emerald";
-    case "partial": return "amber";
-    case "pending": return "rose";
-    default:        return "neutral";
+    case "paid":
+      return "emerald";
+    case "partial":
+      return "amber";
+    case "pending":
+      return "rose";
+    default:
+      return "neutral";
   }
 }
 
@@ -178,7 +201,8 @@ function buildAppliedFilterSummaryItems(
   }
 
   if (filters.orderCode) items.push({ key: "orderCode", label: `Code: ${filters.orderCode}` });
-  if (filters.txnReference) items.push({ key: "txnReference", label: `Txn: ${filters.txnReference}` });
+  if (filters.txnReference)
+    items.push({ key: "txnReference", label: `Txn: ${filters.txnReference}` });
 
   if (filters.inventoryId) {
     const item = filterOptions.inventoryItems.find((i) => i.id === filters.inventoryId);
@@ -242,7 +266,10 @@ export function OrderListControls({
     [currentFilters, currentPath],
   );
   const activeFilterCount = useMemo(() => getActiveFilterCount(currentFilters), [currentFilters]);
-  const primaryFilterSummary = useMemo(() => buildPrimaryFilterSummary(currentFilters), [currentFilters]);
+  const primaryFilterSummary = useMemo(
+    () => buildPrimaryFilterSummary(currentFilters),
+    [currentFilters],
+  );
   const appliedFilterItems = useMemo(
     () => buildAppliedFilterSummaryItems(currentFilters, filterOptions, selectedBranchName),
     [currentFilters, filterOptions, selectedBranchName],
@@ -265,7 +292,10 @@ export function OrderListControls({
   } = useFilterDrawer({ currentHref, currentFilters, toDraftFilters });
 
   const advancedPanelId = `${filterPanelId.split("-filter-panel")[0]}-advanced-filters`;
-  const currentDatePreset = getOrderQuickDatePreset({ from: draftFilters.from, to: draftFilters.to });
+  const currentDatePreset = getOrderQuickDatePreset({
+    from: draftFilters.from,
+    to: draftFilters.to,
+  });
   const advancedFilterCount = useMemo(() => getAdvancedFilterCount(draftFilters), [draftFilters]);
 
   const drawerSubtitle =
@@ -280,9 +310,7 @@ export function OrderListControls({
     toggleFilterDrawer();
   };
 
-  const updateDraftFilters = (
-    updater: (current: OrderPageFilterState) => OrderPageFilterState,
-  ) => {
+  const updateDraftFilters = (updater: (current: OrderPageFilterState) => OrderPageFilterState) => {
     setDraftFilters((current) => updater(current));
   };
 
@@ -290,11 +318,13 @@ export function OrderListControls({
     if (preset === "custom") return;
 
     const nextDateRange =
-      preset === "last-month"
-        ? getLastMonthOrderDateRange()
-        : getCurrentMonthDashboardDateRange();
+      preset === "last-month" ? getLastMonthOrderDateRange() : getCurrentMonthDashboardDateRange();
 
-    updateDraftFilters((current) => ({ ...current, from: nextDateRange.from, to: nextDateRange.to }));
+    updateDraftFilters((current) => ({
+      ...current,
+      from: nextDateRange.from,
+      to: nextDateRange.to,
+    }));
   };
 
   const handleApplyFilters = () => {
@@ -415,7 +445,7 @@ export function OrderListControls({
                     onClick={() => handleDatePresetSelect(preset)}
                     className={cn(
                       "rounded-full border px-3 py-2 text-xs font-semibold capitalize transition-colors",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent",
+                      "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
                       isActive
                         ? "border-[rgb(var(--primary)/0.38)] bg-[rgb(var(--primary-soft))] text-[rgb(var(--primary-soft-foreground))]"
                         : "border-[rgb(var(--border))] bg-[rgb(var(--background))] text-[rgb(var(--muted-foreground))] hover:text-[rgb(var(--foreground))]",

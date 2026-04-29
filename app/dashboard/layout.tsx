@@ -15,7 +15,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <>
       <SessionHeartbeat />
-      <DashboardShellWrapper currentUserPromise={currentUserPromise}>{children}</DashboardShellWrapper>
+      <DashboardShellWrapper currentUserPromise={currentUserPromise}>
+        {children}
+      </DashboardShellWrapper>
     </>
   );
 }

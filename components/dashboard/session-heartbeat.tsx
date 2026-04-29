@@ -22,9 +22,12 @@ export function SessionHeartbeat() {
       }
     };
 
-    const intervalId = window.setInterval(() => {
-      void sendHeartbeat();
-    }, 5 * 60 * 1000);
+    const intervalId = window.setInterval(
+      () => {
+        void sendHeartbeat();
+      },
+      5 * 60 * 1000,
+    );
 
     return () => {
       window.clearInterval(intervalId);
@@ -33,4 +36,3 @@ export function SessionHeartbeat() {
 
   return null;
 }
-

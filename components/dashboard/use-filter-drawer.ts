@@ -63,7 +63,7 @@ export function useFilterDrawer<TFilters, TDraft>({
 
   useEffect(() => {
     setDraftFilters(toDraftFiltersRef.current(currentFilters));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [currentFilters]);
 
   useEffect(() => {

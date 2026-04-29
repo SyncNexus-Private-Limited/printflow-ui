@@ -95,7 +95,7 @@ export function Dialog({
       document.body.style.overflow = prev;
       document.removeEventListener("keydown", handleKeyDown);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [isOpen]);
 
   if (!isOpen || typeof document === "undefined") return null;

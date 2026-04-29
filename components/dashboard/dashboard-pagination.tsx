@@ -1,11 +1,12 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, ChevronsUpDown } from "lucide-react";
-import { useMemo } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
-import { cn, suggestCanonicalClasses } from "@/lib/utils/cn";
+import {
+  buildActiveUsersPageHref,
+  buildActiveUsersPaginationHref,
+  type ActiveUserPageFilterState,
+} from "@/lib/dashboard/active-users-page-filters";
 import {
   buildCustomerPageHref,
   buildCustomerPaginationHref,
@@ -16,6 +17,7 @@ import {
   buildExpensePaginationHref,
   type ExpensePageFilterState,
 } from "@/lib/dashboard/expense-page-filters";
+import { isSameHref } from "@/lib/dashboard/href-utils";
 import {
   buildInventoryPageHref,
   buildInventoryPaginationHref,
@@ -27,16 +29,6 @@ import {
   type OrderPageFilterState,
 } from "@/lib/dashboard/order-page-filters";
 import {
-  buildActiveUsersPageHref,
-  buildActiveUsersPaginationHref,
-  type ActiveUserPageFilterState,
-} from "@/lib/dashboard/active-users-page-filters";
-import {
-  buildUsersPageHref,
-  buildUsersPaginationHref,
-  type UserManagementPageFilterState,
-} from "@/lib/dashboard/users-page-filters";
-import {
   DASHBOARD_PAGE_SIZE_OPTIONS,
   buildDashboardPageHref,
   buildDashboardPaginationHref,
@@ -46,7 +38,15 @@ import type {
   DashboardPageFilterState,
   DashboardPaginationState,
 } from "@/lib/dashboard/types";
-import { isSameHref } from "@/lib/dashboard/href-utils";
+import {
+  buildUsersPageHref,
+  buildUsersPaginationHref,
+  type UserManagementPageFilterState,
+} from "@/lib/dashboard/users-page-filters";
+import { cn, suggestCanonicalClasses } from "@/lib/utils/cn";
+import { ChevronLeft, ChevronRight, ChevronsUpDown } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 
 type DashboardPaginationProps<
   TFilters extends DashboardBaseFilterState = DashboardPageFilterState,

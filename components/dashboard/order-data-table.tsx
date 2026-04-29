@@ -1,38 +1,37 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { DashboardPagination } from "@/components/dashboard/dashboard-pagination";
 import {
   DataPill,
-  getOrderStatusTone,
-  getOrderStatusLabel,
-  getOrderPaymentStatusTone,
   getOrderPaymentStatusLabel,
+  getOrderPaymentStatusTone,
+  getOrderStatusLabel,
+  getOrderStatusTone,
 } from "@/components/dashboard/data-pill";
 import { DataTableContainer } from "@/components/dashboard/data-table-container";
-import { DashboardPagination } from "@/components/dashboard/dashboard-pagination";
 import { SortableHeaderCell } from "@/components/dashboard/sortable-header-cell";
 import { TableEmptyState } from "@/components/dashboard/table-empty-state";
 import { TableScrollArea } from "@/components/dashboard/table-scroll-area";
+import { TABLE_BODY_CELL_CLASS, TABLE_HEADER_CELL_CLASS } from "@/lib/dashboard/list-page-classes";
 import {
   buildOrderPageHref,
   type OrderPageFilterState,
   type OrderSortValue,
 } from "@/lib/dashboard/order-page-filters";
-import { TABLE_BODY_CELL_CLASS, TABLE_HEADER_CELL_CLASS } from "@/lib/dashboard/list-page-classes";
 import { type HeaderSortConfig } from "@/lib/dashboard/sortable-header-utils";
 import {
-  type ColumnStickyDef,
-  type StickySpec,
   computeStickySpecs,
   getStickyBodyCellClass,
   getStickyBodyCellStyle,
   getStickyEdgeTotalWidth,
   getStickyHeaderCellClass,
   getStickyHeaderCellStyle,
+  type ColumnStickyDef,
 } from "@/lib/dashboard/sticky-column-utils";
 import type { DashboardPaginationState, OrderDetailRow } from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils/cn";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
+import { useRouter } from "next/navigation";
 
 type OrderDataTableProps = {
   items: OrderDetailRow[];

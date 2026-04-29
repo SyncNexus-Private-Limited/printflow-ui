@@ -1,4 +1,3 @@
-import { cn } from "@/lib/utils/cn";
 import { DataTableContainer } from "@/components/dashboard/data-table-container";
 
 type TableEmptyStateProps = {

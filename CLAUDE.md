@@ -31,6 +31,13 @@ React UI (Server Components by default)
 | Icons       | `lucide-react`                           |
 | State       | Server Components + React context only   |
 
+## Code Quality
+
+- Prettier 3 formats code; `prettier-plugin-tailwindcss` sorts Tailwind classes
+- SQL is formatted through `prettier-plugin-sql` using PostgreSQL dialect
+- ESLint 9 uses Next.js `core-web-vitals` + `next/typescript`
+- `eslint-config-prettier` keeps lint rules from fighting Prettier
+
 ## File Map
 
 ```
@@ -93,7 +100,12 @@ middleware.ts           # Protects /dashboard/*, redirects /login if already aut
 ## Commands
 
 ```bash
-npm run dev / build / start / typecheck
+npm run dev / build / start
+npm run typecheck
+npm run lint
+npm run lint:fix
+npm run format:check
+npm run format
 
 # DB — always run npm run db:target first to confirm env
 npm run db:target
@@ -302,7 +314,8 @@ All six list pages share a common structure:
 - Prefer existing utilities, types, and components
 - TypeScript strict. Avoid `any` unless unavoidable and justified
 - `lib/db/postgres.ts` and `lib/auth/current-user.ts` are `server-only` — do not import from client components
-- Validate after edits: `npm run typecheck`, `npm run build`
+- Validate after edits: `npm run format:check`, `npm run lint`, `npm run typecheck`; run `npm run build` for broader app changes
+- Use `npm run format` only when intentionally formatting touched files or doing a formatting-only pass
 
 ## Safety Rules
 

@@ -18,9 +18,20 @@ npm run dev
 - Useful local checks:
 
 ```bash
+npm run format:check
+npm run lint
 npm run typecheck
 npm run build
 ```
+
+## Code quality
+
+- `npm run format`: format with Prettier.
+- `npm run format:check`: check Prettier formatting.
+- `npm run lint`: run ESLint.
+- `npm run lint:fix`: run ESLint fixes.
+
+Prettier handles formatting, Tailwind class sorting, and PostgreSQL SQL formatting. ESLint handles Next.js, TypeScript, React, and code-quality checks without fighting Prettier.
 
 ## Database overview
 

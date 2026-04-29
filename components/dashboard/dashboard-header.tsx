@@ -16,13 +16,25 @@ type DashboardHeaderProps = {
   }>;
   selectedBranchValue: string;
   branchFilterDisabled?: boolean;
+  /** Shown only on the overview page (/dashboard). Replaces the static title with a time-aware greeting. */
+  greetingName?: string;
+  greetingBranchName?: string;
 };
+
+function getGreetingWord() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+}
 
 export function DashboardHeader({
   title,
   branchOptions,
   selectedBranchValue,
   branchFilterDisabled = false,
+  greetingName,
+  greetingBranchName,
 }: DashboardHeaderProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -77,7 +89,23 @@ export function DashboardHeader({
         </nav>
       ) : null}
 
-      <h1 className="text-2xl font-semibold tracking-tight text-[rgb(var(--foreground))] sm:text-3xl">{title}</h1>
+      {isOverviewHeader && greetingName ? (
+        <div className="space-y-1">
+          <h1
+            className="text-2xl font-semibold tracking-tight text-[rgb(var(--foreground))] sm:text-3xl"
+            suppressHydrationWarning
+          >
+            {getGreetingWord()}, {greetingName}.
+          </h1>
+          {greetingBranchName ? (
+            <p className="text-sm text-[rgb(var(--muted-foreground))]">
+              Here&apos;s what&apos;s happening at {greetingBranchName} today.
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <h1 className="text-2xl font-semibold tracking-tight text-[rgb(var(--foreground))] sm:text-3xl">{title}</h1>
+      )}
     </header>
   );
 }

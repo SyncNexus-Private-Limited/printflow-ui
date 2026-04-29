@@ -113,21 +113,23 @@ function ResetPasswordDialog({
   user: UserManagementRow | null;
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (newPassword: string) => void;
+  onConfirm: (newPassword: string, mustResetPassword: boolean) => void;
   isPending: boolean;
 }) {
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [mustResetPassword, setMustResetPassword] = useState(false);
 
   function handleClose() {
     setNewPassword("");
     setShowPassword(false);
+    setMustResetPassword(false);
     onClose();
   }
 
   function handleSubmit() {
     if (newPassword.length >= 8 && !isPending) {
-      onConfirm(newPassword);
+      onConfirm(newPassword, mustResetPassword);
     }
   }
 
@@ -138,12 +140,13 @@ function ResetPasswordDialog({
       <div className="px-5 pb-5 pt-4">
         {user ? (
           <p className="mb-4 text-sm text-[rgb(var(--muted-foreground))]">
-            Set a new password for <span className="font-semibold text-[rgb(var(--foreground))]">{user.fullName}</span>. The
+            Set a new password for{" "}
+            <span className="font-semibold text-[rgb(var(--foreground))]">{user.fullName}</span>. The
             existing password will be replaced immediately.
           </p>
         ) : null}
 
-        <div className="mb-5 space-y-2">
+        <div className="mb-4 space-y-2">
           <label
             htmlFor="reset-password-input"
             className="block text-[11px] font-semibold uppercase tracking-[0.16em] text-[rgb(var(--muted-foreground))]"
@@ -177,6 +180,19 @@ function ResetPasswordDialog({
             <p className="text-sm text-[rgb(var(--danger))]">Password must be at least 8 characters.</p>
           ) : null}
         </div>
+
+        <label className="mb-5 flex cursor-pointer items-start gap-2.5">
+          <input
+            type="checkbox"
+            checked={mustResetPassword}
+            onChange={(e) => setMustResetPassword(e.target.checked)}
+            disabled={isPending}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-[rgb(var(--primary))]"
+          />
+          <span className="text-sm text-[rgb(var(--foreground)/0.82)]">
+            Require password change on next login
+          </span>
+        </label>
 
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button
@@ -248,7 +264,10 @@ export function UserManagementDataTable({
     router.replace(nextHref, { scroll: false });
   };
 
-  async function executeAction(action: PendingAction, extraData?: { newPassword: string }) {
+  async function executeAction(
+    action: PendingAction,
+    extraData?: { newPassword: string; mustResetPassword: boolean },
+  ) {
     setErrorMessage(null);
 
     try {
@@ -258,7 +277,10 @@ export function UserManagementDataTable({
         response = await fetch(`/api/users/${action.user.id}/reset-password`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ newPassword: extraData?.newPassword ?? "" }),
+          body: JSON.stringify({
+            newPassword: extraData?.newPassword ?? "",
+            mustResetPassword: extraData?.mustResetPassword ?? false,
+          }),
         });
       } else {
         const body =
@@ -547,9 +569,9 @@ export function UserManagementDataTable({
           setPendingAction(null);
           setErrorMessage(null);
         }}
-        onConfirm={(newPassword) => {
+        onConfirm={(newPassword, mustResetPassword) => {
           if (pendingAction?.type === "reset-password") {
-            executeAction(pendingAction, { newPassword });
+            executeAction(pendingAction, { newPassword, mustResetPassword });
           }
         }}
         isPending={isActionPending}

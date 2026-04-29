@@ -79,6 +79,7 @@ export type EditUserRow = {
   isActive: boolean;
   username: string;
   updatedAt: string;
+  updatedByName: string | null;
 };
 
 export type EditUserFormPageData = {

@@ -7,6 +7,7 @@ export const runtime = "nodejs";
 
 const resetPasswordSchema = z.object({
   newPassword: z.string().min(8, "Password must be at least 8 characters."),
+  mustResetPassword: z.boolean().optional().default(false),
 });
 
 function getUnauthorizedResponse() {
@@ -36,7 +37,12 @@ export async function POST(
       );
     }
 
-    await resetUserPassword(currentUser, targetUserId, parsed.data.newPassword);
+    await resetUserPassword(
+      currentUser,
+      targetUserId,
+      parsed.data.newPassword,
+      parsed.data.mustResetPassword,
+    );
 
     return NextResponse.json({ success: true, message: "Password reset successfully." });
   } catch (error) {

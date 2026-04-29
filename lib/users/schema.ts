@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { userRoleValues, createUserFieldNames, updateUserFieldNames, type CreateUserFieldName, type UpdateUserFieldName } from "@/lib/users/types";
+import { requiresBranch } from "@/lib/users/role-rules";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const usernamePattern = /^[a-z0-9_.-]+$/i;
@@ -71,7 +72,7 @@ export const createUserSchema = z
   })
   .superRefine((data, ctx) => {
     // Branch is required for all non-admin roles.
-    if (data.role !== "admin") {
+    if (requiresBranch(data.role)) {
       if (!data.branchId || !uuidPattern.test(data.branchId)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -143,7 +144,7 @@ export const updateUserSchema = z
     isActive: z.boolean().default(true),
   })
   .superRefine((data, ctx) => {
-    if (data.role !== "admin") {
+    if (requiresBranch(data.role)) {
       if (!data.branchId || !uuidPattern.test(data.branchId)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,

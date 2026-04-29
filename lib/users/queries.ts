@@ -51,10 +51,12 @@ export async function getUserById(id: string): Promise<EditUserRow | null> {
         b.name AS "branchName",
         u.is_active AS "isActive",
         COALESCE(ua.username, '') AS username,
-        u.updated_at::text AS "updatedAt"
+        u.updated_at::text AS "updatedAt",
+        updater.full_name AS "updatedByName"
       FROM users u
       LEFT JOIN user_auth ua ON ua.user_id = u.id
       LEFT JOIN branches b ON b.id = u.branch_id
+      LEFT JOIN users updater ON updater.id = u.updated_by
       WHERE u.id = $1::uuid
       LIMIT 1
     `,

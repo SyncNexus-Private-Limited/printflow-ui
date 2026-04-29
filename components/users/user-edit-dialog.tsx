@@ -87,7 +87,7 @@ function LoadingShimmer() {
         {[1, 2, 3, 4].map((i) => (
           <div
             key={i}
-            className="h-[88px] animate-pulse rounded-[22px] bg-[rgb(var(--muted)/0.5)]"
+            className="h-22 animate-pulse rounded-[22px] bg-[rgb(var(--muted)/0.5)]"
           />
         ))}
       </div>
@@ -420,7 +420,10 @@ export function UserEditDialog({ userId, onClose, onSuccess }: UserEditDialogPro
           <div className="sticky bottom-0 border-t border-[rgb(var(--border)/0.62)] bg-[rgb(var(--card)/0.98)] px-5 py-4">
             {readyState?.user.updatedAt ? (
               <p className="mb-3 text-xs text-[rgb(var(--muted-foreground))]">
-                Last updated on {formatDateTime(readyState.user.updatedAt)}
+                Last edited on {formatDateTime(readyState.user.updatedAt)}
+                {readyState.user.updatedByName
+                  ? ` by ${readyState.user.updatedByName}`
+                  : null}
               </p>
             ) : null}
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">

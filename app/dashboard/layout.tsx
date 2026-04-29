@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { SessionHeartbeat } from "@/components/dashboard/session-heartbeat";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasPermission } from "@/lib/auth/permissions";
 
 type DashboardLayoutProps = {
   children: ReactNode;
@@ -39,7 +40,9 @@ async function DashboardShellWrapper({
     <DashboardShell
       initialBranchId={currentUser.branchId ?? null}
       initialBranchName={currentUser.branchName ?? null}
-      canSelectAllBranches={currentUser.role === "admin"}
+      canSelectAllBranches={hasPermission(currentUser, "branches:select_all")}
+      canManageUsers={hasPermission(currentUser, "users:view")}
+      canCreateUser={hasPermission(currentUser, "users:create")}
     >
       {children}
     </DashboardShell>

@@ -1,6 +1,7 @@
 import "server-only";
 import type { PoolClient } from "pg";
 import type { AuthenticatedUser } from "@/lib/auth/current-user";
+import { canAccessBranch, hasPermission } from "@/lib/auth/permissions";
 import { buildBranchHref } from "@/lib/dashboard/helpers";
 import type { CreateExpenseInput, UpdateBusinessExpenseInput, UpdateEmployeeExpenseInput } from "@/lib/expenses/schema";
 import { getExpenseBranchesForUser } from "@/lib/expenses/queries";
@@ -194,6 +195,10 @@ async function getOrderVendorForBranch(client: PoolClient, orderVendorId: string
 }
 
 export async function createExpense(currentUser: AuthenticatedUser, input: CreateExpenseInput): Promise<CreateExpenseSuccessPayload> {
+  if (!hasPermission(currentUser, "expenses:create")) {
+    throw new ExpenseMutationError("You do not have permission to create expenses.", { status: 403 });
+  }
+
   const pool = getPool();
   const client = await pool.connect();
 
@@ -421,8 +426,11 @@ export async function updateEmployeeExpense(
       throw new ExpenseMutationError("Expense not found.", { status: 404 });
     }
 
-    // 2. Branch authorization
-    if (currentUser.role !== "admin" && existing.branch_id !== currentUser.branchId) {
+    // 2. Permission + branch scope check (separate concerns — see lib/auth/permissions.ts)
+    if (!hasPermission(currentUser, "expenses:edit")) {
+      throw new ExpenseMutationError("You do not have permission to edit expenses.", { status: 403 });
+    }
+    if (!canAccessBranch(currentUser, existing.branch_id)) {
       throw new ExpenseMutationError("You cannot edit this expense.", { status: 403 });
     }
 
@@ -562,8 +570,11 @@ export async function deleteEmployeeExpense(
       throw new ExpenseMutationError("Expense not found.", { status: 404 });
     }
 
-    // 2. Branch authorization
-    if (currentUser.role !== "admin" && existing.branch_id !== currentUser.branchId) {
+    // 2. Permission + branch scope check (separate concerns — see lib/auth/permissions.ts)
+    if (!hasPermission(currentUser, "expenses:delete")) {
+      throw new ExpenseMutationError("You do not have permission to delete expenses.", { status: 403 });
+    }
+    if (!canAccessBranch(currentUser, existing.branch_id)) {
       throw new ExpenseMutationError("You cannot delete this expense.", { status: 403 });
     }
 
@@ -654,8 +665,11 @@ export async function updateBusinessExpense(
       throw new ExpenseMutationError("Expense not found.", { status: 404 });
     }
 
-    // 2. Branch authorization
-    if (currentUser.role !== "admin" && existing.branch_id !== currentUser.branchId) {
+    // 2. Permission + branch scope check (separate concerns — see lib/auth/permissions.ts)
+    if (!hasPermission(currentUser, "expenses:edit")) {
+      throw new ExpenseMutationError("You do not have permission to edit expenses.", { status: 403 });
+    }
+    if (!canAccessBranch(currentUser, existing.branch_id)) {
       throw new ExpenseMutationError("You cannot edit this expense.", { status: 403 });
     }
 
@@ -782,8 +796,11 @@ export async function deleteBusinessExpense(
       throw new ExpenseMutationError("Expense not found.", { status: 404 });
     }
 
-    // 2. Branch authorization
-    if (currentUser.role !== "admin" && existing.branch_id !== currentUser.branchId) {
+    // 2. Permission + branch scope check (separate concerns — see lib/auth/permissions.ts)
+    if (!hasPermission(currentUser, "expenses:delete")) {
+      throw new ExpenseMutationError("You do not have permission to delete expenses.", { status: 403 });
+    }
+    if (!canAccessBranch(currentUser, existing.branch_id)) {
       throw new ExpenseMutationError("You cannot delete this expense.", { status: 403 });
     }
 

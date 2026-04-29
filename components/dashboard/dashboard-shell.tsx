@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { DashboardChromeProvider } from "@/components/dashboard/dashboard-chrome-context";
 import { buildDashboardHref } from "@/components/dashboard/dashboard-navigation";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
+import { ForbiddenToast } from "@/components/dashboard/forbidden-toast";
 import { TopNavbar } from "@/components/dashboard/top-navbar";
 import { getDashboardNavigationFilterState } from "@/lib/dashboard/page-filters";
 import { cn } from "@/lib/utils/cn";
@@ -17,6 +18,8 @@ type DashboardShellProps = {
   initialBranchId: string | null;
   initialBranchName: string | null;
   canSelectAllBranches: boolean;
+  canManageUsers: boolean;
+  canCreateUser: boolean;
 };
 
 function readDesktopSidebarPreference() {
@@ -60,6 +63,8 @@ export function DashboardShell({
   initialBranchId,
   initialBranchName,
   canSelectAllBranches,
+  canManageUsers,
+  canCreateUser,
 }: DashboardShellProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -155,6 +160,7 @@ export function DashboardShell({
 
   return (
     <DashboardChromeProvider>
+      <ForbiddenToast />
       <div className="min-h-screen bg-[rgb(var(--background))]" data-dashboard-shell>
         <TopNavbar
           onOpenMobileMenu={openMobileSidebar}
@@ -164,6 +170,7 @@ export function DashboardShell({
           initialBranchId={initialBranchId}
           initialBranchName={initialBranchName}
           canSelectAllBranches={canSelectAllBranches}
+          canCreateUser={canCreateUser}
         />
 
         {isMobileSidebarMounted ? (
@@ -199,6 +206,8 @@ export function DashboardShell({
                   collapsed={false}
                   mobile
                   onCloseMobile={closeMobileSidebar}
+                  canManageUsers={canManageUsers}
+                  canCreateUser={canCreateUser}
                 />
               </div>
             </div>
@@ -222,6 +231,8 @@ export function DashboardShell({
                   return nextValue;
                 })
               }
+              canManageUsers={canManageUsers}
+              canCreateUser={canCreateUser}
             />
           </div>
           <div className="min-w-0 flex-1">{children}</div>

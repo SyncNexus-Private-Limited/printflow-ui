@@ -3,6 +3,7 @@ import { UserForm } from "@/components/users/staff-account-form";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasPermission } from "@/lib/auth/permissions";
 import { normalizeUserSearchParam, coerceUserRole, getUserBranchesForCreation, getUserFormPageData } from "@/lib/users/queries";
 import { userRoleLabels } from "@/lib/users/types";
 
@@ -21,8 +22,8 @@ export default async function AddUserPage({ searchParams }: AddUserPageProps) {
     redirect("/login");
   }
 
-  if (currentUser.role !== "admin") {
-    redirect("/dashboard");
+  if (!hasPermission(currentUser, "users:create")) {
+    redirect("/dashboard?forbidden=1");
   }
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;

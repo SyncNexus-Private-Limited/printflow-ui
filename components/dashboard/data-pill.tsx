@@ -189,6 +189,24 @@ export function getExpenseCategoryTone(categoryKey: string): DataPillTone {
   return expenseCategoryTones[hashCategoryKey(normalizedCategoryKey) % expenseCategoryTones.length];
 }
 
+export function getUserAccountStatusTone(status: string): DataPillTone {
+  switch (status) {
+    case "active":
+      return "emerald";
+    default:
+      return "neutral";
+  }
+}
+
+export function getUserLockStateTone(locked: string): DataPillTone {
+  switch (locked) {
+    case "locked":
+      return "rose";
+    default:
+      return "neutral";
+  }
+}
+
 export function getInventoryStockStateTone(stockState: string): DataPillTone {
   switch (stockState) {
     case "in-stock":

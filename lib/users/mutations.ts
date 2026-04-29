@@ -1,6 +1,7 @@
 import "server-only";
 import type { PoolClient } from "pg";
 import type { AuthenticatedUser } from "@/lib/auth/current-user";
+import { hasPermission } from "@/lib/auth/permissions";
 import { getPool } from "@/lib/db/postgres";
 import { requiresBranch } from "@/lib/users/role-rules";
 import type { CreateUserInput, UpdateUserInput } from "@/lib/users/schema";
@@ -140,7 +141,7 @@ export async function createUser(
   currentUser: AuthenticatedUser,
   input: CreateUserInput,
 ): Promise<{ id: string; redirectTo: string }> {
-  if (currentUser.role !== "admin") {
+  if (!hasPermission(currentUser, "users:create")) {
     throw new UserMutationError("Only administrators can create user accounts.", { status: 403 });
   }
 
@@ -266,7 +267,7 @@ export async function updateUser(
   targetUserId: string,
   input: UpdateUserInput,
 ): Promise<void> {
-  if (currentUser.role !== "admin") {
+  if (!hasPermission(currentUser, "users:edit")) {
     throw new UserMutationError("Only administrators can edit user accounts.", { status: 403 });
   }
 
@@ -383,7 +384,7 @@ export async function updateUserStatus(
   targetUserId: string,
   isActive: boolean,
 ): Promise<void> {
-  if (currentUser.role !== "admin") {
+  if (!hasPermission(currentUser, "users:deactivate")) {
     throw new UserMutationError("Only administrators can change account status.", { status: 403 });
   }
 
@@ -444,7 +445,7 @@ export async function toggleUserLock(
   targetUserId: string,
   isLocked: boolean,
 ): Promise<void> {
-  if (currentUser.role !== "admin") {
+  if (!hasPermission(currentUser, "users:lock")) {
     throw new UserMutationError("Only administrators can lock or unlock accounts.", { status: 403 });
   }
 
@@ -509,7 +510,7 @@ export async function resetUserPassword(
   newPassword: string,
   mustResetPassword = false,
 ): Promise<void> {
-  if (currentUser.role !== "admin") {
+  if (!hasPermission(currentUser, "users:reset_password")) {
     throw new UserMutationError("Only administrators can reset passwords.", { status: 403 });
   }
 

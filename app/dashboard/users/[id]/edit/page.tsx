@@ -3,6 +3,7 @@ import { EditUserForm } from "@/components/users/edit-user-form";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasPermission } from "@/lib/auth/permissions";
 import { getUserById, getUserBranchesForCreation } from "@/lib/users/queries";
 import { userRoleLabels } from "@/lib/users/types";
 
@@ -17,8 +18,8 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
     redirect("/login");
   }
 
-  if (currentUser.role !== "admin") {
-    redirect("/dashboard");
+  if (!hasPermission(currentUser, "users:edit")) {
+    redirect("/dashboard?forbidden=1");
   }
 
   const { id } = await params;
@@ -45,7 +46,7 @@ export default async function EditUserPage({ params }: EditUserPageProps) {
       ? "Edit this administrator account. Branch assignment is optional for admin accounts."
       : `Edit this ${roleLabelLower} account. Username is read-only — use the Reset password action in the users list to change the password.`;
 
-  const canSelectBranch = currentUser.role === "admin";
+  const canSelectBranch = hasPermission(currentUser, "branches:select_all");
 
   return (
     <main className="min-h-screen px-4 py-8">

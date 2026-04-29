@@ -14,6 +14,11 @@ import {
   type UserManagementStatusFilter,
 } from "@/lib/dashboard/users-page-filters";
 import { FILTER_FIELD_LABEL_CLASS } from "@/lib/dashboard/list-page-classes";
+import {
+  getActiveUserRoleTone,
+  getUserAccountStatusTone,
+  getUserLockStateTone,
+} from "@/components/dashboard/data-pill";
 import type { ActiveUserRoleOption } from "@/lib/dashboard/types";
 import { userRoleLabels } from "@/lib/users/types";
 
@@ -76,13 +81,14 @@ function buildAppliedFilterSummaryItems(
     const label =
       (userRoleLabels as Record<string, string>)[filters.role] ??
       filters.role.charAt(0).toUpperCase() + filters.role.slice(1);
-    items.push({ key: "role", label: `Role: ${label}` });
+    items.push({ key: "role", label: `Role: ${label}`, tone: getActiveUserRoleTone(filters.role) });
   }
 
   if (filters.status !== "all") {
     items.push({
       key: "status",
       label: `Status: ${filters.status === "active" ? "Active" : "Inactive"}`,
+      tone: getUserAccountStatusTone(filters.status),
     });
   }
 
@@ -90,6 +96,7 @@ function buildAppliedFilterSummaryItems(
     items.push({
       key: "locked",
       label: `Lock: ${filters.locked === "locked" ? "Locked" : "Unlocked"}`,
+      tone: getUserLockStateTone(filters.locked),
     });
   }
 

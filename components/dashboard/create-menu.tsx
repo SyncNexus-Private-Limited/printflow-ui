@@ -26,6 +26,9 @@ type CreateMenuProps = {
     label: string;
     value: string;
   }>;
+  // Controls whether the "Add User" action appears in the menu.
+  // Computed server-side from hasPermission(user, "users:create").
+  canCreateUser: boolean;
 };
 
 function buildCreateActionHref(path: string, currentBranchValue: string | null, extraSearchParams?: Record<string, string>) {
@@ -71,8 +74,9 @@ function getCreateActions(
     label: string;
     value: string;
   }>,
+  canCreateUser: boolean,
 ): CreateAction[] {
-  return [
+  const actions: CreateAction[] = [
     {
       key: "order",
       label: "Add Order",
@@ -121,7 +125,11 @@ function getCreateActions(
       disabled: true,
       disabledReason: "Coming soon",
     },
-    {
+  ];
+
+  // Only users with users:create permission see this action.
+  if (canCreateUser) {
+    actions.push({
       key: "user",
       label: "Add User",
       shortLabel: "User",
@@ -131,8 +139,10 @@ function getCreateActions(
         branchOptions,
       }),
       icon: Users,
-    },
-  ];
+    });
+  }
+
+  return actions;
 }
 
 function getFocusableActionIndices(actions: CreateAction[]) {
@@ -160,7 +170,7 @@ function useIsDesktopViewport() {
   return isDesktopViewport;
 }
 
-export function CreateMenu({ currentBranchValue, initialBranchId, branchOptions }: CreateMenuProps) {
+export function CreateMenu({ currentBranchValue, initialBranchId, branchOptions, canCreateUser }: CreateMenuProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -175,8 +185,8 @@ export function CreateMenu({ currentBranchValue, initialBranchId, branchOptions 
   const focusTargetIndexRef = useRef<number | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const actions = useMemo(
-    () => getCreateActions(currentBranchValue, initialBranchId, branchOptions),
-    [branchOptions, currentBranchValue, initialBranchId],
+    () => getCreateActions(currentBranchValue, initialBranchId, branchOptions, canCreateUser),
+    [branchOptions, canCreateUser, currentBranchValue, initialBranchId],
   );
   const focusableActionIndices = useMemo(() => getFocusableActionIndices(actions), [actions]);
   const currentHref = useMemo(() => `${pathname}?${searchParams.toString()}`, [pathname, searchParams]);

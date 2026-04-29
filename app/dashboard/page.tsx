@@ -106,6 +106,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             branchOptions={branchOptions}
             selectedBranchValue={context.selectedBranchValue}
             branchFilterDisabled={!context.canSelectAll}
+            greetingName={currentUser.fullName.split(" ")[0] || currentUser.username}
+            greetingBranchName={context.selectedBranchName}
           />
 
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -143,6 +145,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             branchOptions={[{ label: currentUser.branchName ?? "Branch", value: currentUser.branchId ?? "all" }]}
             selectedBranchValue={currentUser.branchId ?? "all"}
             branchFilterDisabled
+            greetingName={currentUser.fullName.split(" ")[0] || currentUser.username}
+            greetingBranchName={currentUser.branchName ?? undefined}
           />
           <SectionCard title="Unable to load dashboard data right now.">
             <p className="text-sm text-slate-600">Please try again shortly.</p>

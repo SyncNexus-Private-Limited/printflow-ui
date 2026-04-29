@@ -5,6 +5,7 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { ListStatCard } from "@/components/dashboard/list-stat-card";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasPermission } from "@/lib/auth/permissions";
 import { parseUsersPageFilters } from "@/lib/dashboard/users-page-filters";
 import { buildBranchFilterOptions } from "@/lib/dashboard/helpers";
 import { getUsersPageData, getUserManagementRoleOptions, getDashboardContext } from "@/lib/dashboard/queries";
@@ -21,8 +22,8 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
     redirect("/login");
   }
 
-  if (currentUser.role !== "admin") {
-    redirect("/dashboard");
+  if (!hasPermission(currentUser, "users:view")) {
+    redirect("/dashboard?forbidden=1");
   }
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;

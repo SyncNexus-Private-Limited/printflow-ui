@@ -6,7 +6,7 @@ import { AppliedFilterPills, type AppliedFilterSummaryItem } from "@/components/
 import { FilterDrawerShell } from "@/components/dashboard/filter-drawer-shell";
 import { FilterTriggerButton } from "@/components/dashboard/filter-trigger-button";
 import { useFilterDrawer } from "@/components/dashboard/use-filter-drawer";
-import type { DataPillTone } from "@/components/dashboard/data-pill";
+import { getCustomerTypeTone } from "@/components/dashboard/data-pill";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import {
@@ -137,12 +137,7 @@ function buildAppliedFilterSummaryItems(filters: CustomerPageFilterState, branch
   const items: AppliedFilterSummaryItem[] = [{ key: "branch", label: `Branch: ${branchName}` }];
 
   if (filters.type) {
-    const tone: DataPillTone =
-      filters.type === "studio" ? "blue"
-      : filters.type === "amateur" ? "emerald"
-      : filters.type === "employee" ? "violet"
-      : "neutral";
-    items.push({ key: "type", label: `Type: ${capitalizeFirst(filters.type)}`, tone });
+    items.push({ key: "type", label: `Type: ${capitalizeFirst(filters.type)}`, tone: getCustomerTypeTone(filters.type) });
   }
 
   if (filters.name) items.push({ key: "name", label: `Name: ${filters.name}` });

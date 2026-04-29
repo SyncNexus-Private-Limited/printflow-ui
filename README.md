@@ -116,6 +116,19 @@ npm run db:reset:dev -- --confirm printflow_dev
 npm run db:reset:dev --confirm printflow_dev
 ```
 
+## Permissions (RBAC)
+
+Role-based access is defined in `lib/auth/permissions.ts`. Every guarded action has a named `Permission` string; `ROLE_PERMISSIONS` maps each role to a `ReadonlySet<Permission>`.
+
+- Use `hasPermission(user, permission)` for conditional rendering.
+- Use `assertPermission(user, permission)` in server mutations and API handlers — throws a structured `PermissionError` (403) on failure.
+- Pages that require a permission redirect to `/dashboard?forbidden=1`; the `ForbiddenToast` component in the dashboard shell detects this, shows a toast, and cleans the URL.
+- To add a permission: add to the `Permission` union → grant in `ROLE_PERMISSIONS` → enforce in the relevant mutation/handler/page. No other files need changing.
+
+## Toast system
+
+A minimal `ToastProvider` / `useToast()` lives in `lib/ui/toast-context.tsx`, mirroring the `GlobalLoaderContext` pattern. `ToastContainer` (fixed bottom-right) and `ToastItem` (glass card with variant icon) are in `components/ui/toast.tsx`. Both are wired up in `GlobalUiProvider`.
+
 ## Dashboard frontend architecture
 All six list pages (orders, customers, inventory, employee-expenses, business-expenses, active-users) share a common set of primitives:
 
@@ -129,7 +142,7 @@ All six list pages (orders, customers, inventory, employee-expenses, business-ex
 **`components/dashboard/`**
 - `filter-drawer-shell.tsx` — shared filter drawer overlay, header, and footer
 - `use-filter-drawer.ts` — state hook (open/close, draft filters, pending transition, focus management)
-- `applied-filter-pills.tsx` — pill row renderer; branch name pill is always first
+- `applied-filter-pills.tsx` — pill row renderer; branch name pill is always first; filter items that match a table `DataPill` value pass a `tone` from the corresponding helper in `data-pill.tsx`
 - `filter-trigger-button.tsx` — filter button with active-count badge
 - `sortable-header-cell.tsx` — `<th>` with sort arrows and optional sticky spec
 - `data-table-container.tsx` — card wrapper with glass effect

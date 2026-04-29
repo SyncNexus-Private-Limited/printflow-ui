@@ -44,12 +44,13 @@ components/
   dashboard/            # Shell, header, sidebar, data tables, list controls
   expenses/             # Expense form fields
   providers/            # GlobalUiProvider
-  ui/                   # Button, Input, Select, Textarea, Spinner, GlobalLoader
+  ui/                   # Button, Input, Select, Textarea, Spinner, GlobalLoader, Toast (ToastItem, ToastContainer)
 
 lib/
   auth/
     session.ts          # JWT sign/verify, cookie helpers (jose)
     current-user.ts     # DB session lookup + touch (server-only)
+    permissions.ts      # Permission union, ROLE_PERMISSIONS map, hasPermission, assertPermission, PermissionError, canAccessBranch
   db/
     postgres.ts         # Singleton pg.Pool (server-only, globalThis cache)
   dashboard/
@@ -71,7 +72,7 @@ lib/
   validations/
     auth.ts             # loginSchema
     dashboard.ts        # branchFilterSchema
-  ui/                   # GlobalLoaderContext, client-preferences
+  ui/                   # GlobalLoaderContext, ToastContext (ToastProvider, useToast), client-preferences
   theme/                # ThemeContext
   utils/                # cn(), format()
 
@@ -169,6 +170,32 @@ npm run db:reset:dev -- --confirm printflow_dev
 - Auth/session code is server-only. Do not expose tokens, hashes, or secrets to client
 - `create_user_with_auth` is the DB function for user creation (admin only, enforced in DB)
 
+## RBAC
+
+All permission logic lives in `lib/auth/permissions.ts`. This is the single source of truth — do not inline role checks elsewhere.
+
+**Helpers:**
+- `hasPermission(user, permission)` — boolean; use for conditional rendering and non-throwing checks
+- `assertPermission(user, permission)` — throws `PermissionError` (`.status === 403`); use in server mutations and API handlers before any DB mutation
+- `canAccessBranch(user, branchId)` — data-scope guard (orthogonal to permission grants); admins bypass, all others must match their own `branchId`
+
+**Enforcement pattern:** `getCurrentUser()` → `assertPermission()` → DB call
+
+**Forbidden redirect pattern:** Pages that require a permission call `redirect("/dashboard?forbidden=1")` when access is denied. `ForbiddenToast` (rendered inside `DashboardShell`) detects `?forbidden=1` on mount via `window.location.search`, shows a one-shot toast, and removes the param with `window.history.replaceState`. Navigation items and create-menu actions are hidden for roles that lack the required permission — not just disabled.
+
+**Role matrix:**
+| Permission | admin | manager | operator | staff |
+|---|---|---|---|---|
+| `branches:select_all` | ✓ | — | — | — |
+| `users:view` | ✓ | ✓ | — | — |
+| `users:create` | ✓ | — | — | — |
+| `users:edit / deactivate / lock / reset_password` | ✓ | — | — | — |
+| `expenses:view` | ✓ | ✓ | ✓ | ✓ |
+| `expenses:create / edit` | ✓ | ✓ | ✓ | ✓ |
+| `expenses:delete` | ✓ | ✓ | ✓ | — |
+
+**To add a permission:** (1) add to `Permission` union in `permissions.ts`, (2) grant to appropriate roles in `ROLE_PERMISSIONS`, (3) enforce in the relevant server mutation / API handler / page.
+
 ## API Rules
 - Route Handlers under `app/api/*`. Set `export const runtime = "nodejs"` for DB access
 - Validate all payloads with Zod `safeParse`; return structured field errors on failure
@@ -191,6 +218,13 @@ npm run db:reset:dev -- --confirm printflow_dev
 - Do not import `server-only` modules into client components
 - Conditional class merging: `lib/utils/cn.ts`
 
+### Toast system
+- `lib/ui/toast-context.tsx` — `ToastProvider`, `useToast()` hook; mirrors `GlobalLoaderContext` pattern
+- `components/ui/toast.tsx` — `ToastContainer` (fixed bottom-right, `z-100`) + `ToastItem` (glass card, variant icon)
+- `ToastProvider` wraps inside `GlobalUiProvider`; `<ToastContainer />` rendered alongside `<GlobalLoader />`
+- `components/dashboard/forbidden-toast.tsx` — one-shot component; reads `window.location.search` directly (not `useSearchParams()`) to detect `?forbidden=1`, calls `showToast`, clears param via `window.history.replaceState`. Uses `[]` dep array so it fires exactly once on mount.
+- **Do not use `useSearchParams()`** for one-shot URL-param detection in components rendered from async server component boundaries without an explicit `<Suspense>` wrapper — the hook may return stale/empty values during hydration. Use `window.location.search` instead.
+
 ### Dashboard list page conventions
 All six list pages share a common structure:
 
@@ -198,6 +232,7 @@ All six list pages share a common structure:
 - Use `useFilterDrawer` for open/close state, draft filters, pending transition, and focus management
 - Render `<FilterDrawerShell>`, `<FilterTriggerButton>`, `<AppliedFilterPills>` — do not re-implement
 - `buildAppliedFilterSummaryItems` must always prepend `{ key: "branch", label: "Branch: [name]" }` first, using `selectedBranchName` prop from page
+- Filter items that correspond to a value already rendered as a `DataPill` in the table must pass `tone` using the matching helper from `data-pill.tsx` (e.g. `getActiveUserRoleTone`, `getOrderStatusTone`, `getExpenseCategoryTone`). Items with no table-pill equivalent omit `tone` (defaults to neutral).
 - `handleApplyFilters` and `handleResetFilters` are page-specific and must stay in the page file
 
 **Data tables (`*-data-table.tsx`)**
@@ -211,6 +246,12 @@ All six list pages share a common structure:
 **Pages**
 - Pass `selectedBranchName={context.selectedBranchName}` to every `*ListControls`
 - `context.selectedBranchName` is always a non-null string resolved by `getDashboardContext`
+
+### Dashboard overview page (`/dashboard`)
+- `DashboardHeader` renders a time-aware greeting when `greetingName` is provided and the current path is `/dashboard`: `Good [morning/afternoon/evening], [FirstName].`
+- `greetingBranchName` renders the subtext: `Here's what's happening at [Branch] today.`
+- `getGreetingWord()` runs client-side; `suppressHydrationWarning` on the `<h1>` suppresses SSR/client mismatch at hour boundaries
+- Pass `greetingName={currentUser.fullName.split(" ")[0] || currentUser.username}` and `greetingBranchName={context.selectedBranchName}` from the page server component
 
 ### Top nav conventions (`components/dashboard/top-navbar.tsx`)
 - CSS `order` + `flex-wrap` repositions branch selector between breakpoints without duplication

@@ -68,7 +68,10 @@ export const dashboardNavigation: DashboardNavItem[] = [
     type: "group",
     label: "Users",
     icon: Users,
-    children: [{ label: "Active Users", href: "/dashboard/active-users" }],
+    children: [
+      { label: "Active Users", href: "/dashboard/active-users" },
+      { label: "Add User", href: "/dashboard/users/new", breadcrumbLabel: "Add User" },
+    ],
   },
 ];
 

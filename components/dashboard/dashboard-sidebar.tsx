@@ -24,6 +24,9 @@ type DashboardSidebarProps = {
   mobile: boolean;
   onToggleCollapsed?: () => void;
   onCloseMobile?: () => void;
+  // Permission flags derived server-side — control which nav groups are visible.
+  canManageUsers: boolean;
+  canCreateUser: boolean;
 };
 
 type SidebarLinkProps = {
@@ -101,6 +104,8 @@ export function DashboardSidebar({
   mobile,
   onToggleCollapsed,
   onCloseMobile,
+  canManageUsers,
+  canCreateUser,
 }: DashboardSidebarProps) {
   const searchParams = useSearchParams();
   const isDesktopCollapsed = collapsed && !mobile;
@@ -112,6 +117,20 @@ export function DashboardSidebar({
     pageSize: searchParams.get("pageSize") ?? undefined,
   }, {
     applyDefaultDateRange: isDashboardFilterAwarePath(pathname),
+  });
+
+  // Build the visible navigation based on permission flags passed from the server.
+  // Filtering here (not in dashboardNavigation) keeps the source array role-agnostic.
+  const visibleNavigation = dashboardNavigation.flatMap((item) => {
+    if (item.type === "group" && item.label === "Users") {
+      // Hide the entire Users group for roles without users:view.
+      if (!canManageUsers) return [];
+      // Hide "Add User" for roles with users:view but not users:create (e.g. manager).
+      if (!canCreateUser) {
+        return [{ ...item, children: item.children.filter((child) => child.href !== "/dashboard/users/new") }];
+      }
+    }
+    return [item];
   });
 
   useEffect(() => {
@@ -186,7 +205,7 @@ export function DashboardSidebar({
       </div>
 
       <nav className="mt-4 flex-1 space-y-1 overflow-y-auto" aria-label="Dashboard modules">
-        {dashboardNavigation.map((item) => {
+        {visibleNavigation.map((item) => {
           if (item.type === "link") {
             const resolvedItemHref =
               item.href === "/dashboard/expenses/new"

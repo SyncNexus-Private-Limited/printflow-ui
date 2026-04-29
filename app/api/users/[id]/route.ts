@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasPermission } from "@/lib/auth/permissions";
 import { UserMutationError, updateUser, updateUserStatus, toggleUserLock } from "@/lib/users/mutations";
 import { updateUserSchema, getUpdateUserFieldErrors } from "@/lib/users/schema";
 import { getUserById, getUserBranchesForCreation } from "@/lib/users/queries";
@@ -27,7 +28,7 @@ export async function GET(
     return getUnauthorizedResponse();
   }
 
-  if (currentUser.role !== "admin") {
+  if (!hasPermission(currentUser, "users:view")) {
     return NextResponse.json({ success: false, message: "Forbidden." }, { status: 403 });
   }
 

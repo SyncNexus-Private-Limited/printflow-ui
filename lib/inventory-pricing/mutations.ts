@@ -19,6 +19,98 @@ export class InventoryPricingMutationError extends Error {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Audit helpers
+// ---------------------------------------------------------------------------
+
+type InventoryPricingAuditSnapshot = {
+  id: string;
+  branchId: string;
+  inventoryId: string;
+  customerType: string;
+  sellingRate: number;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  updatedBy: string | null;
+};
+
+type InventoryPricingSnapshotRow = {
+  id: string;
+  branch_id: string;
+  inventory_id: string;
+  customer_type: string;
+  selling_rate: number;
+  effective_from: string;
+  effective_to: string | null;
+  updated_by: string | null;
+};
+
+async function fetchInventoryPricingSnapshotForAudit(
+  client: PoolClient,
+  pricingId: string,
+): Promise<InventoryPricingAuditSnapshot | null> {
+  const { rows } = await client.query<InventoryPricingSnapshotRow>(
+    `SELECT
+       ip.id::text               AS id,
+       ip.branch_id::text        AS branch_id,
+       ip.inventory_id::text     AS inventory_id,
+       ip.customer_type::text    AS customer_type,
+       ip.selling_rate::double precision AS selling_rate,
+       ip.effective_from::text   AS effective_from,
+       ip.effective_to::text     AS effective_to,
+       ip.updated_by::text       AS updated_by
+     FROM inventory_pricing ip
+     WHERE ip.id = $1::uuid
+     FOR UPDATE
+     LIMIT 1`,
+    [pricingId],
+  );
+
+  const row = rows[0];
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    branchId: row.branch_id,
+    inventoryId: row.inventory_id,
+    customerType: row.customer_type,
+    sellingRate: row.selling_rate,
+    effectiveFrom: row.effective_from,
+    effectiveTo: row.effective_to,
+    updatedBy: row.updated_by,
+  };
+}
+
+async function logInventoryPricingAudit(
+  client: PoolClient,
+  pricingId: string,
+  branchId: string,
+  inventoryId: string,
+  action: string,
+  snapshot: InventoryPricingAuditSnapshot,
+  changedBy: string,
+  changedFields?: Record<string, { from: unknown; to: unknown }> | null,
+): Promise<void> {
+  await client.query(
+    `INSERT INTO inventory_pricing_audit_logs
+       (inventory_pricing_id, branch_id, inventory_id, action, snapshot, changed_fields, changed_by)
+     VALUES ($1::uuid, $2::uuid, $3::uuid, $4, $5::jsonb, $6::jsonb, $7::uuid)`,
+    [
+      pricingId,
+      branchId,
+      inventoryId,
+      action,
+      JSON.stringify(snapshot),
+      changedFields && Object.keys(changedFields).length > 0 ? JSON.stringify(changedFields) : null,
+      changedBy,
+    ],
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Shared helpers
+// ---------------------------------------------------------------------------
+
 type InventoryBranchRow = {
   inventoryId: string;
   branchId: string;
@@ -40,24 +132,6 @@ async function getInventoryBranch(
       LIMIT 1
     `,
     [inventoryId],
-  );
-
-  return rows[0] ?? null;
-}
-
-async function getPricingBranch(
-  client: PoolClient,
-  pricingId: string,
-): Promise<{ id: string; branchId: string } | null> {
-  const { rows } = await client.query<{ id: string; branchId: string }>(
-    `
-      SELECT id::text AS id, branch_id::text AS "branchId"
-      FROM inventory_pricing
-      WHERE id = $1::uuid
-      FOR UPDATE
-      LIMIT 1
-    `,
-    [pricingId],
   );
 
   return rows[0] ?? null;
@@ -95,6 +169,10 @@ function handlePricingDbError(error: unknown): never {
     status: 500,
   });
 }
+
+// ---------------------------------------------------------------------------
+// createInventoryPricing
+// ---------------------------------------------------------------------------
 
 export async function createInventoryPricing(
   currentUser: AuthenticatedUser,
@@ -146,6 +224,27 @@ export async function createInventoryPricing(
       });
     }
 
+    const createSnapshot: InventoryPricingAuditSnapshot = {
+      id: createdId,
+      branchId: inventory.branchId,
+      inventoryId: input.inventoryId,
+      customerType: input.customerType,
+      sellingRate: toRate(input.sellingRate),
+      effectiveFrom: input.effectiveFrom,
+      effectiveTo: input.effectiveTo ?? null,
+      updatedBy: currentUser.userId,
+    };
+
+    await logInventoryPricingAudit(
+      client,
+      createdId,
+      inventory.branchId,
+      input.inventoryId,
+      "create",
+      createSnapshot,
+      currentUser.userId,
+    );
+
     await client.query("COMMIT");
     return { id: createdId };
   } catch (error) {
@@ -156,6 +255,10 @@ export async function createInventoryPricing(
     client.release();
   }
 }
+
+// ---------------------------------------------------------------------------
+// updateInventoryPricing
+// ---------------------------------------------------------------------------
 
 export async function updateInventoryPricing(
   currentUser: AuthenticatedUser,
@@ -170,8 +273,8 @@ export async function updateInventoryPricing(
   try {
     await client.query("BEGIN");
 
-    const pricing = await getPricingBranch(client, pricingId);
-    if (!pricing) {
+    const snapshot = await fetchInventoryPricingSnapshotForAudit(client, pricingId);
+    if (!snapshot) {
       throw new InventoryPricingMutationError("Inventory pricing not found.", { status: 404 });
     }
 
@@ -184,11 +287,28 @@ export async function updateInventoryPricing(
     }
 
     if (
-      !canAccessBranch(currentUser, pricing.branchId) ||
+      !canAccessBranch(currentUser, snapshot.branchId) ||
       !canAccessBranch(currentUser, inventory.branchId)
     ) {
       throw new InventoryPricingMutationError("Forbidden.", { status: 403 });
     }
+
+    const newRate = toRate(input.sellingRate);
+    const newEffectiveTo = input.effectiveTo ?? null;
+
+    const changedFields: Record<string, { from: unknown; to: unknown }> = {};
+    if (snapshot.inventoryId !== input.inventoryId)
+      changedFields.inventoryId = { from: snapshot.inventoryId, to: input.inventoryId };
+    if (snapshot.branchId !== inventory.branchId)
+      changedFields.branchId = { from: snapshot.branchId, to: inventory.branchId };
+    if (snapshot.customerType !== input.customerType)
+      changedFields.customerType = { from: snapshot.customerType, to: input.customerType };
+    if (snapshot.sellingRate !== newRate)
+      changedFields.sellingRate = { from: snapshot.sellingRate, to: newRate };
+    if (snapshot.effectiveFrom !== input.effectiveFrom)
+      changedFields.effectiveFrom = { from: snapshot.effectiveFrom, to: input.effectiveFrom };
+    if ((snapshot.effectiveTo ?? null) !== newEffectiveTo)
+      changedFields.effectiveTo = { from: snapshot.effectiveTo, to: newEffectiveTo };
 
     const { rowCount } = await client.query(
       `
@@ -208,9 +328,9 @@ export async function updateInventoryPricing(
         inventory.branchId,
         input.inventoryId,
         input.customerType,
-        toRate(input.sellingRate),
+        newRate,
         input.effectiveFrom,
-        input.effectiveTo ?? null,
+        newEffectiveTo,
         currentUser.userId,
       ],
     );
@@ -218,6 +338,17 @@ export async function updateInventoryPricing(
     if (!rowCount) {
       throw new InventoryPricingMutationError("Inventory pricing not found.", { status: 404 });
     }
+
+    await logInventoryPricingAudit(
+      client,
+      pricingId,
+      snapshot.branchId,
+      snapshot.inventoryId,
+      "update",
+      snapshot,
+      currentUser.userId,
+      changedFields,
+    );
 
     await client.query("COMMIT");
   } catch (error) {
@@ -228,6 +359,10 @@ export async function updateInventoryPricing(
     client.release();
   }
 }
+
+// ---------------------------------------------------------------------------
+// closeInventoryPricing
+// ---------------------------------------------------------------------------
 
 export async function closeInventoryPricing(
   currentUser: AuthenticatedUser,
@@ -241,12 +376,12 @@ export async function closeInventoryPricing(
   try {
     await client.query("BEGIN");
 
-    const pricing = await getPricingBranch(client, pricingId);
-    if (!pricing) {
+    const snapshot = await fetchInventoryPricingSnapshotForAudit(client, pricingId);
+    if (!snapshot) {
       throw new InventoryPricingMutationError("Inventory pricing not found.", { status: 404 });
     }
 
-    if (!canAccessBranch(currentUser, pricing.branchId)) {
+    if (!canAccessBranch(currentUser, snapshot.branchId)) {
       throw new InventoryPricingMutationError("Forbidden.", { status: 403 });
     }
 
@@ -262,6 +397,28 @@ export async function closeInventoryPricing(
         WHERE id = $1::uuid
       `,
       [pricingId, currentUser.userId],
+    );
+
+    // Fetch the DB-computed effective_to to record the exact value in the audit log.
+    const { rows: closedRows } = await client.query<{ effectiveTo: string }>(
+      `SELECT effective_to::text AS "effectiveTo" FROM inventory_pricing WHERE id = $1::uuid LIMIT 1`,
+      [pricingId],
+    );
+    const newEffectiveTo = closedRows[0]?.effectiveTo ?? null;
+
+    const changedFields: Record<string, { from: unknown; to: unknown }> = {
+      effectiveTo: { from: snapshot.effectiveTo, to: newEffectiveTo },
+    };
+
+    await logInventoryPricingAudit(
+      client,
+      pricingId,
+      snapshot.branchId,
+      snapshot.inventoryId,
+      "close",
+      snapshot,
+      currentUser.userId,
+      changedFields,
     );
 
     await client.query("COMMIT");

@@ -26,6 +26,7 @@ export default async function ExpenseCategoriesPage({ searchParams }: ExpenseCat
   const canEdit = hasPermission(currentUser, "expense-categories:edit");
   const canDeactivate = hasPermission(currentUser, "expense-categories:deactivate");
   const canRestore = hasPermission(currentUser, "expense-categories:restore");
+  const canCreate = hasPermission(currentUser, "expense-categories:create");
 
   try {
     const filters = parseExpenseCategoriesPageFilters(resolvedSearchParams);
@@ -71,6 +72,7 @@ export default async function ExpenseCategoriesPage({ searchParams }: ExpenseCat
           <ExpenseCategoriesListControls
             currentPath="/dashboard/expenses/categories"
             currentFilters={filters}
+            canCreate={canCreate}
           />
 
           <ExpenseCategoriesDataTable

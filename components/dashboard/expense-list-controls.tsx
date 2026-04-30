@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 import {
   AppliedFilterPills,
   type AppliedFilterSummaryItem,
@@ -44,6 +45,7 @@ type ExpenseListControlsProps = {
   employeeOptions?: ExpenseEmployeeOption[];
   vendorOptions?: ExpenseVendorOption[];
   selectedBranchName: string;
+  canCreate: boolean;
 };
 
 const summaryCurrencyFormatter = new Intl.NumberFormat("en-IN", {
@@ -115,6 +117,15 @@ function getPersonFilterLabel(kind: ExpensePageKind) {
 function getPersonPlaceholder(kind: ExpensePageKind, optionCount: number) {
   if (optionCount === 0) return kind === "employee" ? "No employees found" : "No vendors found";
   return kind === "employee" ? "All employees" : "All vendors";
+}
+
+function getAddExpenseHref(kind: ExpensePageKind, branchId: string | null) {
+  if (kind === "employee") return "/dashboard/expenses/new?type=employee";
+
+  const searchParams = new URLSearchParams();
+  if (branchId) searchParams.set("branchId", branchId);
+  searchParams.set("type", "business");
+  return `/dashboard/expenses/new?${searchParams.toString()}`;
 }
 
 function buildAppliedFilterSummaryItems({
@@ -204,6 +215,7 @@ export function ExpenseListControls({
   employeeOptions = [],
   vendorOptions = [],
   selectedBranchName,
+  canCreate,
 }: ExpenseListControlsProps) {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
@@ -260,6 +272,8 @@ export function ExpenseListControls({
   const personOptions = kind === "employee" ? employeeOptions : vendorOptions;
   const personFilterLabel = getPersonFilterLabel(kind);
   const personPlaceholder = getPersonPlaceholder(kind, personOptions.length);
+  const addExpenseHref = getAddExpenseHref(kind, currentFilters.branchId);
+  const addExpenseTitle = kind === "employee" ? "Add Employee Expense" : "Add Business Expense";
 
   const drawerSubtitle =
     activeFilterCount > 0
@@ -356,6 +370,19 @@ export function ExpenseListControls({
           </div>
 
           <div className="flex shrink-0 items-center gap-2 self-start">
+            {canCreate ? (
+              <Link
+                href={addExpenseHref}
+                title={addExpenseTitle}
+                className={cn(
+                  "inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-transparent bg-[rgb(var(--primary))] px-4 text-sm font-semibold text-[rgb(var(--primary-foreground))] shadow-[0_20px_44px_-28px_rgb(var(--shadow)/0.65)] transition-all hover:bg-[rgb(var(--primary-strong))]",
+                  "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
+                )}
+              >
+                <Plus className="h-4 w-4" aria-hidden="true" strokeWidth={2} />
+                <span className="hidden lg:inline">Add Expense</span>
+              </Link>
+            ) : null}
             <FilterTriggerButton
               ref={filterButtonRef}
               activeCount={activeFilterCount}

@@ -44,10 +44,7 @@ async function DashboardShellWrapper({
       initialBranchName={currentUser.branchName ?? null}
       canSelectAllBranches={hasPermission(currentUser, "branches:select_all")}
       canManageUsers={hasPermission(currentUser, "users:view")}
-      canCreateUser={hasPermission(currentUser, "users:create")}
-      canCreateInventory={hasPermission(currentUser, "inventory:create")}
       canViewExpenseCategories={hasPermission(currentUser, "expense-categories:view")}
-      canCreateExpenseCategory={hasPermission(currentUser, "expense-categories:create")}
     >
       {children}
     </DashboardShell>

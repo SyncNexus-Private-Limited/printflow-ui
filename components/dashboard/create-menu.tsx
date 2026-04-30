@@ -11,22 +11,17 @@ import {
 import { createPortal } from "react-dom";
 import type { LucideIcon } from "lucide-react";
 import {
-  Boxes,
   ChevronDown,
   Plus,
   Receipt,
   ShoppingBag,
   Truck,
   UserRound,
-  Users,
   X,
 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import {
-  buildCanonicalExpenseCreateHref,
-  buildCanonicalUserCreateHref,
-} from "@/lib/dashboard/helpers";
+import { buildCanonicalExpenseCreateHref } from "@/lib/dashboard/helpers";
 import { cn } from "@/lib/utils/cn";
 
 type CreateAction = {
@@ -46,12 +41,6 @@ type CreateMenuProps = {
     label: string;
     value: string;
   }>;
-  // Controls whether the "Add User" action appears in the menu.
-  // Computed server-side from hasPermission(user, "users:create").
-  canCreateUser: boolean;
-  // Controls whether the "Add Item" action is enabled in the menu.
-  // Computed server-side from hasPermission(user, "inventory:create").
-  canCreateInventory: boolean;
 };
 
 function buildCreateActionHref(
@@ -103,10 +92,8 @@ function getCreateActions(
     label: string;
     value: string;
   }>,
-  canCreateUser: boolean,
-  canCreateInventory: boolean,
 ): CreateAction[] {
-  const actions: CreateAction[] = [
+  return [
     {
       key: "order",
       label: "Add Order",
@@ -138,15 +125,6 @@ function getCreateActions(
       icon: Receipt,
     },
     {
-      key: "item",
-      label: "Add Item",
-      shortLabel: "Item",
-      href: buildCreateActionHref("/dashboard/inventory/new", currentBranchValue),
-      icon: Boxes,
-      disabled: !canCreateInventory,
-      disabledReason: canCreateInventory ? undefined : "Coming soon",
-    },
-    {
       key: "vendor",
       label: "Add Vendor",
       shortLabel: "Vendor",
@@ -156,23 +134,6 @@ function getCreateActions(
       disabledReason: "Coming soon",
     },
   ];
-
-  // Only users with users:create permission see this action.
-  if (canCreateUser) {
-    actions.push({
-      key: "user",
-      label: "Add User",
-      shortLabel: "User",
-      href: buildCanonicalUserCreateHref({
-        currentBranchId: currentBranchValue,
-        initialBranchId,
-        branchOptions,
-      }),
-      icon: Users,
-    });
-  }
-
-  return actions;
 }
 
 function getFocusableActionIndices(actions: CreateAction[]) {
@@ -204,8 +165,6 @@ export function CreateMenu({
   currentBranchValue,
   initialBranchId,
   branchOptions,
-  canCreateUser,
-  canCreateInventory,
 }: CreateMenuProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -221,15 +180,8 @@ export function CreateMenu({
   const focusTargetIndexRef = useRef<number | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const actions = useMemo(
-    () =>
-      getCreateActions(
-        currentBranchValue,
-        initialBranchId,
-        branchOptions,
-        canCreateUser,
-        canCreateInventory,
-      ),
-    [branchOptions, canCreateInventory, canCreateUser, currentBranchValue, initialBranchId],
+    () => getCreateActions(currentBranchValue, initialBranchId, branchOptions),
+    [branchOptions, currentBranchValue, initialBranchId],
   );
   const focusableActionIndices = useMemo(() => getFocusableActionIndices(actions), [actions]);
   const currentHref = useMemo(

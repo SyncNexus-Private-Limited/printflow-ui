@@ -54,7 +54,7 @@ export function DashboardHeader({
       applyDefaultDateRange: isDashboardFilterAwarePath(pathname),
     },
   );
-  const breadcrumbs = getDashboardBreadcrumbs(pathname, navigationFilters);
+  const breadcrumbs = getDashboardBreadcrumbs(pathname, navigationFilters, searchParams);
 
   useLayoutEffect(() => {
     setBranchControl({

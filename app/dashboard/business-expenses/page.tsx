@@ -5,6 +5,7 @@ import { ExpenseListControls } from "@/components/dashboard/expense-list-control
 import { ListStatCard } from "@/components/dashboard/list-stat-card";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasPermission } from "@/lib/auth/permissions";
 import { parseExpensePageFilters } from "@/lib/dashboard/expense-page-filters";
 import { buildBranchFilterOptions } from "@/lib/dashboard/helpers";
 import { getBusinessExpensesPageData, getDashboardContext } from "@/lib/dashboard/queries";
@@ -23,6 +24,7 @@ export default async function BusinessExpensesPage({ searchParams }: BusinessExp
   }
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const canCreateExpense = hasPermission(currentUser, "expenses:create");
 
   try {
     const filters = parseExpensePageFilters(resolvedSearchParams, "business");
@@ -50,7 +52,7 @@ export default async function BusinessExpensesPage({ searchParams }: BusinessExp
             branchFilterDisabled={!context.canSelectAll}
           />
 
-          <section className="grid gap-4 lg:grid-cols-2">
+          <section className="grid gap-4 md:grid-cols-2">
             <ListStatCard
               label="Spend in range"
               value={formatCurrency(pageData.summary.totalAmountInRange)}
@@ -72,6 +74,7 @@ export default async function BusinessExpensesPage({ searchParams }: BusinessExp
             categoryOptions={categoryOptions}
             vendorOptions={vendorOptions}
             selectedBranchName={context.selectedBranchName}
+            canCreate={canCreateExpense}
           />
 
           <BusinessExpenseTableWithActions

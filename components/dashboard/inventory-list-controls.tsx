@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Plus } from "lucide-react";
 import {
   AppliedFilterPills,
   type AppliedFilterSummaryItem,
@@ -31,6 +32,7 @@ type InventoryListControlsProps = {
   currentFilters: InventoryPageFilterState;
   vendorOptions: InventoryVendorOption[];
   selectedBranchName: string;
+  canCreate: boolean;
 };
 
 const summaryCurrencyFormatter = new Intl.NumberFormat("en-IN", {
@@ -189,6 +191,7 @@ export function InventoryListControls({
   currentFilters,
   vendorOptions,
   selectedBranchName,
+  canCreate,
 }: InventoryListControlsProps) {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
@@ -344,6 +347,20 @@ export function InventoryListControls({
           </div>
 
           <div className="flex shrink-0 items-center gap-2 self-start">
+            {canCreate ? (
+              <Link
+                href="/dashboard/inventory/new"
+                aria-label="Add Inventory"
+                title="Add Inventory"
+                className={cn(
+                  "inline-flex h-10 w-10 items-center justify-center gap-2 rounded-xl border border-transparent bg-[rgb(var(--primary))] text-sm font-semibold text-[rgb(var(--primary-foreground))] shadow-[0_20px_44px_-28px_rgb(var(--shadow)/0.65)] transition-all hover:bg-[rgb(var(--primary-strong))] lg:w-auto lg:px-4",
+                  "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
+                )}
+              >
+                <Plus className="h-4 w-4" aria-hidden="true" strokeWidth={2} />
+                <span className="hidden lg:inline">Add Inventory</span>
+              </Link>
+            ) : null}
             <FilterTriggerButton
               ref={filterButtonRef}
               activeCount={activeFilterCount}

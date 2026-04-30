@@ -19,10 +19,7 @@ type DashboardShellProps = {
   initialBranchName: string | null;
   canSelectAllBranches: boolean;
   canManageUsers: boolean;
-  canCreateUser: boolean;
-  canCreateInventory: boolean;
   canViewExpenseCategories: boolean;
-  canCreateExpenseCategory: boolean;
 };
 
 function readDesktopSidebarPreference() {
@@ -67,10 +64,7 @@ export function DashboardShell({
   initialBranchName,
   canSelectAllBranches,
   canManageUsers,
-  canCreateUser,
-  canCreateInventory,
   canViewExpenseCategories,
-  canCreateExpenseCategory,
 }: DashboardShellProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -176,8 +170,6 @@ export function DashboardShell({
           initialBranchId={initialBranchId}
           initialBranchName={initialBranchName}
           canSelectAllBranches={canSelectAllBranches}
-          canCreateUser={canCreateUser}
-          canCreateInventory={canCreateInventory}
         />
 
         {isMobileSidebarMounted ? (
@@ -220,10 +212,7 @@ export function DashboardShell({
                   mobile
                   onCloseMobile={closeMobileSidebar}
                   canManageUsers={canManageUsers}
-                  canCreateUser={canCreateUser}
-                  canCreateInventory={canCreateInventory}
                   canViewExpenseCategories={canViewExpenseCategories}
-                  canCreateExpenseCategory={canCreateExpenseCategory}
                 />
               </div>
             </div>
@@ -248,10 +237,7 @@ export function DashboardShell({
                 })
               }
               canManageUsers={canManageUsers}
-              canCreateUser={canCreateUser}
-              canCreateInventory={canCreateInventory}
               canViewExpenseCategories={canViewExpenseCategories}
-              canCreateExpenseCategory={canCreateExpenseCategory}
             />
           </div>
           <div className="min-w-0 flex-1">{children}</div>

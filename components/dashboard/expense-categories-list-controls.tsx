@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
-import { X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import {
   DataPill,
   type DataPillTone,
@@ -20,11 +20,13 @@ import {
   type ExpenseCategoryStatusFilter,
 } from "@/lib/dashboard/expense-categories-page-filters";
 import { FILTER_FIELD_LABEL_CLASS } from "@/lib/dashboard/list-page-classes";
+import { cn } from "@/lib/utils/cn";
 import { formatDateRangeLabel, formatEnumLabel } from "@/lib/utils/format";
 
 type ExpenseCategoriesListControlsProps = {
   currentPath: string;
   currentFilters: ExpenseCategoriesPageFilterState;
+  canCreate: boolean;
 };
 
 type AppliedItem = {
@@ -132,6 +134,7 @@ function RemovablePills({ items }: { items: AppliedItem[] }) {
 export function ExpenseCategoriesListControls({
   currentPath,
   currentFilters,
+  canCreate,
 }: ExpenseCategoriesListControlsProps) {
   const currentHref = useMemo(
     () => buildExpenseCategoriesPageHref(currentPath, currentFilters),
@@ -199,6 +202,20 @@ export function ExpenseCategoriesListControls({
           <RemovablePills items={appliedItems} />
         </div>
         <div className="flex shrink-0 items-center gap-2 self-start">
+          {canCreate ? (
+            <Link
+              href="/dashboard/expenses/categories/new"
+              aria-label="Add Expense Category"
+              title="Add Expense Category"
+              className={cn(
+                "inline-flex h-10 w-10 items-center justify-center gap-2 rounded-xl border border-transparent bg-[rgb(var(--primary))] text-sm font-semibold text-[rgb(var(--primary-foreground))] shadow-[0_20px_44px_-28px_rgb(var(--shadow)/0.65)] transition-all hover:bg-[rgb(var(--primary-strong))] lg:w-auto lg:px-4",
+                "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
+              )}
+            >
+              <Plus className="h-4 w-4" aria-hidden="true" strokeWidth={2} />
+              <span className="hidden lg:inline">Add Expense Category</span>
+            </Link>
+          ) : null}
           <FilterTriggerButton
             ref={filterButtonRef}
             activeCount={activeFilterCount}

@@ -31,6 +31,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
   }
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const canCreate = hasPermission(currentUser, "users:create");
 
   try {
     const filters = parseUsersPageFilters(resolvedSearchParams);
@@ -89,6 +90,7 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
             branchOptions={branchOptions}
             canSelectBranch={context.canSelectAll}
             selectedBranchName={context.selectedBranchName}
+            canCreate={canCreate}
           />
 
           <UserManagementDataTable

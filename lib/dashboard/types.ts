@@ -354,3 +354,27 @@ export type UserManagementPageData = {
   summary: UserManagementPageSummary;
   result: PaginatedListResult<UserManagementRow>;
 };
+
+export type ExpenseCategoryManagementRow = {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  scope: ExpenseCategoryScope;
+  isActive: boolean;
+  sortOrder: number;
+  updatedByName: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ExpenseCategoryManagementSummary = {
+  branchCategories: number;
+  employeeCategories: number;
+  bothScopeCategories: number;
+};
+
+export type ExpenseCategoriesPageData = {
+  summary: ExpenseCategoryManagementSummary;
+  result: PaginatedListResult<ExpenseCategoryManagementRow>;
+};

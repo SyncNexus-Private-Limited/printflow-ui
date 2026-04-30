@@ -21,6 +21,8 @@ type DashboardShellProps = {
   canManageUsers: boolean;
   canCreateUser: boolean;
   canCreateInventory: boolean;
+  canViewExpenseCategories: boolean;
+  canCreateExpenseCategory: boolean;
 };
 
 function readDesktopSidebarPreference() {
@@ -67,6 +69,8 @@ export function DashboardShell({
   canManageUsers,
   canCreateUser,
   canCreateInventory,
+  canViewExpenseCategories,
+  canCreateExpenseCategory,
 }: DashboardShellProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -218,6 +222,8 @@ export function DashboardShell({
                   canManageUsers={canManageUsers}
                   canCreateUser={canCreateUser}
                   canCreateInventory={canCreateInventory}
+                  canViewExpenseCategories={canViewExpenseCategories}
+                  canCreateExpenseCategory={canCreateExpenseCategory}
                 />
               </div>
             </div>
@@ -244,6 +250,8 @@ export function DashboardShell({
               canManageUsers={canManageUsers}
               canCreateUser={canCreateUser}
               canCreateInventory={canCreateInventory}
+              canViewExpenseCategories={canViewExpenseCategories}
+              canCreateExpenseCategory={canCreateExpenseCategory}
             />
           </div>
           <div className="min-w-0 flex-1">{children}</div>

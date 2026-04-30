@@ -34,6 +34,8 @@ type DashboardSidebarProps = {
   canManageUsers: boolean;
   canCreateUser: boolean;
   canCreateInventory: boolean;
+  canViewExpenseCategories: boolean;
+  canCreateExpenseCategory: boolean;
 };
 
 type SidebarLinkProps = {
@@ -117,6 +119,8 @@ export function DashboardSidebar({
   canManageUsers,
   canCreateUser,
   canCreateInventory,
+  canViewExpenseCategories,
+  canCreateExpenseCategory,
 }: DashboardSidebarProps) {
   const searchParams = useSearchParams();
   const isDesktopCollapsed = collapsed && !mobile;
@@ -160,6 +164,16 @@ export function DashboardSidebar({
           },
         ];
       }
+    }
+    if (item.type === "group" && item.label === "Expenses") {
+      let children = item.children;
+      if (!canViewExpenseCategories) {
+        children = children.filter((child) => child.href !== "/dashboard/expenses/categories");
+      }
+      if (!canCreateExpenseCategory) {
+        children = children.filter((child) => child.href !== "/dashboard/expenses/categories/new");
+      }
+      return [{ ...item, children }];
     }
     return [item];
   });

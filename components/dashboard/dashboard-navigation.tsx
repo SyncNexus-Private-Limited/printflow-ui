@@ -71,6 +71,12 @@ export const dashboardNavigation: DashboardNavItem[] = [
       { label: "Employee Expenses", href: "/dashboard/employee-expenses" },
       { label: "Business Expenses", href: "/dashboard/business-expenses" },
       { label: "Add Expense", href: "/dashboard/expenses/new", breadcrumbLabel: "Add Expense" },
+      { label: "Expense Categories", href: "/dashboard/expenses/categories" },
+      {
+        label: "Add Expense Category",
+        href: "/dashboard/expenses/categories/new",
+        breadcrumbLabel: "Add Expense Category",
+      },
     ],
   },
   {
@@ -130,8 +136,13 @@ export function getDashboardBreadcrumbs(
     }
 
     if (item.type === "group") {
-      const activeChild = item.children.find((child) =>
-        isDashboardRouteActive(pathname, child.href),
+      const activeChild = item.children.reduce<(typeof item.children)[number] | null>(
+        (best, child) => {
+          if (!isDashboardRouteActive(pathname, child.href)) return best;
+          if (!best) return child;
+          return child.href.length > best.href.length ? child : best;
+        },
+        null,
       );
 
       if (activeChild) {

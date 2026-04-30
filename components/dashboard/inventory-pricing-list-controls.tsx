@@ -212,24 +212,26 @@ export function InventoryPricingListControls({
               addPricingDisabled ? (
                 <Button
                   type="button"
-                  className="h-11 w-11 rounded-2xl px-0"
+                  className="h-11 rounded-2xl px-3 lg:px-4"
                   disabled
-                  aria-label="Add pricing"
+                  aria-label="Add Inventory Pricing"
                   title="No active inventory items available"
                 >
-                  <Plus className="h-4.5 w-4.5" aria-hidden="true" strokeWidth={2} />
+                  <Plus className="h-4.5 w-4.5 shrink-0" aria-hidden="true" strokeWidth={2} />
+                  <span className="hidden lg:inline">Add Inventory Pricing</span>
                 </Button>
               ) : (
                 <Link
                   href={addPricingHref}
                   className={cn(
-                    "inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-transparent bg-[rgb(var(--primary))] text-[rgb(var(--primary-foreground))] shadow-[0_20px_44px_-28px_rgb(var(--shadow)/0.65)] transition-all hover:bg-[rgb(var(--primary-strong))]",
+                    "inline-flex h-11 items-center gap-2 rounded-2xl border border-transparent bg-[rgb(var(--primary))] px-3 text-sm font-medium text-[rgb(var(--primary-foreground))] shadow-[0_20px_44px_-28px_rgb(var(--shadow)/0.65)] transition-all hover:bg-[rgb(var(--primary-strong))] lg:px-4",
                     "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
                   )}
-                  aria-label="Add pricing"
-                  title="Add pricing"
+                  aria-label="Add Inventory Pricing"
+                  title="Add Inventory Pricing"
                 >
-                  <Plus className="h-4.5 w-4.5" aria-hidden="true" strokeWidth={2} />
+                  <Plus className="h-4.5 w-4.5 shrink-0" aria-hidden="true" strokeWidth={2} />
+                  <span className="hidden lg:inline">Add Inventory Pricing</span>
                 </Link>
               )
             ) : null}

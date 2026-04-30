@@ -23,6 +23,11 @@ export type Permission =
   | "expenses:create"
   | "expenses:edit"
   | "expenses:delete"
+  | "expense-categories:view"
+  | "expense-categories:create"
+  | "expense-categories:edit"
+  | "expense-categories:deactivate"
+  | "expense-categories:restore"
   | "inventory:view"
   | "inventory:create"
   | "inventory:edit"
@@ -70,6 +75,11 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
     "expenses:create",
     "expenses:edit",
     "expenses:delete",
+    "expense-categories:view",
+    "expense-categories:create",
+    "expense-categories:edit",
+    "expense-categories:deactivate",
+    "expense-categories:restore",
     "inventory:view",
     "inventory:create",
     "inventory:edit",
@@ -85,6 +95,11 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
     "expenses:create",
     "expenses:edit",
     "expenses:delete",
+    "expense-categories:view",
+    "expense-categories:create",
+    "expense-categories:edit",
+    "expense-categories:deactivate",
+    "expense-categories:restore",
     "inventory:view",
     "inventory:create",
     "inventory:edit",
@@ -99,6 +114,7 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
     "expenses:create",
     "expenses:edit",
     "expenses:delete",
+    "expense-categories:view",
     "inventory:view",
     "inventory:create",
     "inventory:edit",
@@ -110,6 +126,7 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
     "expenses:view",
     "expenses:create",
     "expenses:edit",
+    "expense-categories:view",
     "inventory:view",
   ]),
 };

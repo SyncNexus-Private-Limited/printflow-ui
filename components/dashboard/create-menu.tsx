@@ -23,16 +23,11 @@ import {
 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import {
-  buildCanonicalExpenseCreateHref,
-  buildCanonicalUserCreateHref,
-} from "@/lib/dashboard/helpers";
 import { cn } from "@/lib/utils/cn";
 
 type CreateAction = {
   key: string;
   label: string;
-  shortLabel?: string;
   href: string;
   icon: LucideIcon;
   disabled?: boolean;
@@ -40,41 +35,13 @@ type CreateAction = {
 };
 
 type CreateMenuProps = {
-  currentBranchValue: string | null;
-  initialBranchId: string | null;
-  branchOptions: Array<{
-    label: string;
-    value: string;
-  }>;
-  // Controls whether the "Add User" action appears in the menu.
-  // Computed server-side from hasPermission(user, "users:create").
-  canCreateUser: boolean;
-  // Controls whether the "Add Item" action is enabled in the menu.
-  // Computed server-side from hasPermission(user, "inventory:create").
   canCreateInventory: boolean;
+  canCreateExpense: boolean;
+  canCreateUser: boolean;
 };
 
-function buildCreateActionHref(
-  path: string,
-  currentBranchValue: string | null,
-  extraSearchParams?: Record<string, string>,
-) {
-  const searchParams = new URLSearchParams();
-
-  if (currentBranchValue) {
-    searchParams.set("branchId", currentBranchValue);
-  }
-
-  if (extraSearchParams) {
-    for (const [key, value] of Object.entries(extraSearchParams)) {
-      searchParams.set(key, value);
-    }
-  }
-
-  const queryString = searchParams.toString();
-
-  return queryString.length > 0 ? `${path}?${queryString}` : path;
-}
+const STAFF_CREATE_USER_HREF =
+  "/dashboard/users/new?branchId=12121212-1212-4212-8212-121212121212&role=staff";
 
 function normalizeHref(href: string) {
   const url = new URL(href, "https://printflow.local");
@@ -96,22 +63,16 @@ function isSameHref(leftHref: string, rightHref: string) {
   return normalizeHref(leftHref) === normalizeHref(rightHref);
 }
 
-function getCreateActions(
-  currentBranchValue: string | null,
-  initialBranchId: string | null,
-  branchOptions: Array<{
-    label: string;
-    value: string;
-  }>,
-  canCreateUser: boolean,
-  canCreateInventory: boolean,
-): CreateAction[] {
-  const actions: CreateAction[] = [
+function getCreateActions({
+  canCreateInventory,
+  canCreateExpense,
+  canCreateUser,
+}: CreateMenuProps): CreateAction[] {
+  return [
     {
       key: "order",
       label: "Add Order",
-      shortLabel: "Order",
-      href: buildCreateActionHref("/dashboard/orders/new", currentBranchValue),
+      href: "/dashboard/orders/new",
       icon: ShoppingBag,
       disabled: true,
       disabledReason: "Coming soon",
@@ -119,60 +80,44 @@ function getCreateActions(
     {
       key: "customer",
       label: "Add Customer",
-      shortLabel: "Customer",
-      href: buildCreateActionHref("/dashboard/customers/new", currentBranchValue),
+      href: "/dashboard/customers/new",
       icon: UserRound,
       disabled: true,
       disabledReason: "Coming soon",
     },
     {
-      key: "expense",
-      label: "Add Expense",
-      shortLabel: "Expense",
-      href: buildCanonicalExpenseCreateHref({
-        currentBranchId: currentBranchValue,
-        initialBranchId,
-        branchOptions,
-        type: "business",
-      }),
-      icon: Receipt,
-    },
-    {
-      key: "item",
-      label: "Add Item",
-      shortLabel: "Item",
-      href: buildCreateActionHref("/dashboard/inventory/new", currentBranchValue),
+      key: "inventory",
+      label: "Add Inventory",
+      href: "/dashboard/inventory/new",
       icon: Boxes,
       disabled: !canCreateInventory,
-      disabledReason: canCreateInventory ? undefined : "Coming soon",
+      disabledReason: "Unavailable",
+    },
+    {
+      key: "expense",
+      label: "Add Expense",
+      href: "/dashboard/expenses/new",
+      icon: Receipt,
+      disabled: !canCreateExpense,
+      disabledReason: "Unavailable",
+    },
+    {
+      key: "user",
+      label: "Add User",
+      href: STAFF_CREATE_USER_HREF,
+      icon: Users,
+      disabled: !canCreateUser,
+      disabledReason: "Unavailable",
     },
     {
       key: "vendor",
       label: "Add Vendor",
-      shortLabel: "Vendor",
-      href: buildCreateActionHref("/dashboard/vendors/new", currentBranchValue),
+      href: "/dashboard/vendors/new",
       icon: Truck,
       disabled: true,
       disabledReason: "Coming soon",
     },
   ];
-
-  // Only users with users:create permission see this action.
-  if (canCreateUser) {
-    actions.push({
-      key: "user",
-      label: "Add User",
-      shortLabel: "User",
-      href: buildCanonicalUserCreateHref({
-        currentBranchId: currentBranchValue,
-        initialBranchId,
-        branchOptions,
-      }),
-      icon: Users,
-    });
-  }
-
-  return actions;
 }
 
 function getFocusableActionIndices(actions: CreateAction[]) {
@@ -201,11 +146,9 @@ function useIsDesktopViewport() {
 }
 
 export function CreateMenu({
-  currentBranchValue,
-  initialBranchId,
-  branchOptions,
-  canCreateUser,
   canCreateInventory,
+  canCreateExpense,
+  canCreateUser,
 }: CreateMenuProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -221,15 +164,8 @@ export function CreateMenu({
   const focusTargetIndexRef = useRef<number | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const actions = useMemo(
-    () =>
-      getCreateActions(
-        currentBranchValue,
-        initialBranchId,
-        branchOptions,
-        canCreateUser,
-        canCreateInventory,
-      ),
-    [branchOptions, canCreateInventory, canCreateUser, currentBranchValue, initialBranchId],
+    () => getCreateActions({ canCreateInventory, canCreateExpense, canCreateUser }),
+    [canCreateExpense, canCreateInventory, canCreateUser],
   );
   const focusableActionIndices = useMemo(() => getFocusableActionIndices(actions), [actions]);
   const currentHref = useMemo(
@@ -455,15 +391,12 @@ export function CreateMenu({
           aria-label="Create new"
           className={cn(
             "absolute top-[calc(100%+0.55rem)] right-0 z-50 w-80 overflow-hidden rounded-[22px]",
-            "border border-[rgb(var(--border)/0.78)] bg-[rgb(var(--card)/0.96)] p-1.5 shadow-[0_24px_52px_-36px_rgb(var(--shadow)/0.22)] backdrop-blur-[14px]",
+            "border border-[rgb(var(--border)/0.78)] bg-[rgb(var(--card)/0.96)] p-1.5 shadow-[0_24px_52px_-36px_rgb(var(--shadow)/0.22)] backdrop-blur-[14px] sm:w-64",
           )}
         >
           <div className="space-y-1">
             {actions.map((action, index) => {
               const Icon = action.icon;
-              const helperText = action.disabled
-                ? (action.disabledReason ?? "Unavailable")
-                : `Open ${action.shortLabel ?? action.label}`;
 
               return (
                 <button
@@ -478,17 +411,21 @@ export function CreateMenu({
                   onClick={() => navigateToCreateAction(action)}
                   onKeyDown={(event) => handleActionKeyDown(event, index)}
                   className={cn(
-                    "flex w-full items-start gap-2.5 rounded-[18px] px-3 py-2.5 text-left transition-colors",
+                    "flex w-full items-center gap-2.5 rounded-[18px] px-3 py-2 text-left transition-colors",
                     "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
                     action.disabled
                       ? "cursor-not-allowed opacity-72"
                       : "hover:bg-[rgb(var(--muted)/0.72)] focus-visible:bg-[rgb(var(--muted)/0.72)]",
                   )}
-                  title={action.disabled ? `${action.label} (${helperText})` : action.label}
+                  title={
+                    action.disabled
+                      ? `${action.label} (${action.disabledReason ?? "Unavailable"})`
+                      : action.label
+                  }
                 >
                   <span
                     className={cn(
-                      "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
+                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
                       action.disabled
                         ? "bg-[rgb(var(--muted))] text-[rgb(var(--muted-foreground))]"
                         : "bg-[rgb(var(--primary-soft))] text-[rgb(var(--primary-soft-foreground))]",
@@ -496,13 +433,8 @@ export function CreateMenu({
                   >
                     <Icon className="h-4 w-4" aria-hidden="true" strokeWidth={1.9} />
                   </span>
-                  <span className="min-w-0 flex-1 space-y-0.5">
-                    <span className="block text-sm font-semibold text-[rgb(var(--card-foreground))]">
-                      {action.label}
-                    </span>
-                    <span className="block text-xs text-[rgb(var(--muted-foreground))]">
-                      {helperText}
-                    </span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[rgb(var(--card-foreground))]">
+                    {action.label}
                   </span>
                 </button>
               );
@@ -533,14 +465,9 @@ export function CreateMenu({
                   )}
                 >
                   <div className="flex items-center justify-between gap-3 px-2 pt-1 pb-2">
-                    <div className="space-y-0.5">
-                      <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">
-                        Create new
-                      </p>
-                      <p className="text-xs text-[rgb(var(--muted-foreground))]">
-                        Choose what to add next.
-                      </p>
-                    </div>
+                    <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">
+                      Create new
+                    </p>
                     <button
                       type="button"
                       className={cn(
@@ -558,9 +485,6 @@ export function CreateMenu({
                   <div className="space-y-1">
                     {actions.map((action, index) => {
                       const Icon = action.icon;
-                      const statusLabel = action.disabled
-                        ? (action.disabledReason ?? "Unavailable")
-                        : "Open";
 
                       return (
                         <button
@@ -574,14 +498,16 @@ export function CreateMenu({
                           onClick={() => navigateToCreateAction(action)}
                           onKeyDown={(event) => handleActionKeyDown(event, index)}
                           className={cn(
-                            "flex w-full items-center gap-3 rounded-[20px] px-3 py-3 text-left transition-colors",
+                            "flex w-full items-center gap-3 rounded-[20px] px-3 py-2.5 text-left transition-colors",
                             "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
                             action.disabled
                               ? "cursor-not-allowed opacity-72"
                               : "bg-[rgb(var(--primary-soft)/0.54)] text-[rgb(var(--card-foreground))]",
                           )}
                           title={
-                            action.disabled ? `${action.label} (${statusLabel})` : action.label
+                            action.disabled
+                              ? `${action.label} (${action.disabledReason ?? "Unavailable"})`
+                              : action.label
                           }
                         >
                           <span
@@ -595,24 +521,9 @@ export function CreateMenu({
                             <Icon className="h-4 w-4" aria-hidden="true" strokeWidth={1.9} />
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="block text-sm font-semibold text-[rgb(var(--card-foreground))]">
+                            <span className="block truncate text-sm font-semibold text-[rgb(var(--card-foreground))]">
                               {action.label}
                             </span>
-                            {action.disabled ? (
-                              <span className="mt-0.5 block text-xs text-[rgb(var(--muted-foreground))]">
-                                {statusLabel}
-                              </span>
-                            ) : null}
-                          </span>
-                          <span
-                            className={cn(
-                              "shrink-0 rounded-full px-2 py-1 text-[11px] font-semibold tracking-[0.14em] uppercase",
-                              action.disabled
-                                ? "bg-[rgb(var(--muted))] text-[rgb(var(--muted-foreground))]"
-                                : "bg-[rgb(var(--primary))] text-[rgb(var(--primary-foreground))]",
-                            )}
-                          >
-                            {action.disabled ? "Soon" : "Open"}
                           </span>
                         </button>
                       );

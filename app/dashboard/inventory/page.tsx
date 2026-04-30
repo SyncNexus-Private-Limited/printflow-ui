@@ -28,6 +28,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
 
+  const canCreate = hasPermission(currentUser, "inventory:create");
   const canEdit = hasPermission(currentUser, "inventory:edit");
   const canArchive = hasPermission(currentUser, "inventory:archive");
   const canRestore = hasPermission(currentUser, "inventory:restore");
@@ -89,6 +90,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
             currentFilters={currentFilters}
             vendorOptions={vendorOptions}
             selectedBranchName={context.selectedBranchName}
+            canCreate={canCreate}
           />
 
           <InventoryTableWithActions

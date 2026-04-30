@@ -194,6 +194,23 @@ export function getExpenseCategoryTone(categoryKey: string): DataPillTone {
   return expenseCategoryTones[hashCategoryKey(normalizedCategoryKey) % expenseCategoryTones.length];
 }
 
+export function getExpenseCategoryScopeTone(scope: string): DataPillTone {
+  switch (scope) {
+    case "branch":
+      return "blue";
+    case "employee":
+      return "emerald";
+    case "both":
+      return "violet";
+    default:
+      return "neutral";
+  }
+}
+
+export function getExpenseCategoryStatusTone(status: string): DataPillTone {
+  return status === "active" ? "emerald" : "neutral";
+}
+
 export function getUserAccountStatusTone(status: string): DataPillTone {
   switch (status) {
     case "active":

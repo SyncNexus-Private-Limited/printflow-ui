@@ -11,7 +11,10 @@ import type {
   ExpenseCategoryManagementRow,
   ExpenseCategoryManagementSummary,
 } from "@/lib/dashboard/types";
-import type { EditExpenseCategoryRow } from "@/lib/expense-categories/types";
+import type {
+  EditExpenseCategoryRow,
+  ExpenseCategoryAuditLogRow,
+} from "@/lib/expense-categories/types";
 
 type QueryParts = {
   whereClause: string;
@@ -193,4 +196,27 @@ export async function getExpenseCategoryById(
   );
 
   return rows[0] ?? null;
+}
+
+export async function getExpenseCategoryAuditLogs(
+  categoryId: string,
+): Promise<ExpenseCategoryAuditLogRow[]> {
+  const db = getPool();
+  const { rows } = await db.query<ExpenseCategoryAuditLogRow>(
+    `
+      SELECT
+        logs.action,
+        logs.snapshot,
+        logs.changed_fields AS "changedFields",
+        changed_by.full_name AS "changedByName",
+        logs.created_at::text AS "createdAt"
+      FROM expense_category_audit_logs logs
+      LEFT JOIN users changed_by ON changed_by.id = logs.changed_by
+      WHERE logs.expense_category_id = $1::uuid
+      ORDER BY logs.created_at DESC
+    `,
+    [categoryId],
+  );
+
+  return rows;
 }

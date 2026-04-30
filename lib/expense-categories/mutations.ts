@@ -6,6 +6,8 @@ import { getPool } from "@/lib/db/postgres";
 import type { ExpenseCategoryInput } from "@/lib/expense-categories/schema";
 
 type MutationFieldErrors = Partial<Record<string, string>>;
+type ChangedFields = Record<string, { from: unknown; to: unknown }>;
+type ExpenseCategoryAuditAction = "create" | "update" | "deactivate" | "restore";
 
 export class ExpenseCategoryMutationError extends Error {
   status: number;
@@ -19,31 +21,130 @@ export class ExpenseCategoryMutationError extends Error {
   }
 }
 
-type CategorySnapshot = {
+export type ExpenseCategoryAuditSnapshot = {
   id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  scope: string;
   isActive: boolean;
+  sortOrder: number;
+  createdBy: string | null;
+  updatedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
-async function getCategorySnapshot(
+type ExpenseCategoryAuditSnapshotRow = {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  scope: string;
+  is_active: boolean;
+  sort_order: number;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function fetchExpenseCategorySnapshotForAudit(
   client: PoolClient,
   categoryId: string,
-): Promise<CategorySnapshot | null> {
-  const { rows } = await client.query<CategorySnapshot>(
+): Promise<ExpenseCategoryAuditSnapshot | null> {
+  const { rows } = await client.query<ExpenseCategoryAuditSnapshotRow>(
     `
-      SELECT id::text AS id, is_active AS "isActive"
-      FROM expense_categories
-      WHERE id = $1::uuid
+      SELECT
+        ec.id::text AS id,
+        ec.code,
+        ec.name,
+        ec.description,
+        ec.scope,
+        ec.is_active,
+        ec.sort_order,
+        ec.created_by::text AS created_by,
+        ec.updated_by::text AS updated_by,
+        ec.created_at::text AS created_at,
+        ec.updated_at::text AS updated_at
+      FROM expense_categories ec
+      WHERE ec.id = $1::uuid
       FOR UPDATE
       LIMIT 1
     `,
     [categoryId],
   );
 
-  return rows[0] ?? null;
+  const row = rows[0];
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    code: row.code,
+    name: row.name,
+    description: row.description,
+    scope: row.scope,
+    isActive: row.is_active,
+    sortOrder: row.sort_order,
+    createdBy: row.created_by,
+    updatedBy: row.updated_by,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function logExpenseCategoryAudit(
+  client: PoolClient,
+  categoryId: string,
+  action: ExpenseCategoryAuditAction,
+  snapshot: ExpenseCategoryAuditSnapshot,
+  changedBy: string,
+  changedFields?: ChangedFields | null,
+): Promise<void> {
+  await client.query(
+    `
+      INSERT INTO expense_category_audit_logs
+        (expense_category_id, action, snapshot, changed_fields, changed_by)
+      VALUES
+        ($1::uuid, $2, $3::jsonb, $4::jsonb, $5::uuid)
+    `,
+    [
+      categoryId,
+      action,
+      JSON.stringify(snapshot),
+      changedFields && Object.keys(changedFields).length > 0 ? JSON.stringify(changedFields) : null,
+      changedBy,
+    ],
+  );
 }
 
 function parseSortOrder(value: string) {
   return Number.parseInt(value, 10);
+}
+
+function buildUpdateChangedFields(
+  snapshot: ExpenseCategoryAuditSnapshot,
+  input: ExpenseCategoryInput,
+): ChangedFields {
+  const nextSortOrder = parseSortOrder(input.sortOrder);
+  const nextDescription = input.description ?? null;
+  const changedFields: ChangedFields = {};
+
+  if (snapshot.code !== input.code) changedFields.code = { from: snapshot.code, to: input.code };
+  if (snapshot.name !== input.name) changedFields.name = { from: snapshot.name, to: input.name };
+  if ((snapshot.description ?? null) !== nextDescription) {
+    changedFields.description = { from: snapshot.description, to: nextDescription };
+  }
+  if (snapshot.scope !== input.scope)
+    changedFields.scope = { from: snapshot.scope, to: input.scope };
+  if (snapshot.isActive !== input.isActive) {
+    changedFields.isActive = { from: snapshot.isActive, to: input.isActive };
+  }
+  if (snapshot.sortOrder !== nextSortOrder) {
+    changedFields.sortOrder = { from: snapshot.sortOrder, to: nextSortOrder };
+  }
+
+  return changedFields;
 }
 
 function handleDbError(error: unknown): never {
@@ -72,9 +173,12 @@ export async function createExpenseCategory(
   assertPermission(currentUser, "expense-categories:create");
 
   const db = getPool();
+  const client = await db.connect();
 
   try {
-    const { rows } = await db.query<{ id: string }>(
+    await client.query("BEGIN");
+
+    const { rows } = await client.query<{ id: string }>(
       `
         INSERT INTO expense_categories
           (code, name, description, scope, is_active, sort_order, created_by, updated_by)
@@ -100,10 +204,23 @@ export async function createExpenseCategory(
       });
     }
 
+    const snapshot = await fetchExpenseCategorySnapshotForAudit(client, createdId);
+    if (!snapshot) {
+      throw new ExpenseCategoryMutationError("Unable to create expense category right now.", {
+        status: 500,
+      });
+    }
+
+    await logExpenseCategoryAudit(client, createdId, "create", snapshot, currentUser.userId);
+    await client.query("COMMIT");
+
     return { id: createdId, redirectTo: "/dashboard/expenses/categories" };
   } catch (error) {
+    await client.query("ROLLBACK");
     if (error instanceof ExpenseCategoryMutationError) throw error;
     handleDbError(error);
+  } finally {
+    client.release();
   }
 }
 
@@ -115,9 +232,19 @@ export async function updateExpenseCategory(
   assertPermission(currentUser, "expense-categories:edit");
 
   const db = getPool();
+  const client = await db.connect();
 
   try {
-    const { rowCount } = await db.query(
+    await client.query("BEGIN");
+
+    const snapshot = await fetchExpenseCategorySnapshotForAudit(client, categoryId);
+    if (!snapshot) {
+      throw new ExpenseCategoryMutationError("Expense category not found.", { status: 404 });
+    }
+
+    const changedFields = buildUpdateChangedFields(snapshot, input);
+
+    const { rowCount } = await client.query(
       `
         UPDATE expense_categories
         SET
@@ -145,9 +272,23 @@ export async function updateExpenseCategory(
     if (!rowCount) {
       throw new ExpenseCategoryMutationError("Expense category not found.", { status: 404 });
     }
+
+    await logExpenseCategoryAudit(
+      client,
+      categoryId,
+      "update",
+      snapshot,
+      currentUser.userId,
+      changedFields,
+    );
+
+    await client.query("COMMIT");
   } catch (error) {
+    await client.query("ROLLBACK");
     if (error instanceof ExpenseCategoryMutationError) throw error;
     handleDbError(error);
+  } finally {
+    client.release();
   }
 }
 
@@ -162,7 +303,7 @@ export async function deactivateExpenseCategory(
 
   try {
     await client.query("BEGIN");
-    const snapshot = await getCategorySnapshot(client, categoryId);
+    const snapshot = await fetchExpenseCategorySnapshotForAudit(client, categoryId);
     if (!snapshot) {
       throw new ExpenseCategoryMutationError("Expense category not found.", { status: 404 });
     }
@@ -175,6 +316,10 @@ export async function deactivateExpenseCategory(
       `,
       [categoryId, currentUser.userId],
     );
+
+    await logExpenseCategoryAudit(client, categoryId, "deactivate", snapshot, currentUser.userId, {
+      isActive: { from: snapshot.isActive, to: false },
+    });
 
     await client.query("COMMIT");
   } catch (error) {
@@ -193,16 +338,35 @@ export async function restoreExpenseCategory(
   assertPermission(currentUser, "expense-categories:restore");
 
   const db = getPool();
-  const { rowCount } = await db.query(
-    `
-      UPDATE expense_categories
-      SET is_active = true, updated_by = $2::uuid
-      WHERE id = $1::uuid
-    `,
-    [categoryId, currentUser.userId],
-  );
+  const client = await db.connect();
 
-  if (!rowCount) {
-    throw new ExpenseCategoryMutationError("Expense category not found.", { status: 404 });
+  try {
+    await client.query("BEGIN");
+
+    const snapshot = await fetchExpenseCategorySnapshotForAudit(client, categoryId);
+    if (!snapshot) {
+      throw new ExpenseCategoryMutationError("Expense category not found.", { status: 404 });
+    }
+
+    await client.query(
+      `
+        UPDATE expense_categories
+        SET is_active = true, updated_by = $2::uuid
+        WHERE id = $1::uuid
+      `,
+      [categoryId, currentUser.userId],
+    );
+
+    await logExpenseCategoryAudit(client, categoryId, "restore", snapshot, currentUser.userId, {
+      isActive: { from: snapshot.isActive, to: true },
+    });
+
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    if (error instanceof ExpenseCategoryMutationError) throw error;
+    handleDbError(error);
+  } finally {
+    client.release();
   }
 }

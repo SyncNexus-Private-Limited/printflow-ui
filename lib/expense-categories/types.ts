@@ -48,3 +48,11 @@ export type EditExpenseCategoryRow = {
   updatedAt: string;
   updatedByName: string | null;
 };
+
+export type ExpenseCategoryAuditLogRow = {
+  action: "create" | "update" | "deactivate" | "restore";
+  snapshot: unknown;
+  changedFields: unknown | null;
+  changedByName: string | null;
+  createdAt: string;
+};

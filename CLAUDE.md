@@ -48,13 +48,17 @@ app/
     auth/logout/        # POST — revoke session
     auth/heartbeat/     # POST — touch session last_seen_at
     expenses/           # POST — create branch/employee expense
+    inventory/          # POST create; [id]/ GET item+vendors, PATCH (update/archive/restore/toggle-active)
   dashboard/            # Protected dashboard pages (Server Components)
+    inventory/new/      # Add Item page
+    inventory/[id]/edit/ # Edit Item page (also reachable via in-list dialog)
   globals.css           # Tailwind 4 import + CSS variable tokens (light + dark)
 
 components/
   auth/                 # LoginForm, LogoutButton
   dashboard/            # Shell, header, sidebar, data tables, list controls
   expenses/             # Expense form fields
+  inventory/            # Edit dialog (InventoryRowPatch optimistic patch), create/edit forms, table wrapper
   providers/            # GlobalUiProvider
   ui/                   # Button, Input, Select, Textarea, Spinner, GlobalLoader, Toast (ToastItem, ToastContainer)
 
@@ -81,6 +85,9 @@ lib/
   expenses/
     schema.ts           # Zod discriminated union for expense creation
     types.ts / queries.ts / mutations.ts
+  inventory/
+    schema.ts           # Zod schemas for inventory create / update
+    types.ts / queries.ts / mutations.ts
   validations/
     auth.ts             # loginSchema
     dashboard.ts        # branchFilterSchema
@@ -89,11 +96,11 @@ lib/
   utils/                # cn(), format()
 
 db/
-  migrations/           # SQL migration files (20260410_000001_baseline.sql, 20260414_131102_expense_schema_hardening.sql, 20260429_113844_user_audit_log.sql — adds user_audit_logs table, password_changed_at + must_reset_password to user_auth)
+  migrations/           # SQL migration files (20260410_000001_baseline.sql, 20260414_131102_expense_schema_hardening.sql, 20260429_113844_user_audit_log.sql, 20260430_000001_inventory_v1.sql — adds audit/soft-delete columns, inventory_audit_logs, inventory_stock_movements)
   seeds/dev_seed.sql
   reset/dev_reset.sql
 
-scripts/db/             # Node ESM migration tooling (.mjs)
+scripts/db/             # Node ESM migration tooling (.mjs); repair-checksums.mjs patches schema_migrations checksums after file reformatting
 middleware.ts           # Protects /dashboard/*, redirects /login if already authed
 ```
 
@@ -129,6 +136,7 @@ npm run db:reset:dev -- --confirm printflow_dev
 - Do not edit applied migrations without explicit user confirmation
 - Run `db:target` before any DB operation. Prefer dry runs before applying
 - Production: runs only `db:migrate`. Rollback blocked unless `ALLOW_PRODUCTION_ROLLBACK=true`
+- `db/migrations/` is in `.prettierignore` — never reformat applied migration files.
 
 ### Destructive commands — all 3 gates required:
 
@@ -160,7 +168,7 @@ npm run db:reset:dev -- --confirm printflow_dev
 
 ## DB Schema
 
-**Core tables:** `branches`, `users`, `user_auth`, `app_sessions`, `customers`, `vendors`, `inventory`, `inventory_pricing`, `orders`, `order_items`, `payments`, `order_vendors`, `offer_items`, `order_offer_items`, `branch_expenses`, `employee_expenses`, `expense_categories`, `expense_attachments`, `order_sequences`
+**Core tables:** `branches`, `users`, `user_auth`, `app_sessions`, `customers`, `vendors`, `inventory`, `inventory_pricing`, `inventory_audit_logs`, `inventory_stock_movements`, `orders`, `order_items`, `payments`, `order_vendors`, `offer_items`, `order_offer_items`, `branch_expenses`, `employee_expenses`, `expense_categories`, `expense_attachments`, `order_sequences`
 
 **Enums:** `user_role` (admin/manager/operator/staff), `order_status`, `payment_mode`, `payment_status`, `inventory_unit`, `customer_type`
 
@@ -220,6 +228,9 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 | `expenses:view` | ✓ | ✓ | ✓ | ✓ |
 | `expenses:create / edit` | ✓ | ✓ | ✓ | ✓ |
 | `expenses:delete` | ✓ | ✓ | ✓ | — |
+| `inventory:view` | ✓ | ✓ | ✓ | ✓ |
+| `inventory:create / edit` | ✓ | ✓ | ✓ | — |
+| `inventory:archive / restore` | ✓ | ✓ | — | — |
 
 **To add a permission:** (1) add to `Permission` union in `permissions.ts`, (2) grant to appropriate roles in `ROLE_PERMISSIONS`, (3) enforce in the relevant server mutation / API handler / page.
 
@@ -233,6 +244,12 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 - Parameterized queries only. Never concatenate untrusted input into SQL
 - Branch-scope all queries: non-admin restricted to `branchId`; admins query `null` (all branches)
 - Derived order fields (`total_amount`, `payable_amount`, `paid_amount`, `payment_status`) are DB-managed — do not set directly
+
+## Inventory Rules
+
+- Use `lib/inventory/schema.ts` for create/update validation and `lib/inventory/mutations.ts` for all inventory writes.
+- Create/update/archive/restore/status changes must enforce RBAC, branch access, and write `inventory_audit_logs`.
+- Quantity changes must also write `inventory_stock_movements`; archived items are soft-deleted with `deleted_at`.
 
 ## UI Rules
 

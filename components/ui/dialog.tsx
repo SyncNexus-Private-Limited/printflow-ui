@@ -95,7 +95,6 @@ export function Dialog({
       document.body.style.overflow = prev;
       document.removeEventListener("keydown", handleKeyDown);
     };
-     
   }, [isOpen]);
 
   if (!isOpen || typeof document === "undefined") return null;

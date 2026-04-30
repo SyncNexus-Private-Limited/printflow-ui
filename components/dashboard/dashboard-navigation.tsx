@@ -55,10 +55,13 @@ export const dashboardNavigation: DashboardNavItem[] = [
     ],
   },
   {
-    type: "link",
+    type: "group",
     label: "Inventory",
-    href: "/dashboard/inventory",
     icon: Boxes,
+    children: [
+      { label: "All Items", href: "/dashboard/inventory" },
+      { label: "Add Item", href: "/dashboard/inventory/new", breadcrumbLabel: "Add Item" },
+    ],
   },
   {
     type: "group",

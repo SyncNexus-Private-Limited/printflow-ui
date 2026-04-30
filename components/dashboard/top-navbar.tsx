@@ -20,6 +20,7 @@ type TopNavbarProps = {
   initialBranchName: string | null;
   canSelectAllBranches: boolean;
   canCreateUser: boolean;
+  canCreateInventory: boolean;
 };
 
 function getFallbackBranchControl({
@@ -126,6 +127,7 @@ export function TopNavbar({
   initialBranchName,
   canSelectAllBranches,
   canCreateUser,
+  canCreateInventory,
 }: TopNavbarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -217,6 +219,7 @@ export function TopNavbar({
             initialBranchId={initialBranchId}
             branchOptions={resolvedBranchControl.options}
             canCreateUser={canCreateUser}
+            canCreateInventory={canCreateInventory}
           />
           {/* Theme + Logout: visible directly on md+ (tablet/desktop) */}
           <div className="hidden md:flex md:items-center md:gap-2">

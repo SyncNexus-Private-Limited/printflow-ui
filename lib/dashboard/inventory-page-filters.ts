@@ -60,6 +60,7 @@ export type InventoryPageFilterState = DashboardPageFilterState & {
   purchaseRateMax: string | null;
   hasLastPurchaseRate: InventoryPresenceFilter;
   hasImage: InventoryPresenceFilter;
+  includeArchived: boolean;
   sort: InventorySortValue;
 };
 
@@ -238,6 +239,7 @@ export function parseInventoryPageFilters(
   const normalizedRate = normalizeNumericRange(purchaseRateMinRaw, purchaseRateMaxRaw);
   const hasLastPurchaseRateValue = normalizeDashboardSearchParam(searchParams?.hasLastPurchaseRate);
   const hasImageValue = normalizeDashboardSearchParam(searchParams?.hasImage);
+  const includeArchivedValue = normalizeDashboardSearchParam(searchParams?.includeArchived);
   const sortValue = normalizeDashboardSearchParam(searchParams?.sort);
 
   return {
@@ -261,6 +263,7 @@ export function parseInventoryPageFilters(
       ? hasLastPurchaseRateValue
       : "all",
     hasImage: isValidInventoryPresenceFilter(hasImageValue) ? hasImageValue : "all",
+    includeArchived: includeArchivedValue === "true",
     sort: isValidInventorySortValue(sortValue) ? sortValue : DEFAULT_INVENTORY_SORT,
   };
 }
@@ -348,6 +351,10 @@ export function buildInventoryPageHref(
 
   if (nextFilters.hasImage !== "all") {
     searchParams.set("hasImage", nextFilters.hasImage);
+  }
+
+  if (nextFilters.includeArchived) {
+    searchParams.set("includeArchived", "true");
   }
 
   if (nextFilters.sort !== DEFAULT_INVENTORY_SORT) {

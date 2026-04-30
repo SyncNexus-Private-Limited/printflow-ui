@@ -63,7 +63,6 @@ export function useFilterDrawer<TFilters, TDraft>({
 
   useEffect(() => {
     setDraftFilters(toDraftFiltersRef.current(currentFilters));
-     
   }, [currentFilters]);
 
   useEffect(() => {

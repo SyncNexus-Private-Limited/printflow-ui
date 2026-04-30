@@ -33,6 +33,7 @@ type DashboardSidebarProps = {
   // Permission flags derived server-side — control which nav groups are visible.
   canManageUsers: boolean;
   canCreateUser: boolean;
+  canCreateInventory: boolean;
 };
 
 type SidebarLinkProps = {
@@ -115,6 +116,7 @@ export function DashboardSidebar({
   onCloseMobile,
   canManageUsers,
   canCreateUser,
+  canCreateInventory,
 }: DashboardSidebarProps) {
   const searchParams = useSearchParams();
   const isDesktopCollapsed = collapsed && !mobile;
@@ -136,6 +138,16 @@ export function DashboardSidebar({
   // Build the visible navigation based on permission flags passed from the server.
   // Filtering here (not in dashboardNavigation) keeps the source array role-agnostic.
   const visibleNavigation = dashboardNavigation.flatMap((item) => {
+    if (item.type === "group" && item.label === "Inventory") {
+      if (!canCreateInventory) {
+        return [
+          {
+            ...item,
+            children: item.children.filter((child) => child.href !== "/dashboard/inventory/new"),
+          },
+        ];
+      }
+    }
     if (item.type === "group" && item.label === "Users") {
       // Hide the entire Users group for roles without users:view.
       if (!canManageUsers) return [];
@@ -326,45 +338,55 @@ export function DashboardSidebar({
                   className="ml-4 list-none space-y-1 border-l border-[rgb(var(--border)/0.7)] pl-3"
                   role="list"
                 >
-                  {item.children.map((child) => {
-                    const childIsActive = isDashboardRouteActive(pathname, child.href);
-                    const resolvedHref =
-                      child.href === "/dashboard/expenses/new"
-                        ? buildCanonicalExpenseCreateHref({
-                            currentBranchId,
-                            initialBranchId,
-                            type: "business",
-                          })
-                        : child.href === "/dashboard/users/new"
-                          ? buildCanonicalUserCreateHref({
+                  {(() => {
+                    const activeChild = item.children.reduce<(typeof item.children)[number] | null>(
+                      (best, child) => {
+                        if (!isDashboardRouteActive(pathname, child.href)) return best;
+                        if (!best) return child;
+                        return child.href.length > best.href.length ? child : best;
+                      },
+                      null,
+                    );
+                    return item.children.map((child) => {
+                      const childIsActive = child === activeChild;
+                      const resolvedHref =
+                        child.href === "/dashboard/expenses/new"
+                          ? buildCanonicalExpenseCreateHref({
                               currentBranchId,
                               initialBranchId,
+                              type: "business",
                             })
-                          : buildDashboardHref(child.href, navigationFilters);
+                          : child.href === "/dashboard/users/new"
+                            ? buildCanonicalUserCreateHref({
+                                currentBranchId,
+                                initialBranchId,
+                              })
+                            : buildDashboardHref(child.href, navigationFilters);
 
-                    return (
-                      <li key={child.label} className="list-none">
-                        <Link
-                          href={resolvedHref}
-                          aria-current={childIsActive ? "page" : undefined}
-                          onClick={(event) => {
-                            if (pathname === child.href) {
-                              event.preventDefault();
-                            }
-                          }}
-                          className={cn(
-                            "flex min-h-10 items-center rounded-xl px-3 py-2 text-sm font-medium transition-colors",
-                            "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
-                            childIsActive
-                              ? "bg-[rgb(var(--primary-soft)/0.88)] text-[rgb(var(--card-foreground))]"
-                              : "text-[rgb(var(--muted-foreground))] hover:bg-[rgb(var(--muted)/0.72)] hover:text-[rgb(var(--foreground))]",
-                          )}
-                        >
-                          <span className="min-w-0 truncate">{child.label}</span>
-                        </Link>
-                      </li>
-                    );
-                  })}
+                      return (
+                        <li key={child.label} className="list-none">
+                          <Link
+                            href={resolvedHref}
+                            aria-current={childIsActive ? "page" : undefined}
+                            onClick={(event) => {
+                              if (pathname === child.href) {
+                                event.preventDefault();
+                              }
+                            }}
+                            className={cn(
+                              "flex min-h-10 items-center rounded-xl px-3 py-2 text-sm font-medium transition-colors",
+                              "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
+                              childIsActive
+                                ? "bg-[rgb(var(--primary-soft)/0.88)] text-[rgb(var(--card-foreground))]"
+                                : "text-[rgb(var(--muted-foreground))] hover:bg-[rgb(var(--muted)/0.72)] hover:text-[rgb(var(--foreground))]",
+                            )}
+                          >
+                            <span className="min-w-0 truncate">{child.label}</span>
+                          </Link>
+                        </li>
+                      );
+                    });
+                  })()}
                 </ul>
               ) : null}
             </section>

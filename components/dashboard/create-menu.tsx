@@ -49,6 +49,9 @@ type CreateMenuProps = {
   // Controls whether the "Add User" action appears in the menu.
   // Computed server-side from hasPermission(user, "users:create").
   canCreateUser: boolean;
+  // Controls whether the "Add Item" action is enabled in the menu.
+  // Computed server-side from hasPermission(user, "inventory:create").
+  canCreateInventory: boolean;
 };
 
 function buildCreateActionHref(
@@ -101,6 +104,7 @@ function getCreateActions(
     value: string;
   }>,
   canCreateUser: boolean,
+  canCreateInventory: boolean,
 ): CreateAction[] {
   const actions: CreateAction[] = [
     {
@@ -139,8 +143,8 @@ function getCreateActions(
       shortLabel: "Item",
       href: buildCreateActionHref("/dashboard/inventory/new", currentBranchValue),
       icon: Boxes,
-      disabled: true,
-      disabledReason: "Coming soon",
+      disabled: !canCreateInventory,
+      disabledReason: canCreateInventory ? undefined : "Coming soon",
     },
     {
       key: "vendor",
@@ -201,6 +205,7 @@ export function CreateMenu({
   initialBranchId,
   branchOptions,
   canCreateUser,
+  canCreateInventory,
 }: CreateMenuProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -216,8 +221,15 @@ export function CreateMenu({
   const focusTargetIndexRef = useRef<number | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const actions = useMemo(
-    () => getCreateActions(currentBranchValue, initialBranchId, branchOptions, canCreateUser),
-    [branchOptions, canCreateUser, currentBranchValue, initialBranchId],
+    () =>
+      getCreateActions(
+        currentBranchValue,
+        initialBranchId,
+        branchOptions,
+        canCreateUser,
+        canCreateInventory,
+      ),
+    [branchOptions, canCreateInventory, canCreateUser, currentBranchValue, initialBranchId],
   );
   const focusableActionIndices = useMemo(() => getFocusableActionIndices(actions), [actions]);
   const currentHref = useMemo(

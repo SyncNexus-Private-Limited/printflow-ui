@@ -321,6 +321,12 @@ All six list pages share a common structure:
 - Do not revert `z-[70]` to `z-70` — `z-70` is not a standard Tailwind v4 class
 - `onBlurCapture` on wrapper div guarded with `if (!isDesktopViewport) return` — portal content is outside wrapper's DOM subtree, so `wrapperRef.current?.contains(...)` always fails on mobile and would prematurely close the sheet
 
+- Inventory pricing now has dashboard list/create pages, API routes, `lib/inventory-pricing` schemas/mutations/types, overlap-safe DB enforcement, close/update flows, and `inventory_pricing_audit_logs`.
+- Expense categories now have dashboard list/create pages, API routes, `lib/expense-categories` logic, active/inactive/restore handling, RBAC permissions, and `expense_category_audit_logs`.
+- New migrations dated 20260430 cover inventory v1, inventory pricing audit logs, expense category management, and expense category audit logs.
+- Shared dashboard list/table/filter primitives also support the newer inventory pricing and expense category pages.
+- Keep using `assertPermission` plus `canAccessBranch` for these flows; inventory pricing reuses inventory create/edit permissions.
+
 ## Development Rules
 
 - Inspect relevant files before editing

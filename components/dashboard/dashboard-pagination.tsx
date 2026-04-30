@@ -24,6 +24,11 @@ import {
   type InventoryPageFilterState,
 } from "@/lib/dashboard/inventory-page-filters";
 import {
+  buildInventoryPricingPageHref,
+  buildInventoryPricingPaginationHref,
+  type InventoryPricingPageFilterState,
+} from "@/lib/dashboard/inventory-pricing-page-filters";
+import {
   buildOrderPageHref,
   buildOrderPaginationHref,
   type OrderPageFilterState,
@@ -54,7 +59,15 @@ type DashboardPaginationProps<
   currentPath: string;
   currentFilters: TFilters;
   pagination: DashboardPaginationState;
-  variant?: "default" | "expense" | "customer" | "inventory" | "order" | "active-users" | "users";
+  variant?:
+    | "default"
+    | "expense"
+    | "customer"
+    | "inventory"
+    | "inventory-pricing"
+    | "order"
+    | "active-users"
+    | "users";
 };
 
 function getVisiblePageNumbers(page: number, totalPages: number) {
@@ -85,6 +98,7 @@ export function DashboardPagination<
   const isExpenseVariant = variant === "expense";
   const isCustomerVariant = variant === "customer";
   const isInventoryVariant = variant === "inventory";
+  const isInventoryPricingVariant = variant === "inventory-pricing";
   const isOrderVariant = variant === "order";
   const isActiveUsersVariant = variant === "active-users";
   const isUsersVariant = variant === "users";
@@ -92,6 +106,7 @@ export function DashboardPagination<
     isExpenseVariant ||
     isCustomerVariant ||
     isInventoryVariant ||
+    isInventoryPricingVariant ||
     isOrderVariant ||
     isActiveUsersVariant ||
     isUsersVariant;
@@ -103,6 +118,11 @@ export function DashboardPagination<
         return buildCustomerPageHref(path, filters as unknown as CustomerPageFilterState);
       if (isInventoryVariant)
         return buildInventoryPageHref(path, filters as unknown as InventoryPageFilterState);
+      if (isInventoryPricingVariant)
+        return buildInventoryPricingPageHref(
+          path,
+          filters as unknown as InventoryPricingPageFilterState,
+        );
       if (isOrderVariant)
         return buildOrderPageHref(path, filters as unknown as OrderPageFilterState);
       if (isActiveUsersVariant)
@@ -116,6 +136,7 @@ export function DashboardPagination<
       isCustomerVariant,
       isExpenseVariant,
       isInventoryVariant,
+      isInventoryPricingVariant,
       isOrderVariant,
       isUsersVariant,
     ],
@@ -144,6 +165,12 @@ export function DashboardPagination<
       return buildInventoryPaginationHref(
         path,
         filters as unknown as InventoryPageFilterState,
+        nextPagination,
+      );
+    if (isInventoryPricingVariant)
+      return buildInventoryPricingPaginationHref(
+        path,
+        filters as unknown as InventoryPricingPageFilterState,
         nextPagination,
       );
     if (isOrderVariant)

@@ -220,6 +220,45 @@ export type InventoryPageData = {
   result: PaginatedListResult<InventoryPageDetailRow>;
 };
 
+export type InventoryPricingStatus = "current" | "upcoming" | "expired";
+
+export type InventoryPricingRow = {
+  id: string;
+  branchId: string;
+  inventoryId: string;
+  itemName: string;
+  sku: string;
+  branchName: string;
+  customerType: string;
+  sellingRate: number;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  pricingStatus: InventoryPricingStatus;
+  updatedAt: string;
+  updatedByName: string | null;
+};
+
+export type InventoryPricingPageSummary = {
+  totalPricesInRange: number;
+  currentPricesInRange: number;
+  upcomingPricesInRange: number;
+  expiredPricesInRange: number;
+};
+
+export type InventoryPricingInventoryOption = {
+  id: string;
+  branchId: string;
+  branchName: string;
+  name: string;
+  sku: string;
+};
+
+export type InventoryPricingPageData = {
+  summary: InventoryPricingPageSummary;
+  result: PaginatedListResult<InventoryPricingRow>;
+  inventoryOptions: InventoryPricingInventoryOption[];
+};
+
 export type ActiveUserRow = {
   sessionId: string;
   fullName: string;

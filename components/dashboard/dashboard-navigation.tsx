@@ -61,6 +61,12 @@ export const dashboardNavigation: DashboardNavItem[] = [
     children: [
       { label: "All Items", href: "/dashboard/inventory" },
       { label: "Add Item", href: "/dashboard/inventory/new", breadcrumbLabel: "Add Item" },
+      { label: "Inventory Pricing", href: "/dashboard/inventory/pricing" },
+      {
+        label: "Add Pricing",
+        href: "/dashboard/inventory/pricing/new",
+        breadcrumbLabel: "Add Pricing",
+      },
     ],
   },
   {
@@ -130,8 +136,13 @@ export function getDashboardBreadcrumbs(
     }
 
     if (item.type === "group") {
-      const activeChild = item.children.find((child) =>
-        isDashboardRouteActive(pathname, child.href),
+      const activeChild = item.children.reduce<(typeof item.children)[number] | null>(
+        (best, child) => {
+          if (!isDashboardRouteActive(pathname, child.href)) return best;
+          if (!best) return child;
+          return child.href.length > best.href.length ? child : best;
+        },
+        null,
       );
 
       if (activeChild) {

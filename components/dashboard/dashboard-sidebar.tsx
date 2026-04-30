@@ -143,7 +143,11 @@ export function DashboardSidebar({
         return [
           {
             ...item,
-            children: item.children.filter((child) => child.href !== "/dashboard/inventory/new"),
+            children: item.children.filter(
+              (child) =>
+                child.href !== "/dashboard/inventory/new" &&
+                child.href !== "/dashboard/inventory/pricing/new",
+            ),
           },
         ];
       }
@@ -349,6 +353,12 @@ export function DashboardSidebar({
                     );
                     return item.children.map((child) => {
                       const childIsActive = child === activeChild;
+                      const [childPath, childQueryString] = child.href.split("?", 2);
+                      const baseResolvedHref = buildDashboardHref(childPath, navigationFilters);
+                      const resolvedChildHref =
+                        childQueryString && childQueryString.length > 0
+                          ? `${baseResolvedHref}${baseResolvedHref.includes("?") ? "&" : "?"}${childQueryString}`
+                          : baseResolvedHref;
                       const resolvedHref =
                         child.href === "/dashboard/expenses/new"
                           ? buildCanonicalExpenseCreateHref({
@@ -361,7 +371,7 @@ export function DashboardSidebar({
                                 currentBranchId,
                                 initialBranchId,
                               })
-                            : buildDashboardHref(child.href, navigationFilters);
+                            : resolvedChildHref;
 
                       return (
                         <li key={child.label} className="list-none">
@@ -369,7 +379,7 @@ export function DashboardSidebar({
                             href={resolvedHref}
                             aria-current={childIsActive ? "page" : undefined}
                             onClick={(event) => {
-                              if (pathname === child.href) {
+                              if (pathname === childPath && !childQueryString) {
                                 event.preventDefault();
                               }
                             }}

@@ -58,10 +58,7 @@ export const dashboardNavigation: DashboardNavItem[] = [
     type: "group",
     label: "Inventory",
     icon: Boxes,
-    children: [
-      { label: "All Items", href: "/dashboard/inventory" },
-      { label: "Add Item", href: "/dashboard/inventory/new", breadcrumbLabel: "Add Item" },
-    ],
+    children: [{ label: "Inventory", href: "/dashboard/inventory" }],
   },
   {
     type: "group",
@@ -70,7 +67,7 @@ export const dashboardNavigation: DashboardNavItem[] = [
     children: [
       { label: "Employee Expenses", href: "/dashboard/employee-expenses" },
       { label: "Business Expenses", href: "/dashboard/business-expenses" },
-      { label: "Add Expense", href: "/dashboard/expenses/new", breadcrumbLabel: "Add Expense" },
+      { label: "Expense Categories", href: "/dashboard/expenses/categories" },
     ],
   },
   {
@@ -78,9 +75,8 @@ export const dashboardNavigation: DashboardNavItem[] = [
     label: "Users",
     icon: Users,
     children: [
-      { label: "All Users", href: "/dashboard/users" },
+      { label: "Users", href: "/dashboard/users" },
       { label: "Active Users", href: "/dashboard/active-users" },
-      { label: "Add User", href: "/dashboard/users/new", breadcrumbLabel: "Add User" },
     ],
   },
 ];
@@ -117,11 +113,82 @@ export function getDashboardGroupFallback(item: Extract<DashboardNavItem, { type
 export function getDashboardBreadcrumbs(
   pathname: string,
   filters: DashboardNavigationFilters,
+  searchParams?: Pick<URLSearchParams, "get">,
 ): DashboardBreadcrumb[] {
   const homeHref = buildDashboardHref("/dashboard", filters);
+  const inventoryHref = buildDashboardHref("/dashboard/inventory", filters);
+  const usersHref = buildDashboardHref("/dashboard/users", filters);
+  const employeeExpensesHref = buildDashboardHref("/dashboard/employee-expenses", filters);
+  const businessExpensesHref = buildDashboardHref("/dashboard/business-expenses", filters);
+  const expenseCategoriesHref = buildDashboardHref("/dashboard/expenses/categories", filters);
+  const expensesHref = employeeExpensesHref;
 
   if (pathname === "/dashboard") {
     return [{ label: "Home", href: homeHref }];
+  }
+
+  if (pathname === "/dashboard/users/new") {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Users", href: usersHref },
+      { label: "Add User" },
+    ];
+  }
+
+  if (pathname === "/dashboard/inventory/new") {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Inventory", href: inventoryHref },
+      { label: "Add Inventory" },
+    ];
+  }
+
+  if (pathname === "/dashboard/expenses/categories/new") {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Expenses", href: expensesHref },
+      { label: "Expense Categories", href: expenseCategoriesHref },
+      { label: "Add Expense Category" },
+    ];
+  }
+
+  if (pathname === "/dashboard/employee-expenses" || pathname === "/dashboard/expenses/employee") {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Expenses", href: expensesHref },
+      { label: "Employee Expenses" },
+    ];
+  }
+
+  if (pathname === "/dashboard/business-expenses" || pathname === "/dashboard/expenses/business") {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Expenses", href: expensesHref },
+      { label: "Business Expenses" },
+    ];
+  }
+
+  if (pathname === "/dashboard/expenses/categories") {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Expenses", href: expensesHref },
+      { label: "Expense Categories" },
+    ];
+  }
+
+  if (pathname === "/dashboard/expenses/new") {
+    const expenseType = searchParams?.get("type");
+    const isEmployeeExpense = expenseType === "employee";
+    const listingLabel = isEmployeeExpense ? "Employee Expenses" : "Business Expenses";
+    const listingHref = isEmployeeExpense ? employeeExpensesHref : businessExpensesHref;
+    const addLabel = isEmployeeExpense ? "Add Employee Expense" : "Add Business Expense";
+
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Expenses", href: expensesHref },
+      { label: listingLabel, href: listingHref },
+      { label: addLabel },
+    ];
   }
 
   for (const item of dashboardNavigation) {
@@ -130,14 +197,25 @@ export function getDashboardBreadcrumbs(
     }
 
     if (item.type === "group") {
-      const activeChild = item.children.find((child) =>
-        isDashboardRouteActive(pathname, child.href),
+      const activeChild = item.children.reduce<(typeof item.children)[number] | null>(
+        (best, child) => {
+          if (!isDashboardRouteActive(pathname, child.href)) return best;
+          if (!best) return child;
+          return child.href.length > best.href.length ? child : best;
+        },
+        null,
       );
 
       if (activeChild) {
+        if (activeChild.label === item.label) {
+          return [{ label: "Home", href: homeHref }, { label: item.label }];
+        }
+
+        const fallbackChild = getDashboardGroupFallback(item);
+
         return [
           { label: "Home", href: homeHref },
-          { label: item.label },
+          { label: item.label, href: buildDashboardHref(fallbackChild.href, filters) },
           { label: activeChild.breadcrumbLabel ?? activeChild.label },
         ];
       }

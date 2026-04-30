@@ -5,10 +5,7 @@ import { ChevronDown, PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-  buildCanonicalExpenseCreateHref,
-  buildCanonicalUserCreateHref,
-} from "@/lib/dashboard/helpers";
+import { buildCanonicalExpenseCreateHref } from "@/lib/dashboard/helpers";
 import {
   buildDashboardHref,
   dashboardNavigation,
@@ -30,10 +27,8 @@ type DashboardSidebarProps = {
   mobile: boolean;
   onToggleCollapsed?: () => void;
   onCloseMobile?: () => void;
-  // Permission flags derived server-side — control which nav groups are visible.
   canManageUsers: boolean;
-  canCreateUser: boolean;
-  canCreateInventory: boolean;
+  canViewExpenseCategories: boolean;
 };
 
 type SidebarLinkProps = {
@@ -115,8 +110,7 @@ export function DashboardSidebar({
   onToggleCollapsed,
   onCloseMobile,
   canManageUsers,
-  canCreateUser,
-  canCreateInventory,
+  canViewExpenseCategories,
 }: DashboardSidebarProps) {
   const searchParams = useSearchParams();
   const isDesktopCollapsed = collapsed && !mobile;
@@ -138,28 +132,16 @@ export function DashboardSidebar({
   // Build the visible navigation based on permission flags passed from the server.
   // Filtering here (not in dashboardNavigation) keeps the source array role-agnostic.
   const visibleNavigation = dashboardNavigation.flatMap((item) => {
-    if (item.type === "group" && item.label === "Inventory") {
-      if (!canCreateInventory) {
-        return [
-          {
-            ...item,
-            children: item.children.filter((child) => child.href !== "/dashboard/inventory/new"),
-          },
-        ];
-      }
-    }
     if (item.type === "group" && item.label === "Users") {
       // Hide the entire Users group for roles without users:view.
       if (!canManageUsers) return [];
-      // Hide "Add User" for roles with users:view but not users:create (e.g. manager).
-      if (!canCreateUser) {
-        return [
-          {
-            ...item,
-            children: item.children.filter((child) => child.href !== "/dashboard/users/new"),
-          },
-        ];
+    }
+    if (item.type === "group" && item.label === "Expenses") {
+      let children = item.children;
+      if (!canViewExpenseCategories) {
+        children = children.filter((child) => child.href !== "/dashboard/expenses/categories");
       }
+      return [{ ...item, children }];
     }
     return [item];
   });
@@ -356,12 +338,7 @@ export function DashboardSidebar({
                               initialBranchId,
                               type: "business",
                             })
-                          : child.href === "/dashboard/users/new"
-                            ? buildCanonicalUserCreateHref({
-                                currentBranchId,
-                                initialBranchId,
-                              })
-                            : buildDashboardHref(child.href, navigationFilters);
+                          : buildDashboardHref(child.href, navigationFilters);
 
                       return (
                         <li key={child.label} className="list-none">

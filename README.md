@@ -40,6 +40,7 @@ Prettier handles formatting, Tailwind class sorting, and PostgreSQL SQL formatti
 - Applied migrations are tracked in the `schema_migrations` table.
 - A baseline migration already exists in the repo.
 - Migration checksums are validated before apply and rollback.
+- Inventory v1 adds soft archive, audit logs, stock movements, and reorder levels.
 
 ## Environment variables
 
@@ -142,6 +143,13 @@ Role-based access is defined in `lib/auth/permissions.ts`. Every guarded action 
 - Use `assertPermission(user, permission)` in server mutations and API handlers — throws a structured `PermissionError` (403) on failure.
 - Pages that require a permission redirect to `/dashboard?forbidden=1`; the `ForbiddenToast` component in the dashboard shell detects this, shows a toast, and cleans the URL.
 - To add a permission: add to the `Permission` union → grant in `ROLE_PERMISSIONS` → enforce in the relevant mutation/handler/page. No other files need changing.
+
+## Inventory management
+
+- `/dashboard/inventory/new` creates items; `/dashboard/inventory/[id]/edit` and the in-list dialog update them.
+- `/api/inventory` creates items; `/api/inventory/[id]` reads details and handles update, archive, restore, and active-status changes.
+- Mutations live in `lib/inventory/mutations.ts` and always write audit rows; quantity changes also write stock movements.
+- Permissions: staff can view, operators can create/edit, managers/admins can archive/restore.
 
 ## Toast system
 

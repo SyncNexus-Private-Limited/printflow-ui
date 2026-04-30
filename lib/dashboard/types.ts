@@ -201,6 +201,8 @@ export type InventoryPageDetailRow = {
   image: string | null;
   stockState: InventoryStockState;
   deletedAt: string | null;
+  reorderLevel: number | null;
+  hasPricing: boolean;
 };
 
 export type InventoryPageSummary = {
@@ -208,6 +210,7 @@ export type InventoryPageSummary = {
   lowStockItemsInRange: number;
   outOfStockItemsInRange: number;
   totalStockQuantityInRange: number;
+  itemsWithoutPricingInRange: number;
 };
 
 export type InventoryVendorOption = {
@@ -234,6 +237,7 @@ export type InventoryPricingRow = {
   effectiveFrom: string;
   effectiveTo: string | null;
   pricingStatus: InventoryPricingStatus;
+  isExpiringSoon: boolean;
   updatedAt: string;
   updatedByName: string | null;
 };
@@ -243,6 +247,7 @@ export type InventoryPricingPageSummary = {
   currentPricesInRange: number;
   upcomingPricesInRange: number;
   expiredPricesInRange: number;
+  expiringSoonPricesInRange: number;
 };
 
 export type InventoryPricingInventoryOption = {

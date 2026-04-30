@@ -9,7 +9,10 @@ import {
 import { FilterDrawerShell } from "@/components/dashboard/filter-drawer-shell";
 import { FilterTriggerButton } from "@/components/dashboard/filter-trigger-button";
 import { useFilterDrawer } from "@/components/dashboard/use-filter-drawer";
-import { getInventoryStockStateTone } from "@/components/dashboard/data-pill";
+import {
+  getInventoryHasPricingTone,
+  getInventoryStockStateTone,
+} from "@/components/dashboard/data-pill";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import {
@@ -66,6 +69,7 @@ function getActiveFilterCount(filters: InventoryPageFilterState): number {
   if (filters.purchaseRateMin || filters.purchaseRateMax) count += 1;
   if (filters.hasLastPurchaseRate !== "all") count += 1;
   if (filters.hasImage !== "all") count += 1;
+  if (filters.pricingFilter !== "all") count += 1;
 
   return count;
 }
@@ -180,6 +184,20 @@ function buildAppliedFilterSummaryItems({
 
   if (filters.hasImage === "with") items.push({ key: "has-image", label: "Has image" });
   else if (filters.hasImage === "without") items.push({ key: "no-image", label: "No image" });
+
+  if (filters.pricingFilter === "priced") {
+    items.push({
+      key: "pricing",
+      label: "Pricing: Priced",
+      tone: getInventoryHasPricingTone(true),
+    });
+  } else if (filters.pricingFilter === "no-price") {
+    items.push({
+      key: "pricing",
+      label: "Pricing: No price",
+      tone: getInventoryHasPricingTone(false),
+    });
+  }
 
   return items;
 }
@@ -304,6 +322,7 @@ export function InventoryListControls({
       purchaseRateMax: null,
       hasLastPurchaseRate: "all",
       hasImage: "all",
+      pricingFilter: "all",
       sort: "updated-at-desc",
     });
 
@@ -325,6 +344,7 @@ export function InventoryListControls({
       purchaseRateMax: null,
       hasLastPurchaseRate: "all",
       hasImage: "all",
+      pricingFilter: "all",
       sort: "updated-at-desc",
     }));
 
@@ -580,6 +600,31 @@ export function InventoryListControls({
                 <option value="all">All items</option>
                 <option value="active">Active only</option>
                 <option value="inactive">Inactive only</option>
+              </Select>
+            </label>
+          </section>
+
+          <section className="space-y-3">
+            <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">Pricing</p>
+
+            <label className="space-y-2">
+              <span className={FILTER_FIELD_LABEL_CLASS}>Current price</span>
+              <Select
+                value={draftFilters.pricingFilter}
+                onChange={(event) =>
+                  updateDraftFilters((current) => ({
+                    ...current,
+                    pricingFilter:
+                      event.target.value === "priced" || event.target.value === "no-price"
+                        ? event.target.value
+                        : "all",
+                  }))
+                }
+                className="h-11 rounded-2xl bg-[rgb(var(--background))]"
+              >
+                <option value="all">All items</option>
+                <option value="priced">Has current price</option>
+                <option value="no-price">No current price</option>
               </Select>
             </label>
           </section>

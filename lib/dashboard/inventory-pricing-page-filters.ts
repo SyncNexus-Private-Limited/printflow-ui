@@ -6,8 +6,10 @@ import {
 } from "@/lib/dashboard/page-filters";
 import type { DashboardDateRange, DashboardPageFilterState } from "@/lib/dashboard/types";
 
+export const PRICE_EXPIRING_SOON_DAYS = 7;
+
 const customerTypeValues = ["studio", "amateur", "other", "employee"] as const;
-const pricingStatusValues = ["all", "current", "upcoming", "expired"] as const;
+const pricingStatusValues = ["all", "current", "upcoming", "expired", "expiring-soon"] as const;
 const inventoryPricingSortValues = [
   "item-asc",
   "item-desc",

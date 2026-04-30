@@ -22,6 +22,7 @@ type InventoryPricingFormProps = {
   inventoryOptions: InventoryPricingInventoryOption[];
   selectedBranchName: string;
   redirectTo: string;
+  initialInventoryId?: string;
 };
 
 function FieldLabel({
@@ -54,9 +55,15 @@ export function InventoryPricingForm({
   inventoryOptions,
   selectedBranchName,
   redirectTo,
+  initialInventoryId,
 }: InventoryPricingFormProps) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+
+  const initialItemAvailable =
+    !!initialInventoryId && inventoryOptions.some((opt) => opt.id === initialInventoryId);
+  const initialItemUnavailable = !!initialInventoryId && !initialItemAvailable;
+
   const {
     register,
     handleSubmit,
@@ -70,7 +77,7 @@ export function InventoryPricingForm({
       inventoryPricingSchema,
     ) as unknown as Resolver<InventoryPricingFormValues>,
     defaultValues: {
-      inventoryId: "",
+      inventoryId: initialItemAvailable ? initialInventoryId : "",
       customerType: "",
       sellingRate: "",
       effectiveFrom: "",
@@ -169,6 +176,16 @@ export function InventoryPricingForm({
               </option>
             ))}
           </Select>
+          {initialItemUnavailable ? (
+            <p className="text-xs text-[rgb(var(--danger))]">
+              This item is inactive or unavailable for pricing. Only active inventory items are
+              shown.
+            </p>
+          ) : (
+            <p className="text-xs text-[rgb(var(--muted-foreground))]">
+              Only active inventory items are shown.
+            </p>
+          )}
           <FieldError message={getFieldError("inventoryId")} />
         </div>
 

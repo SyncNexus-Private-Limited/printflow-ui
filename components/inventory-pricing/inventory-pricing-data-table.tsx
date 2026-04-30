@@ -349,7 +349,16 @@ export function InventoryPricingDataTable({
                       </p>
                     </td>
 
-                    <td className={TABLE_BODY_CELL_CLASS}>{renderStatusPill(row.pricingStatus)}</td>
+                    <td className={TABLE_BODY_CELL_CLASS}>
+                      <div className="flex flex-col gap-1">
+                        {renderStatusPill(row.pricingStatus)}
+                        {row.isExpiringSoon ? (
+                          <DataPill tone="amber" className="max-w-full">
+                            Expiring soon
+                          </DataPill>
+                        ) : null}
+                      </div>
+                    </td>
 
                     <td className={TABLE_BODY_CELL_CLASS}>
                       <p className="whitespace-nowrap text-[rgb(var(--card-foreground))]">

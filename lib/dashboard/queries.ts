@@ -11,9 +11,10 @@ import {
   type InventoryPageFilterState,
   type InventorySortValue,
 } from "@/lib/dashboard/inventory-page-filters";
-import type {
-  InventoryPricingPageFilterState,
-  InventoryPricingSortValue,
+import {
+  PRICE_EXPIRING_SOON_DAYS,
+  type InventoryPricingPageFilterState,
+  type InventoryPricingSortValue,
 } from "@/lib/dashboard/inventory-pricing-page-filters";
 import type { OrderPageFilterState } from "@/lib/dashboard/order-page-filters";
 import {
@@ -1590,9 +1591,9 @@ function getInventoryOrderByClause(sort: InventorySortValue): string {
       return "CASE WHEN v.name IS NULL THEN 1 ELSE 0 END ASC, LOWER(v.name) DESC NULLS LAST, LOWER(i.name) ASC";
     case "stock-state-asc":
       // out-of-stock (0) first, then low-stock (1), then in-stock (2)
-      return `CASE WHEN i.quantity = 0 THEN 0 WHEN i.quantity <= ${t} THEN 1 ELSE 2 END ASC, LOWER(i.name) ASC`;
+      return `CASE WHEN i.quantity = 0 THEN 0 WHEN i.quantity <= COALESCE(i.reorder_level, ${t}) THEN 1 ELSE 2 END ASC, LOWER(i.name) ASC`;
     case "stock-state-desc":
-      return `CASE WHEN i.quantity = 0 THEN 0 WHEN i.quantity <= ${t} THEN 1 ELSE 2 END DESC, LOWER(i.name) ASC`;
+      return `CASE WHEN i.quantity = 0 THEN 0 WHEN i.quantity <= COALESCE(i.reorder_level, ${t}) THEN 1 ELSE 2 END DESC, LOWER(i.name) ASC`;
     case "created-at-asc":
       return "i.created_at ASC, LOWER(i.name) ASC";
     case "created-at-desc":
@@ -1661,9 +1662,25 @@ function buildInventoryQueryParts(
   if (filters.stockState === "out-of-stock") {
     whereParts.push("i.quantity = 0");
   } else if (filters.stockState === "low-stock") {
-    whereParts.push(`i.quantity > 0 AND i.quantity <= ${t}`);
+    whereParts.push(`i.quantity > 0 AND i.quantity <= COALESCE(i.reorder_level, ${t})`);
   } else if (filters.stockState === "in-stock") {
-    whereParts.push(`i.quantity > ${t}`);
+    whereParts.push(`i.quantity > COALESCE(i.reorder_level, ${t})`);
+  }
+
+  if (filters.pricingFilter === "priced") {
+    whereParts.push(`EXISTS (
+      SELECT 1 FROM inventory_pricing ip
+      WHERE ip.inventory_id = i.id
+        AND ip.effective_from <= CURRENT_DATE
+        AND (ip.effective_to IS NULL OR ip.effective_to >= CURRENT_DATE)
+    )`);
+  } else if (filters.pricingFilter === "no-price") {
+    whereParts.push(`NOT EXISTS (
+      SELECT 1 FROM inventory_pricing ip
+      WHERE ip.inventory_id = i.id
+        AND ip.effective_from <= CURRENT_DATE
+        AND (ip.effective_to IS NULL OR ip.effective_to >= CURRENT_DATE)
+    )`);
   }
 
   if (filters.quantityMin) {
@@ -1723,9 +1740,15 @@ export async function getInventoryPageData(
     `
       SELECT
         COUNT(*)::int AS "totalItemsInRange",
-        COUNT(*) FILTER (WHERE i.quantity > 0 AND i.quantity <= ${t})::int AS "lowStockItemsInRange",
+        COUNT(*) FILTER (WHERE i.quantity > 0 AND i.quantity <= COALESCE(i.reorder_level, ${t}))::int AS "lowStockItemsInRange",
         COUNT(*) FILTER (WHERE i.quantity = 0)::int AS "outOfStockItemsInRange",
-        COALESCE(SUM(i.quantity), 0)::double precision AS "totalStockQuantityInRange"
+        COALESCE(SUM(i.quantity), 0)::double precision AS "totalStockQuantityInRange",
+        COUNT(*) FILTER (WHERE NOT EXISTS (
+          SELECT 1 FROM inventory_pricing ip
+          WHERE ip.inventory_id = i.id
+            AND ip.effective_from <= CURRENT_DATE
+            AND (ip.effective_to IS NULL OR ip.effective_to >= CURRENT_DATE)
+        ))::int AS "itemsWithoutPricingInRange"
       FROM inventory i
       ${queryParts.joins}
       WHERE ${queryParts.whereClause}
@@ -1760,11 +1783,18 @@ export async function getInventoryPageData(
         i.updated_at::text AS "updatedAt",
         i.image,
         i.deleted_at::text AS "deletedAt",
+        i.reorder_level::double precision AS "reorderLevel",
         CASE
           WHEN i.quantity = 0 THEN 'out-of-stock'
-          WHEN i.quantity <= ${t} THEN 'low-stock'
+          WHEN i.quantity <= COALESCE(i.reorder_level, ${t}) THEN 'low-stock'
           ELSE 'in-stock'
-        END AS "stockState"
+        END AS "stockState",
+        EXISTS (
+          SELECT 1 FROM inventory_pricing ip
+          WHERE ip.inventory_id = i.id
+            AND ip.effective_from <= CURRENT_DATE
+            AND (ip.effective_to IS NULL OR ip.effective_to >= CURRENT_DATE)
+        ) AS "hasPricing"
       FROM inventory i
       ${queryParts.joins}
       WHERE ${queryParts.whereClause}
@@ -1898,7 +1928,14 @@ function buildInventoryPricingQueryParts(
     whereParts.push(`ip.customer_type = $${values.length}::customer_type`);
   }
 
-  if (filters.status !== "all") {
+  if (filters.status === "expiring-soon") {
+    whereParts.push(
+      `${inventoryPricingStatusSql} = 'current'` +
+        ` AND ip.effective_to IS NOT NULL` +
+        ` AND ip.effective_to >= CURRENT_DATE` +
+        ` AND ip.effective_to <= CURRENT_DATE + ${PRICE_EXPIRING_SOON_DAYS}`,
+    );
+  } else if (filters.status !== "all") {
     whereParts.push(`${inventoryPricingStatusSql} = '${filters.status}'`);
   }
 
@@ -1923,7 +1960,13 @@ export async function getInventoryPricingPageData(
         COUNT(*)::int AS "totalPricesInRange",
         COUNT(*) FILTER (WHERE ${inventoryPricingStatusSql} = 'current')::int AS "currentPricesInRange",
         COUNT(*) FILTER (WHERE ${inventoryPricingStatusSql} = 'upcoming')::int AS "upcomingPricesInRange",
-        COUNT(*) FILTER (WHERE ${inventoryPricingStatusSql} = 'expired')::int AS "expiredPricesInRange"
+        COUNT(*) FILTER (WHERE ${inventoryPricingStatusSql} = 'expired')::int AS "expiredPricesInRange",
+        COUNT(*) FILTER (WHERE
+          ${inventoryPricingStatusSql} = 'current'
+          AND ip.effective_to IS NOT NULL
+          AND ip.effective_to >= CURRENT_DATE
+          AND ip.effective_to <= CURRENT_DATE + ${PRICE_EXPIRING_SOON_DAYS}
+        )::int AS "expiringSoonPricesInRange"
       FROM inventory_pricing ip
       ${queryParts.joins}
       WHERE ${queryParts.whereClause}
@@ -1936,6 +1979,7 @@ export async function getInventoryPricingPageData(
     currentPricesInRange: 0,
     upcomingPricesInRange: 0,
     expiredPricesInRange: 0,
+    expiringSoonPricesInRange: 0,
   };
   const pagination = buildPaginationState(summary.totalPricesInRange, filters);
   const listQueryParams = [
@@ -1960,6 +2004,12 @@ export async function getInventoryPricingPageData(
         ip.effective_from::text AS "effectiveFrom",
         ip.effective_to::text AS "effectiveTo",
         ${inventoryPricingStatusSql} AS "pricingStatus",
+        (
+          ${inventoryPricingStatusSql} = 'current'
+          AND ip.effective_to IS NOT NULL
+          AND ip.effective_to >= CURRENT_DATE
+          AND ip.effective_to <= CURRENT_DATE + ${PRICE_EXPIRING_SOON_DAYS}
+        ) AS "isExpiringSoon",
         ip.updated_at::text AS "updatedAt",
         updater.full_name AS "updatedByName"
       FROM inventory_pricing ip

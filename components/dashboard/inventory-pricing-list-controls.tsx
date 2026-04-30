@@ -40,6 +40,8 @@ function getPricingStatusTone(status: InventoryPricingStatus): DataPillTone {
       return "blue";
     case "expired":
       return "neutral";
+    case "expiring-soon":
+      return "amber";
   }
 }
 
@@ -381,7 +383,8 @@ export function InventoryPricingListControls({
                     status:
                       event.target.value === "current" ||
                       event.target.value === "upcoming" ||
-                      event.target.value === "expired"
+                      event.target.value === "expired" ||
+                      event.target.value === "expiring-soon"
                         ? event.target.value
                         : "all",
                   }))
@@ -391,6 +394,7 @@ export function InventoryPricingListControls({
                 <option value="all">All statuses</option>
                 <option value="current">Current</option>
                 <option value="upcoming">Upcoming</option>
+                <option value="expiring-soon">Expiring soon</option>
                 <option value="expired">Expired</option>
               </Select>
             </label>

@@ -143,3 +143,19 @@ export type EditInventoryFormPageData = {
   item: EditInventoryItem;
   vendorOptions: InventoryFormVendorOption[];
 };
+
+export type AdjustInventoryStockFormValues = {
+  newQuantity: string;
+  note: string;
+};
+
+export const adjustInventoryStockFieldNames = ["newQuantity", "note"] as const;
+export type AdjustInventoryStockFieldName = (typeof adjustInventoryStockFieldNames)[number];
+
+export type AdjustInventoryStockApiResponse =
+  | { success: true }
+  | {
+      success: false;
+      message: string;
+      fieldErrors?: Partial<Record<AdjustInventoryStockFieldName, string>>;
+    };

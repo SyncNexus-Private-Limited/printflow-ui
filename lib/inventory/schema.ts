@@ -3,8 +3,10 @@ import {
   inventoryUnitValues,
   createInventoryFieldNames,
   updateInventoryFieldNames,
+  adjustInventoryStockFieldNames,
   type CreateInventoryFieldName,
   type UpdateInventoryFieldName,
+  type AdjustInventoryStockFieldName,
 } from "@/lib/inventory/types";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -152,6 +154,39 @@ export function getUpdateInventoryFieldErrors(
     if (!(updateInventoryFieldNames as readonly string[]).includes(fieldName)) continue;
 
     const typed = fieldName as UpdateInventoryFieldName;
+    if (!fieldErrors[typed]) fieldErrors[typed] = issue.message;
+  }
+
+  return fieldErrors;
+}
+
+// ---------------------------------------------------------------------------
+// Adjust stock schema
+// ---------------------------------------------------------------------------
+
+export const adjustInventoryStockSchema = z.object({
+  newQuantity: z
+    .string()
+    .trim()
+    .refine((v) => nonNegativeDecimalPattern.test(v), "Enter a valid quantity")
+    .refine((v) => parseFloat(v) >= 0, "Quantity cannot be negative"),
+  note: optionalTrimmedString(300),
+});
+
+export type AdjustInventoryStockInput = z.infer<typeof adjustInventoryStockSchema>;
+
+export function getAdjustInventoryStockFieldErrors(
+  error: z.ZodError,
+): Partial<Record<AdjustInventoryStockFieldName, string>> {
+  const fieldErrors: Partial<Record<AdjustInventoryStockFieldName, string>> = {};
+
+  for (const issue of error.issues) {
+    const fieldName = issue.path[0];
+
+    if (typeof fieldName !== "string") continue;
+    if (!(adjustInventoryStockFieldNames as readonly string[]).includes(fieldName)) continue;
+
+    const typed = fieldName as AdjustInventoryStockFieldName;
     if (!fieldErrors[typed]) fieldErrors[typed] = issue.message;
   }
 

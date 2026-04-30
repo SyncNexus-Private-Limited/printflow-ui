@@ -10,6 +10,7 @@ import { getDashboardContext, getInventoryPricingInventoryOptions } from "@/lib/
 type AddInventoryPricingPageProps = {
   searchParams?: Promise<{
     branchId?: string | string[];
+    inventoryId?: string | string[];
   }>;
 };
 
@@ -32,6 +33,7 @@ export default async function AddInventoryPricingPage({
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const requestedBranchId = normalizeSingleParam(resolvedSearchParams?.branchId);
+  const requestedInventoryId = normalizeSingleParam(resolvedSearchParams?.inventoryId);
 
   try {
     const context = await getDashboardContext(currentUser, requestedBranchId);
@@ -65,6 +67,7 @@ export default async function AddInventoryPricingPage({
               inventoryOptions={inventoryOptions}
               selectedBranchName={context.selectedBranchName}
               redirectTo={redirectTo}
+              initialInventoryId={requestedInventoryId}
             />
           </SectionCard>
         </div>

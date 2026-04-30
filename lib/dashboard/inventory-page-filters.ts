@@ -14,6 +14,7 @@ const inventoryDateFieldValues = ["created", "updated"] as const;
 const inventoryStockStateValues = ["in-stock", "low-stock", "out-of-stock"] as const;
 const inventoryActiveValues = ["all", "active", "inactive"] as const;
 const inventoryPresenceValues = ["all", "with", "without"] as const;
+const inventoryPricingFilterValues = ["all", "priced", "no-price"] as const;
 const inventorySortValues = [
   "name-asc",
   "name-desc",
@@ -45,6 +46,7 @@ export type InventoryActiveFilter = (typeof inventoryActiveValues)[number];
 export type InventoryPresenceFilter = (typeof inventoryPresenceValues)[number];
 export type InventorySortValue = (typeof inventorySortValues)[number];
 export type InventoryQuickDatePreset = (typeof inventoryQuickDatePresetValues)[number];
+export type InventoryPricingFilter = (typeof inventoryPricingFilterValues)[number];
 
 export type InventoryPageFilterState = DashboardPageFilterState & {
   dateField: InventoryDateField;
@@ -62,6 +64,7 @@ export type InventoryPageFilterState = DashboardPageFilterState & {
   hasImage: InventoryPresenceFilter;
   includeArchived: boolean;
   sort: InventorySortValue;
+  pricingFilter: InventoryPricingFilter;
 };
 
 const DEFAULT_INVENTORY_SORT: InventorySortValue = "updated-at-desc";
@@ -115,6 +118,10 @@ function isValidInventoryPresenceFilter(
   value: string | undefined,
 ): value is InventoryPresenceFilter {
   return inventoryPresenceValues.includes(value as InventoryPresenceFilter);
+}
+
+function isValidInventoryPricingFilter(value: string | undefined): value is InventoryPricingFilter {
+  return inventoryPricingFilterValues.includes(value as InventoryPricingFilter);
 }
 
 function isValidInventorySortValue(value: string | undefined): value is InventorySortValue {
@@ -241,6 +248,7 @@ export function parseInventoryPageFilters(
   const hasImageValue = normalizeDashboardSearchParam(searchParams?.hasImage);
   const includeArchivedValue = normalizeDashboardSearchParam(searchParams?.includeArchived);
   const sortValue = normalizeDashboardSearchParam(searchParams?.sort);
+  const pricingFilterValue = normalizeDashboardSearchParam(searchParams?.pricingFilter);
 
   return {
     branchId,
@@ -265,6 +273,7 @@ export function parseInventoryPageFilters(
     hasImage: isValidInventoryPresenceFilter(hasImageValue) ? hasImageValue : "all",
     includeArchived: includeArchivedValue === "true",
     sort: isValidInventorySortValue(sortValue) ? sortValue : DEFAULT_INVENTORY_SORT,
+    pricingFilter: isValidInventoryPricingFilter(pricingFilterValue) ? pricingFilterValue : "all",
   };
 }
 
@@ -359,6 +368,10 @@ export function buildInventoryPageHref(
 
   if (nextFilters.sort !== DEFAULT_INVENTORY_SORT) {
     searchParams.set("sort", nextFilters.sort);
+  }
+
+  if (nextFilters.pricingFilter !== "all") {
+    searchParams.set("pricingFilter", nextFilters.pricingFilter);
   }
 
   const queryString = searchParams.toString();

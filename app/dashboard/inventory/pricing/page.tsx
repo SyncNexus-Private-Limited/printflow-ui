@@ -8,7 +8,7 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { buildBranchFilterOptions } from "@/lib/dashboard/helpers";
 import { parseInventoryPricingPageFilters } from "@/lib/dashboard/inventory-pricing-page-filters";
 import { getDashboardContext, getInventoryPricingPageData } from "@/lib/dashboard/queries";
-import { formatCompactNumber, formatDateRangeLabel } from "@/lib/utils/format";
+import { formatCompactNumber } from "@/lib/utils/format";
 
 type InventoryPricingPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -39,10 +39,6 @@ export default async function InventoryPricingPage({ searchParams }: InventoryPr
     const pageData = await getInventoryPricingPageData(context.selectedBranchId, currentFilters);
     const branchOptions = buildBranchFilterOptions(context);
     const showBranchColumn = context.selectedBranchId === null;
-    const hasDateFilter = !!(currentFilters.from || currentFilters.to);
-    const contextMeta = hasDateFilter
-      ? `Effective dates: ${formatDateRangeLabel(currentFilters.from, currentFilters.to)}`
-      : `All pricing for ${context.selectedBranchName}`;
 
     return (
       <main className="min-h-screen px-4 py-8">
@@ -56,28 +52,28 @@ export default async function InventoryPricingPage({ searchParams }: InventoryPr
 
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <ListStatCard
-              label="Prices in view"
-              value={formatCompactNumber(pageData.summary.totalPricesInRange)}
-              meta={contextMeta}
-              accent="blue"
-            />
-            <ListStatCard
               label="Current"
               value={formatCompactNumber(pageData.summary.currentPricesInRange)}
-              meta={context.selectedBranchName}
+              meta="Active today"
               accent="emerald"
             />
             <ListStatCard
               label="Upcoming"
               value={formatCompactNumber(pageData.summary.upcomingPricesInRange)}
-              meta={context.selectedBranchName}
+              meta="Starts later"
               accent="violet"
+            />
+            <ListStatCard
+              label="Expiring soon"
+              value={formatCompactNumber(pageData.summary.expiringSoonPricesInRange)}
+              meta="Ends in 7 days"
+              accent="amber"
             />
             <ListStatCard
               label="Expired"
               value={formatCompactNumber(pageData.summary.expiredPricesInRange)}
-              meta={context.selectedBranchName}
-              accent="amber"
+              meta="No longer active"
+              accent="blue"
             />
           </section>
 

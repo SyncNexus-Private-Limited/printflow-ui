@@ -13,7 +13,7 @@ import {
   getInventoryPageData,
   getInventoryVendorOptions,
 } from "@/lib/dashboard/queries";
-import { formatCompactNumber, formatDateRangeLabel } from "@/lib/utils/format";
+import { formatCompactNumber } from "@/lib/utils/format";
 
 type InventoryPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -31,6 +31,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
   const canEdit = hasPermission(currentUser, "inventory:edit");
   const canArchive = hasPermission(currentUser, "inventory:archive");
   const canRestore = hasPermission(currentUser, "inventory:restore");
+  const canCreatePricing = hasPermission(currentUser, "inventory:create");
 
   try {
     const filters = parseInventoryPageFilters(resolvedSearchParams);
@@ -44,14 +45,6 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
       getInventoryVendorOptions(context.selectedBranchId),
     ]);
     const branchOptions = buildBranchFilterOptions(context);
-    const hasDateFilter = !!(currentFilters.from || currentFilters.to);
-    const dateFieldLabel = currentFilters.dateField === "created" ? "created date" : "updated date";
-    const dateRangeLabel = hasDateFilter
-      ? formatDateRangeLabel(currentFilters.from, currentFilters.to)
-      : null;
-    const contextMeta = hasDateFilter
-      ? `By ${dateFieldLabel}: ${dateRangeLabel}`
-      : `All inventory for ${context.selectedBranchName}`;
     const showBranchColumn = context.selectedBranchId === null;
 
     return (
@@ -66,27 +59,27 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
 
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <ListStatCard
-              label="Items in view"
-              value={formatCompactNumber(pageData.summary.totalItemsInRange)}
-              meta={contextMeta}
-              accent="blue"
-            />
-            <ListStatCard
               label="Low stock"
               value={formatCompactNumber(pageData.summary.lowStockItemsInRange)}
-              meta={`Qty ≤ 10 · ${context.selectedBranchName}`}
+              meta="At reorder level"
               accent="amber"
             />
             <ListStatCard
               label="Out of stock"
               value={formatCompactNumber(pageData.summary.outOfStockItemsInRange)}
-              meta={`Qty = 0 · ${context.selectedBranchName}`}
+              meta="Needs restock"
               accent="violet"
+            />
+            <ListStatCard
+              label="No current price"
+              value={formatCompactNumber(pageData.summary.itemsWithoutPricingInRange)}
+              meta="Pricing missing"
+              accent="amber"
             />
             <ListStatCard
               label="Total quantity"
               value={formatCompactNumber(pageData.summary.totalStockQuantityInRange)}
-              meta={`Units across filtered items`}
+              meta="Units in stock"
               accent="emerald"
             />
           </section>
@@ -109,6 +102,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
             canEdit={canEdit}
             canArchive={canArchive}
             canRestore={canRestore}
+            canCreatePricing={canCreatePricing}
           />
         </div>
       </main>

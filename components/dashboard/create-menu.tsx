@@ -145,7 +145,11 @@ function useIsDesktopViewport() {
   return isDesktopViewport;
 }
 
-export function CreateMenu({ canCreateInventory, canCreateExpense, canCreateUser }: CreateMenuProps) {
+export function CreateMenu({
+  canCreateInventory,
+  canCreateExpense,
+  canCreateUser,
+}: CreateMenuProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

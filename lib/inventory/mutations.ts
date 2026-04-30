@@ -3,7 +3,11 @@ import type { PoolClient } from "pg";
 import type { AuthenticatedUser } from "@/lib/auth/current-user";
 import { assertPermission } from "@/lib/auth/permissions";
 import { getPool } from "@/lib/db/postgres";
-import type { CreateInventoryInput, UpdateInventoryInput } from "@/lib/inventory/schema";
+import type {
+  AdjustInventoryStockInput,
+  CreateInventoryInput,
+  UpdateInventoryInput,
+} from "@/lib/inventory/schema";
 
 type MutationFieldErrors = Partial<Record<string, string>>;
 
@@ -264,10 +268,11 @@ export async function createInventory(
 
     await client.query("COMMIT");
 
-    return {
-      id: createdId,
-      redirectTo: `/dashboard/inventory?created=1`,
-    };
+    const redirectTo = input.isActive
+      ? `/dashboard/inventory/pricing/new?branchId=${encodeURIComponent(input.branchId)}&inventoryId=${createdId}`
+      : `/dashboard/inventory`;
+
+    return { id: createdId, redirectTo };
   } catch (error) {
     await client.query("ROLLBACK");
 
@@ -575,6 +580,83 @@ export async function toggleInventoryActive(
     if (error instanceof InventoryMutationError) throw error;
     console.error("Inventory active toggle failed", error);
     throw new InventoryMutationError("Unable to update item status right now.", { status: 500 });
+  } finally {
+    client.release();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// adjustInventoryStock
+// ---------------------------------------------------------------------------
+
+export async function adjustInventoryStock(
+  currentUser: AuthenticatedUser,
+  inventoryId: string,
+  input: AdjustInventoryStockInput,
+): Promise<void> {
+  assertPermission(currentUser, "inventory:edit");
+
+  const db = getPool();
+  const client = await db.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const snapshot = await fetchInventorySnapshotForAudit(client, inventoryId);
+    if (!snapshot) {
+      throw new InventoryMutationError("Inventory item not found.", { status: 404 });
+    }
+
+    if (snapshot.deletedAt !== null) {
+      throw new InventoryMutationError("Cannot adjust stock of an archived item.", { status: 400 });
+    }
+
+    const newQty = parseFloat(input.newQuantity);
+    const quantityDelta = newQty - snapshot.quantity;
+
+    const { rowCount } = await client.query(
+      `UPDATE inventory
+       SET quantity = $2::numeric, updated_by = $3::uuid
+       WHERE id = $1::uuid AND deleted_at IS NULL`,
+      [inventoryId, newQty, currentUser.userId],
+    );
+
+    if (!rowCount) {
+      throw new InventoryMutationError("Inventory item not found.", { status: 404 });
+    }
+
+    if (Math.abs(quantityDelta) > 0.0005) {
+      await logStockMovement(
+        client,
+        inventoryId,
+        snapshot.branchId,
+        "manual_adjustment",
+        quantityDelta,
+        currentUser.userId,
+        input.note ?? null,
+      );
+    }
+
+    const changedFields: Record<string, { from: unknown; to: unknown }> = {};
+    if (Math.abs(quantityDelta) > 0.0005) {
+      changedFields.quantity = { from: snapshot.quantity, to: newQty };
+    }
+
+    await logInventoryAudit(
+      client,
+      inventoryId,
+      "adjust_stock",
+      snapshot,
+      currentUser.userId,
+      changedFields,
+    );
+
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    if (error instanceof InventoryMutationError) throw error;
+    console.error("Inventory stock adjustment failed", error);
+    throw new InventoryMutationError("Unable to adjust stock right now.", { status: 500 });
   } finally {
     client.release();
   }

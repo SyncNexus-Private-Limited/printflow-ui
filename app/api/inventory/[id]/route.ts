@@ -4,12 +4,18 @@ import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasPermission } from "@/lib/auth/permissions";
 import {
   InventoryMutationError,
+  adjustInventoryStock,
   archiveInventory,
   restoreInventory,
   toggleInventoryActive,
   updateInventory,
 } from "@/lib/inventory/mutations";
-import { updateInventorySchema, getUpdateInventoryFieldErrors } from "@/lib/inventory/schema";
+import {
+  adjustInventoryStockSchema,
+  getAdjustInventoryStockFieldErrors,
+  getUpdateInventoryFieldErrors,
+  updateInventorySchema,
+} from "@/lib/inventory/schema";
 import { getInventoryById, getVendorOptions } from "@/lib/inventory/queries";
 
 export const runtime = "nodejs";
@@ -19,6 +25,7 @@ const patchBodySchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("archive") }),
   z.object({ action: z.literal("restore") }),
   z.object({ action: z.literal("toggle-active"), isActive: z.boolean() }),
+  z.object({ action: z.literal("adjust-stock") }).merge(adjustInventoryStockSchema),
 ]);
 
 function getUnauthorizedResponse() {
@@ -117,6 +124,24 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     if (data.action === "toggle-active") {
       await toggleInventoryActive(currentUser, inventoryId, data.isActive);
+      return NextResponse.json({ success: true });
+    }
+
+    if (data.action === "adjust-stock") {
+      const adjustParsed = adjustInventoryStockSchema.safeParse(data);
+
+      if (!adjustParsed.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Please correct the highlighted fields.",
+            fieldErrors: getAdjustInventoryStockFieldErrors(adjustParsed.error),
+          },
+          { status: 400 },
+        );
+      }
+
+      await adjustInventoryStock(currentUser, inventoryId, adjustParsed.data);
       return NextResponse.json({ success: true });
     }
 

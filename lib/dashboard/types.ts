@@ -201,6 +201,8 @@ export type InventoryPageDetailRow = {
   image: string | null;
   stockState: InventoryStockState;
   deletedAt: string | null;
+  reorderLevel: number | null;
+  hasPricing: boolean;
 };
 
 export type InventoryPageSummary = {
@@ -208,6 +210,7 @@ export type InventoryPageSummary = {
   lowStockItemsInRange: number;
   outOfStockItemsInRange: number;
   totalStockQuantityInRange: number;
+  itemsWithoutPricingInRange: number;
 };
 
 export type InventoryVendorOption = {
@@ -218,6 +221,47 @@ export type InventoryVendorOption = {
 export type InventoryPageData = {
   summary: InventoryPageSummary;
   result: PaginatedListResult<InventoryPageDetailRow>;
+};
+
+export type InventoryPricingStatus = "current" | "upcoming" | "expired";
+
+export type InventoryPricingRow = {
+  id: string;
+  branchId: string;
+  inventoryId: string;
+  itemName: string;
+  sku: string;
+  branchName: string;
+  customerType: string;
+  sellingRate: number;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  pricingStatus: InventoryPricingStatus;
+  isExpiringSoon: boolean;
+  updatedAt: string;
+  updatedByName: string | null;
+};
+
+export type InventoryPricingPageSummary = {
+  totalPricesInRange: number;
+  currentPricesInRange: number;
+  upcomingPricesInRange: number;
+  expiredPricesInRange: number;
+  expiringSoonPricesInRange: number;
+};
+
+export type InventoryPricingInventoryOption = {
+  id: string;
+  branchId: string;
+  branchName: string;
+  name: string;
+  sku: string;
+};
+
+export type InventoryPricingPageData = {
+  summary: InventoryPricingPageSummary;
+  result: PaginatedListResult<InventoryPricingRow>;
+  inventoryOptions: InventoryPricingInventoryOption[];
 };
 
 export type ActiveUserRow = {

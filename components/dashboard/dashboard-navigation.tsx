@@ -58,7 +58,10 @@ export const dashboardNavigation: DashboardNavItem[] = [
     type: "group",
     label: "Inventory",
     icon: Boxes,
-    children: [{ label: "Inventory", href: "/dashboard/inventory" }],
+    children: [
+      { label: "Inventory", href: "/dashboard/inventory" },
+      { label: "Inventory Pricing", href: "/dashboard/inventory/pricing" },
+    ],
   },
   {
     type: "group",
@@ -140,6 +143,16 @@ export function getDashboardBreadcrumbs(
       { label: "Home", href: homeHref },
       { label: "Inventory", href: inventoryHref },
       { label: "Add Inventory" },
+    ];
+  }
+
+  if (pathname === "/dashboard/inventory/pricing/new") {
+    const inventoryPricingHref = buildDashboardHref("/dashboard/inventory/pricing", filters);
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Inventory", href: inventoryHref },
+      { label: "Inventory Pricing", href: inventoryPricingHref },
+      { label: "Add Pricing" },
     ];
   }
 

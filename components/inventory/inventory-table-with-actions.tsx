@@ -7,6 +7,7 @@ import {
   EditInventoryDialog,
   type InventoryRowPatch,
 } from "@/components/inventory/edit-inventory-dialog";
+import { AdjustStockDialog } from "@/components/inventory/adjust-stock-dialog";
 import type { InventoryPageDetailRow, DashboardPaginationState } from "@/lib/dashboard/types";
 import type { InventoryPageFilterState } from "@/lib/dashboard/inventory-page-filters";
 
@@ -23,6 +24,7 @@ type InventoryTableWithActionsProps = {
   canEdit: boolean;
   canArchive: boolean;
   canRestore: boolean;
+  canCreatePricing: boolean;
 };
 
 export function InventoryTableWithActions({
@@ -36,9 +38,11 @@ export function InventoryTableWithActions({
   canEdit,
   canArchive,
   canRestore,
+  canCreatePricing,
 }: InventoryTableWithActionsProps) {
   const router = useRouter();
   const [editInventoryId, setEditInventoryId] = useState<string | null>(null);
+  const [adjustItem, setAdjustItem] = useState<InventoryPageDetailRow | null>(null);
   const [pendingPatch, setPendingPatch] = useState<PendingPatch | null>(null);
 
   // Once router.refresh() delivers fresh server data, the optimistic patch is
@@ -65,7 +69,9 @@ export function InventoryTableWithActions({
         canEdit={canEdit}
         canArchive={canArchive}
         canRestore={canRestore}
+        canCreatePricing={canCreatePricing}
         onEditRow={(item) => setEditInventoryId(item.id)}
+        onAdjustRow={(item) => setAdjustItem(item)}
         pendingPatch={pendingPatch}
       />
 
@@ -74,6 +80,16 @@ export function InventoryTableWithActions({
         onClose={() => setEditInventoryId(null)}
         onSuccess={(id, patch) => {
           setEditInventoryId(null);
+          setPendingPatch({ id, patch });
+          router.refresh();
+        }}
+      />
+
+      <AdjustStockDialog
+        item={adjustItem}
+        onClose={() => setAdjustItem(null)}
+        onSuccess={(id, patch) => {
+          setAdjustItem(null);
           setPendingPatch({ id, patch });
           router.refresh();
         }}

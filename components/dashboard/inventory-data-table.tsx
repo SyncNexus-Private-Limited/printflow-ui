@@ -2,8 +2,12 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, ArchiveRestore, Pencil, PowerOff, Zap } from "lucide-react";
-import { DataPill, getInventoryStockStateTone } from "@/components/dashboard/data-pill";
+import { Archive, ArchiveRestore, PackagePlus, Pencil, PowerOff, Tag, Zap } from "lucide-react";
+import {
+  DataPill,
+  getInventoryHasPricingTone,
+  getInventoryStockStateTone,
+} from "@/components/dashboard/data-pill";
 import { RowActionMenu, type RowAction } from "@/components/dashboard/row-action-menu";
 import { DataTableContainer } from "@/components/dashboard/data-table-container";
 import { DashboardPagination } from "@/components/dashboard/dashboard-pagination";
@@ -43,7 +47,9 @@ type InventoryDataTableProps = {
   canEdit: boolean;
   canArchive: boolean;
   canRestore: boolean;
+  canCreatePricing: boolean;
   onEditRow?: (item: InventoryPageDetailRow) => void;
+  onAdjustRow?: (item: InventoryPageDetailRow) => void;
   pendingPatch?: { id: string; patch: InventoryRowPatch } | null;
 };
 
@@ -84,6 +90,10 @@ function buildHeaderConfigs(showBranchColumn: boolean): HeaderConfig[] {
       key: "stock",
       label: "Stock",
       sort: { asc: "stock-state-asc", desc: "stock-state-desc", defaultDirection: "asc" },
+    },
+    {
+      key: "pricing",
+      label: "Pricing",
     },
     {
       key: "active",
@@ -173,7 +183,9 @@ export function InventoryDataTable({
   canEdit,
   canArchive,
   canRestore,
+  canCreatePricing,
   onEditRow,
+  onAdjustRow,
   pendingPatch,
 }: InventoryDataTableProps) {
   const router = useRouter();
@@ -296,6 +308,27 @@ export function InventoryDataTable({
     }
 
     if (canEdit && !isArchived) {
+      actions.push({
+        key: "adjust-stock",
+        label: "Adjust stock",
+        icon: <PackagePlus className="h-4 w-4" strokeWidth={1.9} />,
+        onClick: () => onAdjustRow?.(item),
+      });
+    }
+
+    if (canCreatePricing && !isArchived && !item.hasPricing) {
+      actions.push({
+        key: "add-price",
+        label: "Add price",
+        icon: <Tag className="h-4 w-4" strokeWidth={1.9} />,
+        onClick: () =>
+          router.push(
+            `/dashboard/inventory/pricing/new?branchId=${item.branchId}&inventoryId=${item.id}`,
+          ),
+      });
+    }
+
+    if (canEdit && !isArchived) {
       actions.push(
         item.isActive
           ? {
@@ -375,6 +408,7 @@ export function InventoryDataTable({
               <col className="w-28" />
               <col className="w-28" />
               <col className="w-36" />
+              <col className="w-32" />
               <col className="w-32" />
               <col className="w-36" />
               <col className="w-44" />
@@ -465,6 +499,15 @@ export function InventoryDataTable({
 
                     <td className={TABLE_BODY_CELL_CLASS}>
                       {renderStockStatePill(item.stockState, isArchived)}
+                    </td>
+
+                    <td className={cn(TABLE_BODY_CELL_CLASS, isArchived && "opacity-60")}>
+                      <DataPill
+                        tone={getInventoryHasPricingTone(item.hasPricing)}
+                        className="max-w-full"
+                      >
+                        {item.hasPricing ? "Priced" : "No price"}
+                      </DataPill>
                     </td>
 
                     <td className={cn(TABLE_BODY_CELL_CLASS, isArchived && "opacity-60")}>

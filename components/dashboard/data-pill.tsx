@@ -241,3 +241,7 @@ export function getInventoryStockStateTone(stockState: string): DataPillTone {
       return "neutral";
   }
 }
+
+export function getInventoryHasPricingTone(hasPricing: boolean): DataPillTone {
+  return hasPricing ? "emerald" : "rose";
+}

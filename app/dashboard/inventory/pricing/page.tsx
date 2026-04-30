@@ -1,50 +1,42 @@
 import { redirect } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import { InventoryListControls } from "@/components/dashboard/inventory-list-controls";
-import { InventoryTableWithActions } from "@/components/inventory/inventory-table-with-actions";
 import { ListStatCard } from "@/components/dashboard/list-stat-card";
 import { SectionCard } from "@/components/dashboard/section-card";
+import { InventoryPricingTableWithActions } from "@/components/inventory-pricing/inventory-pricing-table-with-actions";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasPermission } from "@/lib/auth/permissions";
-import { parseInventoryPageFilters } from "@/lib/dashboard/inventory-page-filters";
 import { buildBranchFilterOptions } from "@/lib/dashboard/helpers";
-import {
-  getDashboardContext,
-  getInventoryPageData,
-  getInventoryVendorOptions,
-} from "@/lib/dashboard/queries";
+import { parseInventoryPricingPageFilters } from "@/lib/dashboard/inventory-pricing-page-filters";
+import { getDashboardContext, getInventoryPricingPageData } from "@/lib/dashboard/queries";
 import { formatCompactNumber } from "@/lib/utils/format";
 
-type InventoryPageProps = {
+type InventoryPricingPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export default async function InventoryPage({ searchParams }: InventoryPageProps) {
+export default async function InventoryPricingPage({ searchParams }: InventoryPricingPageProps) {
   const currentUser = await getCurrentUser({ touchSession: true });
 
   if (!currentUser) {
     redirect("/login");
   }
 
-  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  if (!hasPermission(currentUser, "inventory:view")) {
+    redirect("/dashboard?forbidden=1");
+  }
 
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const canCreate = hasPermission(currentUser, "inventory:create");
   const canEdit = hasPermission(currentUser, "inventory:edit");
-  const canArchive = hasPermission(currentUser, "inventory:archive");
-  const canRestore = hasPermission(currentUser, "inventory:restore");
-  const canCreatePricing = hasPermission(currentUser, "inventory:create");
 
   try {
-    const filters = parseInventoryPageFilters(resolvedSearchParams);
+    const filters = parseInventoryPricingPageFilters(resolvedSearchParams);
     const context = await getDashboardContext(currentUser, filters.branchId ?? undefined);
     const currentFilters = {
       ...filters,
       branchId: context.selectedBranchValue,
     };
-    const [pageData, vendorOptions] = await Promise.all([
-      getInventoryPageData(context.selectedBranchId, currentFilters),
-      getInventoryVendorOptions(context.selectedBranchId),
-    ]);
+    const pageData = await getInventoryPricingPageData(context.selectedBranchId, currentFilters);
     const branchOptions = buildBranchFilterOptions(context);
     const showBranchColumn = context.selectedBranchId === null;
 
@@ -52,7 +44,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
       <main className="min-h-screen px-4 py-8">
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
-            title="Inventory"
+            title="Inventory Pricing"
             branchOptions={branchOptions}
             selectedBranchValue={context.selectedBranchValue}
             branchFilterDisabled={!context.canSelectAll}
@@ -60,63 +52,53 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
 
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <ListStatCard
-              label="Low stock"
-              value={formatCompactNumber(pageData.summary.lowStockItemsInRange)}
-              meta="At reorder level"
-              accent="amber"
+              label="Current"
+              value={formatCompactNumber(pageData.summary.currentPricesInRange)}
+              meta="Active today"
+              accent="emerald"
             />
             <ListStatCard
-              label="Out of stock"
-              value={formatCompactNumber(pageData.summary.outOfStockItemsInRange)}
-              meta="Needs restock"
+              label="Upcoming"
+              value={formatCompactNumber(pageData.summary.upcomingPricesInRange)}
+              meta="Starts later"
               accent="violet"
             />
             <ListStatCard
-              label="No current price"
-              value={formatCompactNumber(pageData.summary.itemsWithoutPricingInRange)}
-              meta="Pricing missing"
+              label="Expiring soon"
+              value={formatCompactNumber(pageData.summary.expiringSoonPricesInRange)}
+              meta="Ends in 7 days"
               accent="amber"
             />
             <ListStatCard
-              label="Total quantity"
-              value={formatCompactNumber(pageData.summary.totalStockQuantityInRange)}
-              meta="Units in stock"
-              accent="emerald"
+              label="Expired"
+              value={formatCompactNumber(pageData.summary.expiredPricesInRange)}
+              meta="No longer active"
+              accent="blue"
             />
           </section>
 
-          <InventoryListControls
-            currentPath="/dashboard/inventory"
-            currentFilters={currentFilters}
-            vendorOptions={vendorOptions}
-            selectedBranchName={context.selectedBranchName}
-            canCreate={canCreate}
-          />
-
-          <InventoryTableWithActions
-            emptyMessage="No inventory items match the current filters."
-            items={pageData.result.items}
-            currentPath="/dashboard/inventory"
+          <InventoryPricingTableWithActions
+            rows={pageData.result.items}
+            inventoryOptions={pageData.inventoryOptions}
+            currentPath="/dashboard/inventory/pricing"
             currentFilters={currentFilters}
             pagination={pageData.result.pagination}
             showBranchColumn={showBranchColumn}
-            fallbackBranchName={context.selectedBranchName}
+            canCreate={canCreate}
             canEdit={canEdit}
-            canArchive={canArchive}
-            canRestore={canRestore}
-            canCreatePricing={canCreatePricing}
+            selectedBranchName={context.selectedBranchName}
           />
         </div>
       </main>
     );
   } catch (error) {
-    console.error("Unable to load inventory data", error);
+    console.error("Unable to load inventory pricing data", error);
 
     return (
       <main className="min-h-screen px-4 py-8">
         <div className="mx-auto max-w-7xl space-y-8">
           <DashboardHeader
-            title="Inventory"
+            title="Inventory Pricing"
             branchOptions={[
               {
                 label: currentUser.branchName ?? "Branch",
@@ -126,7 +108,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
             selectedBranchValue={currentUser.branchId ?? "all"}
             branchFilterDisabled
           />
-          <SectionCard title="Unable to load inventory data right now.">
+          <SectionCard title="Unable to load inventory pricing right now.">
             <p className="text-sm text-slate-600">Please try again shortly.</p>
           </SectionCard>
         </div>

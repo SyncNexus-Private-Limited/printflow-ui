@@ -11,6 +11,11 @@ import {
   type InventoryPageFilterState,
   type InventorySortValue,
 } from "@/lib/dashboard/inventory-page-filters";
+import {
+  PRICE_EXPIRING_SOON_DAYS,
+  type InventoryPricingPageFilterState,
+  type InventoryPricingSortValue,
+} from "@/lib/dashboard/inventory-pricing-page-filters";
 import type { OrderPageFilterState } from "@/lib/dashboard/order-page-filters";
 import {
   type ActiveUserRoleOption,
@@ -33,6 +38,10 @@ import {
   type InventoryPageData,
   type InventoryPageDetailRow,
   type InventoryPageSummary,
+  type InventoryPricingInventoryOption,
+  type InventoryPricingPageData,
+  type InventoryPricingPageSummary,
+  type InventoryPricingRow,
   type InventoryVendorOption,
   type LowStockRow,
   type OrderCreatorOption,
@@ -1582,9 +1591,9 @@ function getInventoryOrderByClause(sort: InventorySortValue): string {
       return "CASE WHEN v.name IS NULL THEN 1 ELSE 0 END ASC, LOWER(v.name) DESC NULLS LAST, LOWER(i.name) ASC";
     case "stock-state-asc":
       // out-of-stock (0) first, then low-stock (1), then in-stock (2)
-      return `CASE WHEN i.quantity = 0 THEN 0 WHEN i.quantity <= ${t} THEN 1 ELSE 2 END ASC, LOWER(i.name) ASC`;
+      return `CASE WHEN i.quantity = 0 THEN 0 WHEN i.quantity <= COALESCE(i.reorder_level, ${t}) THEN 1 ELSE 2 END ASC, LOWER(i.name) ASC`;
     case "stock-state-desc":
-      return `CASE WHEN i.quantity = 0 THEN 0 WHEN i.quantity <= ${t} THEN 1 ELSE 2 END DESC, LOWER(i.name) ASC`;
+      return `CASE WHEN i.quantity = 0 THEN 0 WHEN i.quantity <= COALESCE(i.reorder_level, ${t}) THEN 1 ELSE 2 END DESC, LOWER(i.name) ASC`;
     case "created-at-asc":
       return "i.created_at ASC, LOWER(i.name) ASC";
     case "created-at-desc":
@@ -1653,9 +1662,25 @@ function buildInventoryQueryParts(
   if (filters.stockState === "out-of-stock") {
     whereParts.push("i.quantity = 0");
   } else if (filters.stockState === "low-stock") {
-    whereParts.push(`i.quantity > 0 AND i.quantity <= ${t}`);
+    whereParts.push(`i.quantity > 0 AND i.quantity <= COALESCE(i.reorder_level, ${t})`);
   } else if (filters.stockState === "in-stock") {
-    whereParts.push(`i.quantity > ${t}`);
+    whereParts.push(`i.quantity > COALESCE(i.reorder_level, ${t})`);
+  }
+
+  if (filters.pricingFilter === "priced") {
+    whereParts.push(`EXISTS (
+      SELECT 1 FROM inventory_pricing ip
+      WHERE ip.inventory_id = i.id
+        AND ip.effective_from <= CURRENT_DATE
+        AND (ip.effective_to IS NULL OR ip.effective_to >= CURRENT_DATE)
+    )`);
+  } else if (filters.pricingFilter === "no-price") {
+    whereParts.push(`NOT EXISTS (
+      SELECT 1 FROM inventory_pricing ip
+      WHERE ip.inventory_id = i.id
+        AND ip.effective_from <= CURRENT_DATE
+        AND (ip.effective_to IS NULL OR ip.effective_to >= CURRENT_DATE)
+    )`);
   }
 
   if (filters.quantityMin) {
@@ -1715,9 +1740,15 @@ export async function getInventoryPageData(
     `
       SELECT
         COUNT(*)::int AS "totalItemsInRange",
-        COUNT(*) FILTER (WHERE i.quantity > 0 AND i.quantity <= ${t})::int AS "lowStockItemsInRange",
+        COUNT(*) FILTER (WHERE i.quantity > 0 AND i.quantity <= COALESCE(i.reorder_level, ${t}))::int AS "lowStockItemsInRange",
         COUNT(*) FILTER (WHERE i.quantity = 0)::int AS "outOfStockItemsInRange",
-        COALESCE(SUM(i.quantity), 0)::double precision AS "totalStockQuantityInRange"
+        COALESCE(SUM(i.quantity), 0)::double precision AS "totalStockQuantityInRange",
+        COUNT(*) FILTER (WHERE NOT EXISTS (
+          SELECT 1 FROM inventory_pricing ip
+          WHERE ip.inventory_id = i.id
+            AND ip.effective_from <= CURRENT_DATE
+            AND (ip.effective_to IS NULL OR ip.effective_to >= CURRENT_DATE)
+        ))::int AS "itemsWithoutPricingInRange"
       FROM inventory i
       ${queryParts.joins}
       WHERE ${queryParts.whereClause}
@@ -1752,11 +1783,18 @@ export async function getInventoryPageData(
         i.updated_at::text AS "updatedAt",
         i.image,
         i.deleted_at::text AS "deletedAt",
+        i.reorder_level::double precision AS "reorderLevel",
         CASE
           WHEN i.quantity = 0 THEN 'out-of-stock'
-          WHEN i.quantity <= ${t} THEN 'low-stock'
+          WHEN i.quantity <= COALESCE(i.reorder_level, ${t}) THEN 'low-stock'
           ELSE 'in-stock'
-        END AS "stockState"
+        END AS "stockState",
+        EXISTS (
+          SELECT 1 FROM inventory_pricing ip
+          WHERE ip.inventory_id = i.id
+            AND ip.effective_from <= CURRENT_DATE
+            AND (ip.effective_to IS NULL OR ip.effective_to >= CURRENT_DATE)
+        ) AS "hasPricing"
       FROM inventory i
       ${queryParts.joins}
       WHERE ${queryParts.whereClause}
@@ -1787,6 +1825,230 @@ export async function getInventoryVendorOptions(
       INNER JOIN inventory i ON i.last_vendor_id = v.id
       WHERE ($1::uuid IS NULL OR i.branch_id = $1::uuid)
       ORDER BY v.name ASC
+    `,
+    [branchId],
+  );
+
+  return rows;
+}
+
+// ---------------------------------------------------------------------------
+// Inventory pricing page queries
+// ---------------------------------------------------------------------------
+
+type InventoryPricingQueryParts = {
+  joins: string;
+  whereClause: string;
+  values: Array<number | string | null>;
+  orderByClause: string;
+};
+
+const inventoryPricingStatusSql = `CASE
+  WHEN ip.effective_from > CURRENT_DATE THEN 'upcoming'
+  WHEN ip.effective_to IS NOT NULL AND ip.effective_to < CURRENT_DATE THEN 'expired'
+  ELSE 'current'
+END`;
+
+function getInventoryPricingOrderByClause(sort: InventoryPricingSortValue): string {
+  switch (sort) {
+    case "item-asc":
+      return "LOWER(i.name) ASC, ip.updated_at DESC";
+    case "item-desc":
+      return "LOWER(i.name) DESC, ip.updated_at DESC";
+    case "sku-asc":
+      return "LOWER(i.sku) ASC, LOWER(i.name) ASC";
+    case "sku-desc":
+      return "LOWER(i.sku) DESC, LOWER(i.name) ASC";
+    case "branch-asc":
+      return "LOWER(b.name) ASC, LOWER(i.name) ASC";
+    case "branch-desc":
+      return "LOWER(b.name) DESC, LOWER(i.name) ASC";
+    case "customer-type-asc":
+      return "LOWER(ip.customer_type::text) ASC, LOWER(i.name) ASC";
+    case "customer-type-desc":
+      return "LOWER(ip.customer_type::text) DESC, LOWER(i.name) ASC";
+    case "selling-rate-asc":
+      return "ip.selling_rate ASC, LOWER(i.name) ASC";
+    case "selling-rate-desc":
+      return "ip.selling_rate DESC, LOWER(i.name) ASC";
+    case "effective-from-asc":
+      return "ip.effective_from ASC, LOWER(i.name) ASC";
+    case "effective-from-desc":
+      return "ip.effective_from DESC, LOWER(i.name) ASC";
+    case "effective-to-asc":
+      return "CASE WHEN ip.effective_to IS NULL THEN 1 ELSE 0 END ASC, ip.effective_to ASC, LOWER(i.name) ASC";
+    case "effective-to-desc":
+      return "CASE WHEN ip.effective_to IS NULL THEN 1 ELSE 0 END ASC, ip.effective_to DESC, LOWER(i.name) ASC";
+    case "status-asc":
+      return `${inventoryPricingStatusSql} ASC, LOWER(i.name) ASC`;
+    case "status-desc":
+      return `${inventoryPricingStatusSql} DESC, LOWER(i.name) ASC`;
+    case "updated-at-asc":
+      return "ip.updated_at ASC, LOWER(i.name) ASC";
+    case "updated-at-desc":
+    default:
+      return "ip.updated_at DESC, LOWER(i.name) ASC";
+  }
+}
+
+function buildInventoryPricingQueryParts(
+  branchId: string | null,
+  filters: InventoryPricingPageFilterState,
+): InventoryPricingQueryParts {
+  const values: Array<number | string | null> = [branchId];
+  const whereParts = ["($1::uuid IS NULL OR ip.branch_id = $1::uuid)"];
+  const joins = [
+    "INNER JOIN inventory i ON i.id = ip.inventory_id",
+    "INNER JOIN branches b ON b.id = ip.branch_id",
+    "LEFT JOIN users updater ON updater.id = ip.updated_by",
+  ];
+
+  if (filters.from) {
+    values.push(filters.from);
+    whereParts.push("COALESCE(ip.effective_to, 'infinity'::date) >= $" + values.length + "::date");
+  }
+
+  if (filters.to) {
+    values.push(filters.to);
+    whereParts.push("ip.effective_from <= $" + values.length + "::date");
+  }
+
+  if (filters.itemName) {
+    values.push(filters.itemName);
+    whereParts.push(`i.name ILIKE '%' || $${values.length} || '%'`);
+  }
+
+  if (filters.sku) {
+    values.push(filters.sku);
+    whereParts.push(`i.sku ILIKE '%' || $${values.length} || '%'`);
+  }
+
+  if (filters.customerType) {
+    values.push(filters.customerType);
+    whereParts.push(`ip.customer_type = $${values.length}::customer_type`);
+  }
+
+  if (filters.status === "expiring-soon") {
+    whereParts.push(
+      `${inventoryPricingStatusSql} = 'current'` +
+        ` AND ip.effective_to IS NOT NULL` +
+        ` AND ip.effective_to >= CURRENT_DATE` +
+        ` AND ip.effective_to <= CURRENT_DATE + ${PRICE_EXPIRING_SOON_DAYS}`,
+    );
+  } else if (filters.status !== "all") {
+    whereParts.push(`${inventoryPricingStatusSql} = '${filters.status}'`);
+  }
+
+  return {
+    joins: joins.join("\n      "),
+    whereClause: whereParts.join("\n        AND "),
+    values,
+    orderByClause: getInventoryPricingOrderByClause(filters.sort),
+  };
+}
+
+export async function getInventoryPricingPageData(
+  branchId: string | null,
+  filters: InventoryPricingPageFilterState,
+): Promise<InventoryPricingPageData> {
+  const db = getPool();
+  const queryParts = buildInventoryPricingQueryParts(branchId, filters);
+
+  const { rows: summaryRows } = await db.query<InventoryPricingPageSummary>(
+    `
+      SELECT
+        COUNT(*)::int AS "totalPricesInRange",
+        COUNT(*) FILTER (WHERE ${inventoryPricingStatusSql} = 'current')::int AS "currentPricesInRange",
+        COUNT(*) FILTER (WHERE ${inventoryPricingStatusSql} = 'upcoming')::int AS "upcomingPricesInRange",
+        COUNT(*) FILTER (WHERE ${inventoryPricingStatusSql} = 'expired')::int AS "expiredPricesInRange",
+        COUNT(*) FILTER (WHERE
+          ${inventoryPricingStatusSql} = 'current'
+          AND ip.effective_to IS NOT NULL
+          AND ip.effective_to >= CURRENT_DATE
+          AND ip.effective_to <= CURRENT_DATE + ${PRICE_EXPIRING_SOON_DAYS}
+        )::int AS "expiringSoonPricesInRange"
+      FROM inventory_pricing ip
+      ${queryParts.joins}
+      WHERE ${queryParts.whereClause}
+    `,
+    queryParts.values,
+  );
+
+  const summary = summaryRows[0] ?? {
+    totalPricesInRange: 0,
+    currentPricesInRange: 0,
+    upcomingPricesInRange: 0,
+    expiredPricesInRange: 0,
+    expiringSoonPricesInRange: 0,
+  };
+  const pagination = buildPaginationState(summary.totalPricesInRange, filters);
+  const listQueryParams = [
+    ...queryParts.values,
+    pagination.pageSize,
+    (pagination.page - 1) * pagination.pageSize,
+  ];
+  const limitParameterIndex = queryParts.values.length + 1;
+  const offsetParameterIndex = queryParts.values.length + 2;
+
+  const { rows } = await db.query<InventoryPricingRow>(
+    `
+      SELECT
+        ip.id::text AS id,
+        ip.branch_id::text AS "branchId",
+        ip.inventory_id::text AS "inventoryId",
+        i.name AS "itemName",
+        i.sku,
+        b.name AS "branchName",
+        ip.customer_type::text AS "customerType",
+        ip.selling_rate::double precision AS "sellingRate",
+        ip.effective_from::text AS "effectiveFrom",
+        ip.effective_to::text AS "effectiveTo",
+        ${inventoryPricingStatusSql} AS "pricingStatus",
+        (
+          ${inventoryPricingStatusSql} = 'current'
+          AND ip.effective_to IS NOT NULL
+          AND ip.effective_to >= CURRENT_DATE
+          AND ip.effective_to <= CURRENT_DATE + ${PRICE_EXPIRING_SOON_DAYS}
+        ) AS "isExpiringSoon",
+        ip.updated_at::text AS "updatedAt",
+        updater.full_name AS "updatedByName"
+      FROM inventory_pricing ip
+      ${queryParts.joins}
+      WHERE ${queryParts.whereClause}
+      ORDER BY ${queryParts.orderByClause}
+      LIMIT $${limitParameterIndex}
+      OFFSET $${offsetParameterIndex}
+    `,
+    listQueryParams,
+  );
+
+  const inventoryOptions = await getInventoryPricingInventoryOptions(branchId);
+
+  return {
+    summary,
+    result: { items: rows, pagination },
+    inventoryOptions,
+  };
+}
+
+export async function getInventoryPricingInventoryOptions(
+  branchId: string | null,
+): Promise<InventoryPricingInventoryOption[]> {
+  const db = getPool();
+  const { rows } = await db.query<InventoryPricingInventoryOption>(
+    `
+      SELECT
+        i.id::text AS id,
+        i.branch_id::text AS "branchId",
+        b.name AS "branchName",
+        i.name,
+        i.sku
+      FROM inventory i
+      INNER JOIN branches b ON b.id = i.branch_id
+      WHERE ($1::uuid IS NULL OR i.branch_id = $1::uuid)
+        AND i.deleted_at IS NULL
+        AND i.is_active = true
+      ORDER BY LOWER(b.name) ASC, LOWER(i.name) ASC
     `,
     [branchId],
   );

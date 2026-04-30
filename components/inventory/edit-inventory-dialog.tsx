@@ -7,12 +7,10 @@ import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
 import { updateInventorySchema } from "@/lib/inventory/schema";
-import { INVENTORY_LOW_STOCK_THRESHOLD } from "@/lib/dashboard/inventory-page-filters";
 import { formatDateTime } from "@/lib/utils/format";
-import type { InventoryPageDetailRow, InventoryStockState } from "@/lib/dashboard/types";
+import type { InventoryPageDetailRow } from "@/lib/dashboard/types";
 import {
   inventoryUnitLabels,
   inventoryUnitValues,
@@ -220,21 +218,11 @@ export function EditInventoryDialog({ inventoryId, onClose, onSuccess }: EditInv
         return;
       }
 
-      const qty = parseFloat(values.newQuantity) || 0;
-      const stockState: InventoryStockState =
-        qty === 0
-          ? "out-of-stock"
-          : qty <= INVENTORY_LOW_STOCK_THRESHOLD
-            ? "low-stock"
-            : "in-stock";
-
       const patch: InventoryRowPatch = {
         name: values.name,
         sku: values.sku,
         unit: values.unit as string,
         isActive: values.isActive,
-        quantity: qty,
-        stockState,
         lastPurchaseRate:
           values.lastPurchaseRate !== "" ? parseFloat(values.lastPurchaseRate) : null,
         lastVendorName: values.lastVendorId
@@ -252,13 +240,6 @@ export function EditInventoryDialog({ inventoryId, onClose, onSuccess }: EditInv
   const isActiveValue = watch("isActive");
   const unitValue = watch("unit");
   const vendorValue = watch("lastVendorId");
-  const newQtyRaw = watch("newQuantity");
-  const currentQty = loadState.status === "ready" ? loadState.item.quantity : null;
-  const newQty = parseFloat(newQtyRaw);
-  const delta =
-    currentQty !== null && !isNaN(newQty) && Math.abs(newQty - currentQty) > 0.0005
-      ? newQty - currentQty
-      : null;
 
   const vendorOptions = loadState.status === "ready" ? loadState.vendorOptions : [];
   const item = loadState.status === "ready" ? loadState.item : null;
@@ -365,30 +346,13 @@ export function EditInventoryDialog({ inventoryId, onClose, onSuccess }: EditInv
               </div>
             </div>
 
-            {/* Stock & pricing */}
+            {/* Pricing */}
             <div className="space-y-4">
               <p className="text-xs font-semibold tracking-[0.14em] text-[rgb(var(--muted-foreground))] uppercase">
-                Stock &amp; pricing
+                Pricing
               </p>
+              <input type="hidden" {...register("newQuantity")} />
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1.5">
-                  <FieldLabel htmlFor="edit-inv-qty">Quantity</FieldLabel>
-                  <Input
-                    id="edit-inv-qty"
-                    inputMode="decimal"
-                    placeholder="0"
-                    disabled={isSubmitting}
-                    {...register("newQuantity")}
-                  />
-                  {delta !== null ? (
-                    <p className="text-xs text-[rgb(var(--muted-foreground))]">
-                      {delta > 0 ? `+${delta.toFixed(3)}` : delta.toFixed(3)} from current (
-                      {currentQty})
-                    </p>
-                  ) : null}
-                  <FieldError message={getFieldError("newQuantity")} />
-                </div>
-
                 <div className="space-y-1.5">
                   <FieldLabel htmlFor="edit-inv-rate" optional>
                     Last purchase rate
@@ -423,22 +387,6 @@ export function EditInventoryDialog({ inventoryId, onClose, onSuccess }: EditInv
                     ))}
                   </Select>
                   <FieldError message={getFieldError("lastVendorId")} />
-                </div>
-
-                <div className="space-y-1.5 sm:col-span-2">
-                  <FieldLabel htmlFor="edit-inv-adj-note" optional>
-                    Adjustment note
-                  </FieldLabel>
-                  <Textarea
-                    id="edit-inv-adj-note"
-                    placeholder="Reason for quantity change"
-                    disabled={isSubmitting}
-                    {...register("adjustmentNote")}
-                  />
-                  <p className="text-xs text-[rgb(var(--muted-foreground))]">
-                    Recorded on the stock movement if the quantity changes.
-                  </p>
-                  <FieldError message={getFieldError("adjustmentNote")} />
                 </div>
               </div>
             </div>

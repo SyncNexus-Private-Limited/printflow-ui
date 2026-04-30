@@ -20,6 +20,9 @@ type DashboardShellProps = {
   canSelectAllBranches: boolean;
   canManageUsers: boolean;
   canViewExpenseCategories: boolean;
+  canCreateInventory: boolean;
+  canCreateExpense: boolean;
+  canCreateUser: boolean;
 };
 
 function readDesktopSidebarPreference() {
@@ -65,6 +68,9 @@ export function DashboardShell({
   canSelectAllBranches,
   canManageUsers,
   canViewExpenseCategories,
+  canCreateInventory,
+  canCreateExpense,
+  canCreateUser,
 }: DashboardShellProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -170,6 +176,9 @@ export function DashboardShell({
           initialBranchId={initialBranchId}
           initialBranchName={initialBranchName}
           canSelectAllBranches={canSelectAllBranches}
+          canCreateInventory={canCreateInventory}
+          canCreateExpense={canCreateExpense}
+          canCreateUser={canCreateUser}
         />
 
         {isMobileSidebarMounted ? (

@@ -19,6 +19,9 @@ type TopNavbarProps = {
   initialBranchId: string | null;
   initialBranchName: string | null;
   canSelectAllBranches: boolean;
+  canCreateInventory: boolean;
+  canCreateExpense: boolean;
+  canCreateUser: boolean;
 };
 
 function getFallbackBranchControl({
@@ -124,6 +127,9 @@ export function TopNavbar({
   initialBranchId,
   initialBranchName,
   canSelectAllBranches,
+  canCreateInventory,
+  canCreateExpense,
+  canCreateUser,
 }: TopNavbarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -137,10 +143,6 @@ export function TopNavbar({
       initialBranchName,
       canSelectAllBranches,
     });
-  const currentBranchValue =
-    resolvedBranchControl.value && resolvedBranchControl.value !== "__branch-placeholder__"
-      ? resolvedBranchControl.value
-      : branchIdFromSearchParams;
 
   const handleHomeClick = () => {
     if (isOverviewRoute) {
@@ -211,9 +213,9 @@ export function TopNavbar({
          */}
         <div className="order-2 ml-auto flex shrink-0 items-center gap-2 md:order-3 md:ml-0">
           <CreateMenu
-            currentBranchValue={currentBranchValue}
-            initialBranchId={initialBranchId}
-            branchOptions={resolvedBranchControl.options}
+            canCreateInventory={canCreateInventory}
+            canCreateExpense={canCreateExpense}
+            canCreateUser={canCreateUser}
           />
           {/* Theme + Logout: visible directly on md+ (tablet/desktop) */}
           <div className="hidden md:flex md:items-center md:gap-2">

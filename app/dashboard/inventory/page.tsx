@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
-import { InventoryDataTable } from "@/components/dashboard/inventory-data-table";
 import { InventoryListControls } from "@/components/dashboard/inventory-list-controls";
+import { InventoryTableWithActions } from "@/components/inventory/inventory-table-with-actions";
 import { ListStatCard } from "@/components/dashboard/list-stat-card";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasPermission } from "@/lib/auth/permissions";
 import { parseInventoryPageFilters } from "@/lib/dashboard/inventory-page-filters";
 import { buildBranchFilterOptions } from "@/lib/dashboard/helpers";
 import {
@@ -26,6 +27,10 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
   }
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
+
+  const canEdit = hasPermission(currentUser, "inventory:edit");
+  const canArchive = hasPermission(currentUser, "inventory:archive");
+  const canRestore = hasPermission(currentUser, "inventory:restore");
 
   try {
     const filters = parseInventoryPageFilters(resolvedSearchParams);
@@ -93,7 +98,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
             selectedBranchName={context.selectedBranchName}
           />
 
-          <InventoryDataTable
+          <InventoryTableWithActions
             emptyMessage="No inventory items match the current filters."
             items={pageData.result.items}
             currentPath="/dashboard/inventory"
@@ -101,6 +106,9 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
             pagination={pageData.result.pagination}
             showBranchColumn={showBranchColumn}
             fallbackBranchName={context.selectedBranchName}
+            canEdit={canEdit}
+            canArchive={canArchive}
+            canRestore={canRestore}
           />
         </div>
       </main>

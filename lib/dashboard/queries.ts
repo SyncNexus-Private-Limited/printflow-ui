@@ -1604,6 +1604,11 @@ function buildInventoryQueryParts(
   const t = INVENTORY_LOW_STOCK_THRESHOLD;
   const values: Array<number | string | null> = [branchId];
   const whereParts = ["($1::uuid IS NULL OR i.branch_id = $1::uuid)"];
+
+  if (!filters.includeArchived) {
+    whereParts.push("i.deleted_at IS NULL");
+  }
+
   const joins = [
     "LEFT JOIN vendors v ON v.id = i.last_vendor_id",
     "LEFT JOIN branches b ON b.id = i.branch_id",
@@ -1734,6 +1739,7 @@ export async function getInventoryPageData(
     `
       SELECT
         i.id::text AS id,
+        i.branch_id::text AS "branchId",
         i.name,
         i.sku,
         i.quantity::double precision AS quantity,
@@ -1745,6 +1751,7 @@ export async function getInventoryPageData(
         i.created_at::text AS "createdAt",
         i.updated_at::text AS "updatedAt",
         i.image,
+        i.deleted_at::text AS "deletedAt",
         CASE
           WHEN i.quantity = 0 THEN 'out-of-stock'
           WHEN i.quantity <= ${t} THEN 'low-stock'

@@ -105,7 +105,6 @@ export function RowActionMenu({ actions, label = "Row actions" }: RowActionMenuP
       document.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("scroll", handleScroll, { capture: true });
     };
-     
   }, [isOpen]);
 
   function handleTriggerKeyDown(e: ReactKeyboardEvent<HTMLButtonElement>) {

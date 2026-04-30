@@ -22,7 +22,12 @@ export type Permission =
   | "expenses:view"
   | "expenses:create"
   | "expenses:edit"
-  | "expenses:delete";
+  | "expenses:delete"
+  | "inventory:view"
+  | "inventory:create"
+  | "inventory:edit"
+  | "inventory:archive"
+  | "inventory:restore";
 
 // ---------------------------------------------------------------------------
 // Minimal user shapes accepted by the helpers
@@ -65,6 +70,11 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
     "expenses:create",
     "expenses:edit",
     "expenses:delete",
+    "inventory:view",
+    "inventory:create",
+    "inventory:edit",
+    "inventory:archive",
+    "inventory:restore",
   ]),
 
   // Branch-level management: full expense access + can view (not administer) users.
@@ -75,6 +85,11 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
     "expenses:create",
     "expenses:edit",
     "expenses:delete",
+    "inventory:view",
+    "inventory:create",
+    "inventory:edit",
+    "inventory:archive",
+    "inventory:restore",
   ]),
 
   // Day-to-day operations: full expense CRUD, no user management.
@@ -84,6 +99,9 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
     "expenses:create",
     "expenses:edit",
     "expenses:delete",
+    "inventory:view",
+    "inventory:create",
+    "inventory:edit",
   ]),
 
   // Limited access: can record and edit expenses, but cannot delete them.
@@ -92,6 +110,7 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
     "expenses:view",
     "expenses:create",
     "expenses:edit",
+    "inventory:view",
   ]),
 };
 

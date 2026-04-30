@@ -187,6 +187,7 @@ export type InventoryStockState = "in-stock" | "low-stock" | "out-of-stock";
 
 export type InventoryPageDetailRow = {
   id: string;
+  branchId: string;
   name: string;
   sku: string;
   quantity: number;
@@ -199,6 +200,7 @@ export type InventoryPageDetailRow = {
   updatedAt: string;
   image: string | null;
   stockState: InventoryStockState;
+  deletedAt: string | null;
 };
 
 export type InventoryPageSummary = {

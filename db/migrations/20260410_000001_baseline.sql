@@ -1,26 +1,16 @@
 -- migrate:up
+
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- -----------------------------------------------------------------------------
 -- ENUM TYPES
 -- -----------------------------------------------------------------------------
-CREATE TYPE user_role AS ENUM('admin', 'manager', 'operator', 'staff');
-
-CREATE TYPE order_status AS ENUM(
-  'pending',
-  'processing',
-  'completed',
-  'delivered',
-  'cancelled'
-);
-
-CREATE TYPE payment_mode AS ENUM('cash', 'upi', 'card', 'credit', 'other');
-
-CREATE TYPE payment_status AS ENUM('pending', 'partial', 'paid');
-
-CREATE TYPE inventory_unit AS ENUM('piece', 'sheet', 'sqft', 'unit');
-
-CREATE TYPE customer_type AS ENUM('studio', 'amateur', 'other', 'employee');
+CREATE TYPE user_role AS ENUM ('admin','manager','operator','staff');
+CREATE TYPE order_status AS ENUM ('pending','processing','completed','delivered','cancelled');
+CREATE TYPE payment_mode AS ENUM ('cash','upi','card','credit','other');
+CREATE TYPE payment_status AS ENUM ('pending','partial','paid');
+CREATE TYPE inventory_unit AS ENUM ('piece','sheet','sqft','unit');
+CREATE TYPE customer_type AS ENUM ('studio','amateur','other','employee');
 
 -- -----------------------------------------------------------------------------
 -- TABLE: branches
@@ -53,7 +43,7 @@ CREATE TABLE users (
   avatar text,
   address text,
   role user_role NOT NULL DEFAULT 'staff',
-  branch_id uuid REFERENCES branches (id),
+  branch_id uuid REFERENCES branches(id),
   is_active boolean NOT NULL DEFAULT true,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
@@ -63,7 +53,7 @@ CREATE TABLE users (
 -- TABLE: user_auth (REQUIRED FOR CUSTOM AUTH)
 -- -----------------------------------------------------------------------------
 CREATE TABLE user_auth (
-  user_id uuid PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
+  user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   username text NOT NULL CHECK (btrim(username) <> ''),
   password_hash text NOT NULL CHECK (btrim(password_hash) <> ''),
   failed_attempts integer NOT NULL DEFAULT 0 CHECK (failed_attempts >= 0),
@@ -78,9 +68,9 @@ CREATE TABLE user_auth (
 -- -----------------------------------------------------------------------------
 CREATE TABLE app_sessions (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   session_token_hash text NOT NULL UNIQUE,
-  branch_id uuid REFERENCES branches (id),
+  branch_id uuid REFERENCES branches(id),
   created_at timestamptz NOT NULL DEFAULT now(),
   last_seen_at timestamptz NOT NULL DEFAULT now(),
   expires_at timestamptz NOT NULL,
@@ -125,21 +115,18 @@ CREATE TABLE vendors (
 -- -----------------------------------------------------------------------------
 CREATE TABLE inventory (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  branch_id uuid NOT NULL REFERENCES branches (id) ON DELETE RESTRICT,
+  branch_id uuid NOT NULL REFERENCES branches(id) ON DELETE RESTRICT,
   sku text NOT NULL CHECK (btrim(sku) <> ''),
   name text NOT NULL CHECK (btrim(name) <> ''),
   image text,
   unit inventory_unit NOT NULL DEFAULT 'unit',
   is_active boolean NOT NULL DEFAULT true,
-  quantity numeric(12, 3) NOT NULL DEFAULT 0 CHECK (quantity >= 0),
-  last_purchase_rate numeric(12, 2) CHECK (
-    last_purchase_rate IS NULL
-    OR last_purchase_rate >= 0
-  ),
-  last_vendor_id uuid REFERENCES vendors (id),
+  quantity numeric(12,3) NOT NULL DEFAULT 0 CHECK (quantity >= 0),
+  last_purchase_rate numeric(12,2) CHECK (last_purchase_rate IS NULL OR last_purchase_rate >= 0),
+  last_vendor_id uuid REFERENCES vendors(id),
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (branch_id, sku)
+  UNIQUE(branch_id, sku)
 );
 
 -- -----------------------------------------------------------------------------
@@ -147,22 +134,14 @@ CREATE TABLE inventory (
 -- -----------------------------------------------------------------------------
 CREATE TABLE inventory_pricing (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  branch_id uuid NOT NULL REFERENCES branches (id) ON DELETE RESTRICT,
-  inventory_id uuid NOT NULL REFERENCES inventory (id) ON DELETE CASCADE,
+  branch_id uuid NOT NULL REFERENCES branches(id) ON DELETE RESTRICT,
+  inventory_id uuid NOT NULL REFERENCES inventory(id) ON DELETE CASCADE,
   customer_type customer_type NOT NULL,
-  selling_rate numeric(12, 2) NOT NULL CHECK (selling_rate >= 0),
+  selling_rate numeric(12,2) NOT NULL CHECK (selling_rate >= 0),
   effective_from date NOT NULL,
   effective_to date,
-  UNIQUE (
-    branch_id,
-    inventory_id,
-    customer_type,
-    effective_from
-  ),
-  CHECK (
-    effective_to IS NULL
-    OR effective_to >= effective_from
-  )
+  UNIQUE(branch_id, inventory_id, customer_type, effective_from),
+  CHECK (effective_to IS NULL OR effective_to >= effective_from)
 );
 
 -- -----------------------------------------------------------------------------
@@ -171,14 +150,14 @@ CREATE TABLE inventory_pricing (
 CREATE TABLE orders (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   order_code text NOT NULL UNIQUE,
-  branch_id uuid NOT NULL REFERENCES branches (id) ON DELETE RESTRICT,
-  created_by uuid NOT NULL REFERENCES users (id) ON DELETE RESTRICT,
-  customer_id uuid NOT NULL REFERENCES customers (id) ON DELETE RESTRICT,
+  branch_id uuid NOT NULL REFERENCES branches(id) ON DELETE RESTRICT,
+  created_by uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  customer_id uuid NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,
   status order_status NOT NULL DEFAULT 'pending',
-  total_amount numeric(14, 2) NOT NULL DEFAULT 0 CHECK (total_amount >= 0),
-  discount_amount numeric(14, 2) NOT NULL DEFAULT 0 CHECK (discount_amount >= 0),
-  payable_amount numeric(14, 2) NOT NULL DEFAULT 0 CHECK (payable_amount >= 0),
-  paid_amount numeric(14, 2) NOT NULL DEFAULT 0 CHECK (paid_amount >= 0),
+  total_amount numeric(14,2) NOT NULL DEFAULT 0 CHECK (total_amount >= 0),
+  discount_amount numeric(14,2) NOT NULL DEFAULT 0 CHECK (discount_amount >= 0),
+  payable_amount numeric(14,2) NOT NULL DEFAULT 0 CHECK (payable_amount >= 0),
+  paid_amount numeric(14,2) NOT NULL DEFAULT 0 CHECK (paid_amount >= 0),
   payment_status payment_status NOT NULL DEFAULT 'pending',
   order_date timestamptz NOT NULL DEFAULT now(),
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -191,11 +170,11 @@ CREATE TABLE orders (
 -- -----------------------------------------------------------------------------
 CREATE TABLE order_items (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id uuid NOT NULL REFERENCES orders (id) ON DELETE CASCADE,
-  inventory_id uuid NOT NULL REFERENCES inventory (id) ON DELETE RESTRICT,
-  quantity numeric(12, 3) NOT NULL CHECK (quantity > 0),
-  unit_price numeric(14, 2) NOT NULL CHECK (unit_price >= 0),
-  line_total numeric(16, 2) NOT NULL CHECK (line_total >= 0),
+  order_id uuid NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  inventory_id uuid NOT NULL REFERENCES inventory(id) ON DELETE RESTRICT,
+  quantity numeric(12,3) NOT NULL CHECK (quantity > 0),
+  unit_price numeric(14,2) NOT NULL CHECK (unit_price >= 0),
+  line_total numeric(16,2) NOT NULL CHECK (line_total >= 0),
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -204,10 +183,10 @@ CREATE TABLE order_items (
 -- -----------------------------------------------------------------------------
 CREATE TABLE payments (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id uuid NOT NULL REFERENCES orders (id) ON DELETE CASCADE,
-  branch_id uuid NOT NULL REFERENCES branches (id) ON DELETE RESTRICT,
-  received_by uuid NOT NULL REFERENCES users (id) ON DELETE RESTRICT,
-  amount numeric(14, 2) NOT NULL CHECK (amount > 0),
+  order_id uuid NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  branch_id uuid NOT NULL REFERENCES branches(id) ON DELETE RESTRICT,
+  received_by uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  amount numeric(14,2) NOT NULL CHECK (amount > 0),
   mode payment_mode NOT NULL DEFAULT 'cash',
   txn_reference text,
   created_at timestamptz NOT NULL DEFAULT now()
@@ -218,11 +197,11 @@ CREATE TABLE payments (
 -- -----------------------------------------------------------------------------
 CREATE TABLE order_vendors (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id uuid NOT NULL REFERENCES orders (id) ON DELETE CASCADE,
-  vendor_id uuid NOT NULL REFERENCES vendors (id) ON DELETE RESTRICT,
-  vendor_paid_amount numeric(14, 2) NOT NULL DEFAULT 0 CHECK (vendor_paid_amount >= 0),
+  order_id uuid NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  vendor_id uuid NOT NULL REFERENCES vendors(id) ON DELETE RESTRICT,
+  vendor_paid_amount numeric(14,2) NOT NULL DEFAULT 0 CHECK (vendor_paid_amount >= 0),
   created_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (order_id, vendor_id)
+  UNIQUE(order_id, vendor_id)
 );
 
 -- -----------------------------------------------------------------------------
@@ -230,7 +209,7 @@ CREATE TABLE order_vendors (
 -- -----------------------------------------------------------------------------
 CREATE TABLE offer_items (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  branch_id uuid NOT NULL REFERENCES branches (id) ON DELETE RESTRICT,
+  branch_id uuid NOT NULL REFERENCES branches(id) ON DELETE RESTRICT,
   item_name text NOT NULL CHECK (btrim(item_name) <> ''),
   item_image text,
   quantity_in_stock integer NOT NULL DEFAULT 0 CHECK (quantity_in_stock >= 0),
@@ -245,8 +224,8 @@ CREATE TABLE offer_items (
 -- -----------------------------------------------------------------------------
 CREATE TABLE order_offer_items (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id uuid NOT NULL REFERENCES orders (id) ON DELETE CASCADE,
-  offer_item_id uuid NOT NULL REFERENCES offer_items (id) ON DELETE RESTRICT,
+  order_id uuid NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  offer_item_id uuid NOT NULL REFERENCES offer_items(id) ON DELETE RESTRICT,
   qty integer NOT NULL CHECK (qty > 0),
   created_at timestamptz NOT NULL DEFAULT now()
 );
@@ -256,13 +235,13 @@ CREATE TABLE order_offer_items (
 -- -----------------------------------------------------------------------------
 CREATE TABLE branch_expenses (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  branch_id uuid NOT NULL REFERENCES branches (id) ON DELETE RESTRICT,
-  amount numeric(14, 2) NOT NULL CHECK (amount > 0),
+  branch_id uuid NOT NULL REFERENCES branches(id) ON DELETE RESTRICT,
+  amount numeric(14,2) NOT NULL CHECK (amount > 0),
   category text NOT NULL CHECK (btrim(category) <> ''),
   name text,
   remarks text,
   payment_mode payment_mode NOT NULL DEFAULT 'cash',
-  order_vendor_id uuid REFERENCES order_vendors (id) ON DELETE SET NULL,
+  order_vendor_id uuid REFERENCES order_vendors(id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
@@ -271,10 +250,10 @@ CREATE TABLE branch_expenses (
 -- -----------------------------------------------------------------------------
 CREATE TABLE employee_expenses (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES users (id) ON DELETE RESTRICT,
-  amount numeric(14, 2) NOT NULL CHECK (amount > 0),
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  amount numeric(14,2) NOT NULL CHECK (amount > 0),
   category text NOT NULL CHECK (btrim(category) <> ''),
-  order_id uuid REFERENCES orders (id) ON DELETE SET NULL,
+  order_id uuid REFERENCES orders(id) ON DELETE SET NULL,
   payment_mode payment_mode NOT NULL DEFAULT 'cash',
   remarks text,
   created_at timestamptz NOT NULL DEFAULT now()
@@ -284,7 +263,7 @@ CREATE TABLE employee_expenses (
 -- TABLE: order_sequences (BRANCH + YEAR)
 -- -----------------------------------------------------------------------------
 CREATE TABLE order_sequences (
-  branch_id uuid NOT NULL REFERENCES branches (id) ON DELETE CASCADE,
+  branch_id uuid NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
   year int NOT NULL,
   last_number bigint NOT NULL DEFAULT 0 CHECK (last_number >= 0),
   PRIMARY KEY (branch_id, year)
@@ -293,7 +272,10 @@ CREATE TABLE order_sequences (
 -- -----------------------------------------------------------------------------
 -- GENERIC FUNCTION: set_updated_at
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION set_updated_at () RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
 BEGIN
   NEW.updated_at = now();
   RETURN NEW;
@@ -303,7 +285,7 @@ $$;
 -- -----------------------------------------------------------------------------
 -- AUTH FUNCTION: create_user_with_auth
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION create_user_with_auth (
+CREATE OR REPLACE FUNCTION create_user_with_auth(
   p_admin_id uuid,
   p_full_name text,
   p_phone text,
@@ -312,7 +294,10 @@ CREATE OR REPLACE FUNCTION create_user_with_auth (
   p_branch_id uuid,
   p_username text,
   p_password text
-) RETURNS uuid LANGUAGE plpgsql AS $$
+)
+RETURNS uuid
+LANGUAGE plpgsql
+AS $$
 DECLARE
   v_user_id uuid;
   v_role user_role;
@@ -353,7 +338,13 @@ $$;
 -- -----------------------------------------------------------------------------
 -- AUTH FUNCTION: authenticate_user
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION authenticate_user (p_username text, p_password text) RETURNS uuid LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION authenticate_user(
+  p_username text,
+  p_password text
+)
+RETURNS uuid
+LANGUAGE plpgsql
+AS $$
 DECLARE
   v_user_id uuid;
   v_hash text;
@@ -402,10 +393,13 @@ $$;
 -- FUNCTION: generate_order_code
 -- Uses order_date year for deterministic imports and backdated orders.
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION generate_order_code (
+CREATE OR REPLACE FUNCTION generate_order_code(
   p_branch_id uuid,
   p_order_date timestamptz DEFAULT now()
-) RETURNS text LANGUAGE plpgsql AS $$
+)
+RETURNS text
+LANGUAGE plpgsql
+AS $$
 DECLARE
   v_year int := EXTRACT(YEAR FROM p_order_date);
   v_year_prefix text := to_char(p_order_date, 'YY');
@@ -434,20 +428,29 @@ $$;
 -- -----------------------------------------------------------------------------
 -- FUNCTION: internal flag helpers for system-managed order totals
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION set_internal_order_update (p_value boolean) RETURNS void LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION set_internal_order_update(p_value boolean)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
 BEGIN
   PERFORM set_config('app.internal_order_update', CASE WHEN p_value THEN 'on' ELSE 'off' END, true);
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION is_internal_order_update () RETURNS boolean LANGUAGE sql AS $$
+CREATE OR REPLACE FUNCTION is_internal_order_update()
+RETURNS boolean
+LANGUAGE sql
+AS $$
   SELECT COALESCE(current_setting('app.internal_order_update', true), 'off') = 'on';
 $$;
 
 -- -----------------------------------------------------------------------------
 -- FUNCTION: recalculate_order_financials
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION recalculate_order_financials (p_order_id uuid) RETURNS void LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION recalculate_order_financials(p_order_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+AS $$
 DECLARE
   v_total_amount numeric(14,2);
   v_discount_amount numeric(14,2);
@@ -512,7 +515,10 @@ $$;
 -- -----------------------------------------------------------------------------
 -- TRIGGER FUNCTION: set order_code automatically
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION trg_set_order_code () RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION trg_set_order_code()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
     IF NEW.order_code IS NOT NULL THEN
@@ -529,7 +535,10 @@ $$;
 -- -----------------------------------------------------------------------------
 -- TRIGGER FUNCTION: validate order header + guard derived fields
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION trg_validate_order_header () RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION trg_validate_order_header()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
 DECLARE
   v_user_branch uuid;
   v_user_active boolean;
@@ -589,7 +598,10 @@ $$;
 -- -----------------------------------------------------------------------------
 -- TRIGGER FUNCTION: restore inventory when order is cancelled
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION restore_inventory_on_cancel () RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION restore_inventory_on_cancel()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
 BEGIN
   IF NEW.status = 'cancelled' AND OLD.status <> 'cancelled' THEN
     UPDATE inventory i
@@ -608,7 +620,10 @@ $$;
 -- -----------------------------------------------------------------------------
 -- TRIGGER FUNCTION: validate inventory pricing date overlaps
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION trg_validate_inventory_pricing () RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION trg_validate_inventory_pricing()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
 DECLARE
   v_exists boolean;
 BEGIN
@@ -645,7 +660,10 @@ $$;
 -- -----------------------------------------------------------------------------
 -- TRIGGER FUNCTION: apply order item inventory changes
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION trg_apply_order_item_inventory () RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION trg_apply_order_item_inventory()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
 DECLARE
   v_order_branch uuid;
   v_order_status order_status;
@@ -766,7 +784,10 @@ $$;
 -- -----------------------------------------------------------------------------
 -- TRIGGER FUNCTION: recalculate order when items change
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION trg_recalculate_order_after_items () RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION trg_recalculate_order_after_items()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
 BEGIN
   PERFORM recalculate_order_financials(COALESCE(NEW.order_id, OLD.order_id));
   RETURN COALESCE(NEW, OLD);
@@ -776,7 +797,10 @@ $$;
 -- -----------------------------------------------------------------------------
 -- TRIGGER FUNCTION: validate payments
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION trg_validate_payment () RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION trg_validate_payment()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
 DECLARE
   v_order_branch uuid;
   v_order_status order_status;
@@ -828,7 +852,10 @@ $$;
 -- -----------------------------------------------------------------------------
 -- TRIGGER FUNCTION: recalculate order when payments change
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION trg_recalculate_order_after_payments () RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION trg_recalculate_order_after_payments()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
 BEGIN
   PERFORM recalculate_order_financials(COALESCE(NEW.order_id, OLD.order_id));
   RETURN COALESCE(NEW, OLD);
@@ -838,7 +865,10 @@ $$;
 -- -----------------------------------------------------------------------------
 -- TRIGGER FUNCTION: recalculate order when discount changes
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION trg_recalculate_order_after_discount () RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION trg_recalculate_order_after_discount()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
 BEGIN
   PERFORM recalculate_order_financials(NEW.id);
   RETURN NEW;
@@ -848,7 +878,10 @@ $$;
 -- -----------------------------------------------------------------------------
 -- TRIGGER FUNCTION: update offer item counters
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION trg_update_offer_item_totals () RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION trg_update_offer_item_totals()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
 DECLARE
   v_order_status order_status;
 BEGIN
@@ -914,255 +947,165 @@ $$;
 -- -----------------------------------------------------------------------------
 -- TRIGGERS
 -- -----------------------------------------------------------------------------
-CREATE TRIGGER trg_branches_updated_at BEFORE
-UPDATE ON branches FOR EACH ROW
-EXECUTE FUNCTION set_updated_at ();
+CREATE TRIGGER trg_branches_updated_at
+BEFORE UPDATE ON branches
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-CREATE TRIGGER trg_users_updated_at BEFORE
-UPDATE ON users FOR EACH ROW
-EXECUTE FUNCTION set_updated_at ();
+CREATE TRIGGER trg_users_updated_at
+BEFORE UPDATE ON users
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-CREATE TRIGGER trg_user_auth_updated_at BEFORE
-UPDATE ON user_auth FOR EACH ROW
-EXECUTE FUNCTION set_updated_at ();
+CREATE TRIGGER trg_user_auth_updated_at
+BEFORE UPDATE ON user_auth
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-CREATE TRIGGER trg_customers_updated_at BEFORE
-UPDATE ON customers FOR EACH ROW
-EXECUTE FUNCTION set_updated_at ();
+CREATE TRIGGER trg_customers_updated_at
+BEFORE UPDATE ON customers
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-CREATE TRIGGER trg_vendors_updated_at BEFORE
-UPDATE ON vendors FOR EACH ROW
-EXECUTE FUNCTION set_updated_at ();
+CREATE TRIGGER trg_vendors_updated_at
+BEFORE UPDATE ON vendors
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-CREATE TRIGGER trg_inventory_updated_at BEFORE
-UPDATE ON inventory FOR EACH ROW
-EXECUTE FUNCTION set_updated_at ();
+CREATE TRIGGER trg_inventory_updated_at
+BEFORE UPDATE ON inventory
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-CREATE TRIGGER trg_offer_items_updated_at BEFORE
-UPDATE ON offer_items FOR EACH ROW
-EXECUTE FUNCTION set_updated_at ();
+CREATE TRIGGER trg_offer_items_updated_at
+BEFORE UPDATE ON offer_items
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
-CREATE TRIGGER trigger_set_order_code BEFORE INSERT ON orders FOR EACH ROW
-EXECUTE FUNCTION trg_set_order_code ();
+CREATE TRIGGER trigger_set_order_code
+BEFORE INSERT ON orders
+FOR EACH ROW EXECUTE FUNCTION trg_set_order_code();
 
-CREATE TRIGGER trg_validate_order_header BEFORE INSERT
-OR
-UPDATE ON orders FOR EACH ROW
-EXECUTE FUNCTION trg_validate_order_header ();
+CREATE TRIGGER trg_validate_order_header
+BEFORE INSERT OR UPDATE ON orders
+FOR EACH ROW EXECUTE FUNCTION trg_validate_order_header();
 
 CREATE TRIGGER trg_restore_inventory_on_cancel
-AFTER
-UPDATE OF status ON orders FOR EACH ROW
-EXECUTE FUNCTION restore_inventory_on_cancel ();
+AFTER UPDATE OF status ON orders
+FOR EACH ROW EXECUTE FUNCTION restore_inventory_on_cancel();
 
 CREATE TRIGGER trg_recalculate_order_after_discount
-AFTER
-UPDATE OF discount_amount ON orders FOR EACH ROW WHEN (
-  NEW.discount_amount IS DISTINCT FROM OLD.discount_amount
-)
-EXECUTE FUNCTION trg_recalculate_order_after_discount ();
+AFTER UPDATE OF discount_amount ON orders
+FOR EACH ROW
+WHEN (NEW.discount_amount IS DISTINCT FROM OLD.discount_amount)
+EXECUTE FUNCTION trg_recalculate_order_after_discount();
 
-CREATE TRIGGER trg_validate_inventory_pricing BEFORE INSERT
-OR
-UPDATE ON inventory_pricing FOR EACH ROW
-EXECUTE FUNCTION trg_validate_inventory_pricing ();
+CREATE TRIGGER trg_validate_inventory_pricing
+BEFORE INSERT OR UPDATE ON inventory_pricing
+FOR EACH ROW EXECUTE FUNCTION trg_validate_inventory_pricing();
 
-CREATE TRIGGER trg_apply_order_item_inventory BEFORE INSERT
-OR
-UPDATE
-OR DELETE ON order_items FOR EACH ROW
-EXECUTE FUNCTION trg_apply_order_item_inventory ();
+CREATE TRIGGER trg_apply_order_item_inventory
+BEFORE INSERT OR UPDATE OR DELETE ON order_items
+FOR EACH ROW EXECUTE FUNCTION trg_apply_order_item_inventory();
 
 CREATE TRIGGER trg_recalculate_order_after_items
-AFTER INSERT
-OR
-UPDATE
-OR DELETE ON order_items FOR EACH ROW
-EXECUTE FUNCTION trg_recalculate_order_after_items ();
+AFTER INSERT OR UPDATE OR DELETE ON order_items
+FOR EACH ROW EXECUTE FUNCTION trg_recalculate_order_after_items();
 
-CREATE TRIGGER trg_validate_payment BEFORE INSERT
-OR
-UPDATE ON payments FOR EACH ROW
-EXECUTE FUNCTION trg_validate_payment ();
+CREATE TRIGGER trg_validate_payment
+BEFORE INSERT OR UPDATE ON payments
+FOR EACH ROW EXECUTE FUNCTION trg_validate_payment();
 
 CREATE TRIGGER trg_recalculate_order_after_payments
-AFTER INSERT
-OR
-UPDATE
-OR DELETE ON payments FOR EACH ROW
-EXECUTE FUNCTION trg_recalculate_order_after_payments ();
+AFTER INSERT OR UPDATE OR DELETE ON payments
+FOR EACH ROW EXECUTE FUNCTION trg_recalculate_order_after_payments();
 
-CREATE TRIGGER trg_update_offer_item_totals BEFORE INSERT
-OR
-UPDATE
-OR DELETE ON order_offer_items FOR EACH ROW
-EXECUTE FUNCTION trg_update_offer_item_totals ();
+CREATE TRIGGER trg_update_offer_item_totals
+BEFORE INSERT OR UPDATE OR DELETE ON order_offer_items
+FOR EACH ROW EXECUTE FUNCTION trg_update_offer_item_totals();
 
 -- -----------------------------------------------------------------------------
 -- INDEXES
 -- -----------------------------------------------------------------------------
 CREATE UNIQUE INDEX uq_user_auth_username_lower ON user_auth (lower(username));
 
-CREATE INDEX idx_app_sessions_user_id ON app_sessions (user_id);
+CREATE INDEX idx_app_sessions_user_id ON app_sessions(user_id);
+CREATE INDEX idx_app_sessions_last_seen_at ON app_sessions(last_seen_at);
+CREATE INDEX idx_app_sessions_expires_at ON app_sessions(expires_at);
 
-CREATE INDEX idx_app_sessions_last_seen_at ON app_sessions (last_seen_at);
+CREATE INDEX idx_orders_branch_id ON orders(branch_id);
+CREATE INDEX idx_orders_created_by ON orders(created_by);
+CREATE INDEX idx_orders_customer_id ON orders(customer_id);
+CREATE INDEX idx_orders_order_date ON orders(order_date);
 
-CREATE INDEX idx_app_sessions_expires_at ON app_sessions (expires_at);
+CREATE INDEX idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX idx_order_items_inventory_id ON order_items(inventory_id);
 
-CREATE INDEX idx_orders_branch_id ON orders (branch_id);
+CREATE INDEX idx_inventory_branch ON inventory(branch_id);
+CREATE INDEX idx_inventory_last_vendor_id ON inventory(last_vendor_id);
 
-CREATE INDEX idx_orders_created_by ON orders (created_by);
+CREATE INDEX idx_inventory_pricing_lookup
+ON inventory_pricing (branch_id, inventory_id, customer_type, effective_from, effective_to);
 
-CREATE INDEX idx_orders_customer_id ON orders (customer_id);
+CREATE INDEX idx_payments_order_id ON payments(order_id);
+CREATE INDEX idx_payments_branch_id ON payments(branch_id);
+CREATE INDEX idx_payments_received_by ON payments(received_by);
 
-CREATE INDEX idx_orders_order_date ON orders (order_date);
-
-CREATE INDEX idx_order_items_order_id ON order_items (order_id);
-
-CREATE INDEX idx_order_items_inventory_id ON order_items (inventory_id);
-
-CREATE INDEX idx_inventory_branch ON inventory (branch_id);
-
-CREATE INDEX idx_inventory_last_vendor_id ON inventory (last_vendor_id);
-
-CREATE INDEX idx_inventory_pricing_lookup ON inventory_pricing (
-  branch_id,
-  inventory_id,
-  customer_type,
-  effective_from,
-  effective_to
-);
-
-CREATE INDEX idx_payments_order_id ON payments (order_id);
-
-CREATE INDEX idx_payments_branch_id ON payments (branch_id);
-
-CREATE INDEX idx_payments_received_by ON payments (received_by);
-
-CREATE INDEX idx_order_vendors_order_id ON order_vendors (order_id);
-
-CREATE INDEX idx_order_offer_items_order_id ON order_offer_items (order_id);
+CREATE INDEX idx_order_vendors_order_id ON order_vendors(order_id);
+CREATE INDEX idx_order_offer_items_order_id ON order_offer_items(order_id);
 
 -- migrate:down
+
 DROP TRIGGER IF EXISTS trg_update_offer_item_totals ON order_offer_items;
-
 DROP TRIGGER IF EXISTS trg_recalculate_order_after_payments ON payments;
-
 DROP TRIGGER IF EXISTS trg_validate_payment ON payments;
-
 DROP TRIGGER IF EXISTS trg_recalculate_order_after_items ON order_items;
-
 DROP TRIGGER IF EXISTS trg_apply_order_item_inventory ON order_items;
-
 DROP TRIGGER IF EXISTS trg_validate_inventory_pricing ON inventory_pricing;
-
 DROP TRIGGER IF EXISTS trg_recalculate_order_after_discount ON orders;
-
 DROP TRIGGER IF EXISTS trg_restore_inventory_on_cancel ON orders;
-
 DROP TRIGGER IF EXISTS trg_validate_order_header ON orders;
-
 DROP TRIGGER IF EXISTS trigger_set_order_code ON orders;
-
 DROP TRIGGER IF EXISTS trg_offer_items_updated_at ON offer_items;
-
 DROP TRIGGER IF EXISTS trg_inventory_updated_at ON inventory;
-
 DROP TRIGGER IF EXISTS trg_vendors_updated_at ON vendors;
-
 DROP TRIGGER IF EXISTS trg_customers_updated_at ON customers;
-
 DROP TRIGGER IF EXISTS trg_user_auth_updated_at ON user_auth;
-
 DROP TRIGGER IF EXISTS trg_users_updated_at ON users;
-
 DROP TRIGGER IF EXISTS trg_branches_updated_at ON branches;
 
-DROP FUNCTION IF EXISTS trg_update_offer_item_totals ();
-
-DROP FUNCTION IF EXISTS trg_recalculate_order_after_discount ();
-
-DROP FUNCTION IF EXISTS trg_recalculate_order_after_payments ();
-
-DROP FUNCTION IF EXISTS trg_validate_payment ();
-
-DROP FUNCTION IF EXISTS trg_recalculate_order_after_items ();
-
-DROP FUNCTION IF EXISTS trg_apply_order_item_inventory ();
-
-DROP FUNCTION IF EXISTS trg_validate_inventory_pricing ();
-
-DROP FUNCTION IF EXISTS restore_inventory_on_cancel ();
-
-DROP FUNCTION IF EXISTS trg_validate_order_header ();
-
-DROP FUNCTION IF EXISTS trg_set_order_code ();
-
-DROP FUNCTION IF EXISTS recalculate_order_financials (uuid);
-
-DROP FUNCTION IF EXISTS is_internal_order_update ();
-
-DROP FUNCTION IF EXISTS set_internal_order_update (boolean);
-
-DROP FUNCTION IF EXISTS generate_order_code (uuid, timestamptz);
-
-DROP FUNCTION IF EXISTS authenticate_user (text, text);
-
-DROP FUNCTION IF EXISTS create_user_with_auth (
-  uuid,
-  text,
-  text,
-  text,
-  user_role,
-  uuid,
-  text,
-  text
-);
-
-DROP FUNCTION IF EXISTS set_updated_at ();
+DROP FUNCTION IF EXISTS trg_update_offer_item_totals();
+DROP FUNCTION IF EXISTS trg_recalculate_order_after_discount();
+DROP FUNCTION IF EXISTS trg_recalculate_order_after_payments();
+DROP FUNCTION IF EXISTS trg_validate_payment();
+DROP FUNCTION IF EXISTS trg_recalculate_order_after_items();
+DROP FUNCTION IF EXISTS trg_apply_order_item_inventory();
+DROP FUNCTION IF EXISTS trg_validate_inventory_pricing();
+DROP FUNCTION IF EXISTS restore_inventory_on_cancel();
+DROP FUNCTION IF EXISTS trg_validate_order_header();
+DROP FUNCTION IF EXISTS trg_set_order_code();
+DROP FUNCTION IF EXISTS recalculate_order_financials(uuid);
+DROP FUNCTION IF EXISTS is_internal_order_update();
+DROP FUNCTION IF EXISTS set_internal_order_update(boolean);
+DROP FUNCTION IF EXISTS generate_order_code(uuid, timestamptz);
+DROP FUNCTION IF EXISTS authenticate_user(text, text);
+DROP FUNCTION IF EXISTS create_user_with_auth(uuid, text, text, text, user_role, uuid, text, text);
+DROP FUNCTION IF EXISTS set_updated_at();
 
 DROP TABLE IF EXISTS employee_expenses;
-
 DROP TABLE IF EXISTS branch_expenses;
-
 DROP TABLE IF EXISTS order_offer_items;
-
 DROP TABLE IF EXISTS offer_items;
-
 DROP TABLE IF EXISTS order_vendors;
-
 DROP TABLE IF EXISTS payments;
-
 DROP TABLE IF EXISTS order_items;
-
 DROP TABLE IF EXISTS app_sessions;
-
 DROP TABLE IF EXISTS orders;
-
 DROP TABLE IF EXISTS inventory_pricing;
-
 DROP TABLE IF EXISTS inventory;
-
 DROP TABLE IF EXISTS vendors;
-
 DROP TABLE IF EXISTS customers;
-
 DROP TABLE IF EXISTS user_auth;
-
 DROP TABLE IF EXISTS users;
-
 DROP TABLE IF EXISTS order_sequences;
-
 DROP TABLE IF EXISTS branches;
 
 DROP TYPE IF EXISTS customer_type;
-
 DROP TYPE IF EXISTS inventory_unit;
-
 DROP TYPE IF EXISTS payment_status;
-
 DROP TYPE IF EXISTS payment_mode;
-
 DROP TYPE IF EXISTS order_status;
-
 DROP TYPE IF EXISTS user_role;

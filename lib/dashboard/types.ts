@@ -422,3 +422,30 @@ export type ExpenseCategoriesPageData = {
   summary: ExpenseCategoryManagementSummary;
   result: PaginatedListResult<ExpenseCategoryManagementRow>;
 };
+
+export type VendorManagementRow = {
+  id: string;
+  vendorCode: string | null;
+  name: string;
+  avatar: string | null;
+  phone: string;
+  alternatePhone: string | null;
+  address: string | null;
+  isActive: boolean;
+  orderCount: number;
+  inventoryItemCount: number;
+  updatedByName: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type VendorManagementSummary = {
+  totalVendors: number;
+  activeVendors: number;
+  inactiveVendors: number;
+};
+
+export type VendorsPageData = {
+  summary: VendorManagementSummary;
+  result: PaginatedListResult<VendorManagementRow>;
+};

@@ -53,6 +53,11 @@ import {
   buildUsersPaginationHref,
   type UserManagementPageFilterState,
 } from "@/lib/dashboard/users-page-filters";
+import {
+  buildVendorsPageHref,
+  buildVendorsPaginationHref,
+  type VendorsPageFilterState,
+} from "@/lib/dashboard/vendors-page-filters";
 import { cn, suggestCanonicalClasses } from "@/lib/utils/cn";
 import { ChevronLeft, ChevronRight, ChevronsUpDown } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -73,7 +78,8 @@ type DashboardPaginationProps<
     | "inventory-pricing"
     | "order"
     | "active-users"
-    | "users";
+    | "users"
+    | "vendors";
 };
 
 function getVisiblePageNumbers(page: number, totalPages: number) {
@@ -109,6 +115,7 @@ export function DashboardPagination<
   const isOrderVariant = variant === "order";
   const isActiveUsersVariant = variant === "active-users";
   const isUsersVariant = variant === "users";
+  const isVendorsVariant = variant === "vendors";
   const isInlineVariant =
     isExpenseVariant ||
     isExpenseCategoriesVariant ||
@@ -117,7 +124,8 @@ export function DashboardPagination<
     isInventoryPricingVariant ||
     isOrderVariant ||
     isActiveUsersVariant ||
-    isUsersVariant;
+    isUsersVariant ||
+    isVendorsVariant;
   const resolvePageHref = useCallback(
     (path: string, filters: TFilters) => {
       if (isExpenseVariant)
@@ -142,6 +150,8 @@ export function DashboardPagination<
         return buildActiveUsersPageHref(path, filters as unknown as ActiveUserPageFilterState);
       if (isUsersVariant)
         return buildUsersPageHref(path, filters as unknown as UserManagementPageFilterState);
+      if (isVendorsVariant)
+        return buildVendorsPageHref(path, filters as unknown as VendorsPageFilterState);
       return buildDashboardPageHref(path, filters as unknown as DashboardPageFilterState);
     },
     [
@@ -153,6 +163,7 @@ export function DashboardPagination<
       isInventoryPricingVariant,
       isOrderVariant,
       isUsersVariant,
+      isVendorsVariant,
     ],
   );
   const resolvePaginationHref = (
@@ -209,6 +220,12 @@ export function DashboardPagination<
       return buildUsersPaginationHref(
         path,
         filters as unknown as UserManagementPageFilterState,
+        nextPagination,
+      );
+    if (isVendorsVariant)
+      return buildVendorsPaginationHref(
+        path,
+        filters as unknown as VendorsPageFilterState,
         nextPagination,
       );
     return buildDashboardPaginationHref(

@@ -4,7 +4,7 @@ import {
   buildDashboardNavigationHref,
 } from "@/lib/dashboard/page-filters";
 import type { LucideIcon } from "lucide-react";
-import { Boxes, Home, Receipt, ShoppingBag, Users } from "lucide-react";
+import { Boxes, Home, Receipt, ShoppingBag, Truck, Users } from "lucide-react";
 
 export type DashboardNavLinkItem = {
   label: string;
@@ -64,6 +64,12 @@ export const dashboardNavigation: DashboardNavItem[] = [
     ],
   },
   {
+    type: "link",
+    label: "Vendors",
+    href: "/dashboard/vendors",
+    icon: Truck,
+  },
+  {
     type: "group",
     label: "Expenses",
     icon: Receipt,
@@ -120,6 +126,7 @@ export function getDashboardBreadcrumbs(
 ): DashboardBreadcrumb[] {
   const homeHref = buildDashboardHref("/dashboard", filters);
   const inventoryHref = buildDashboardHref("/dashboard/inventory", filters);
+  const vendorsHref = buildDashboardHref("/dashboard/vendors", filters);
   const usersHref = buildDashboardHref("/dashboard/users", filters);
   const employeeExpensesHref = buildDashboardHref("/dashboard/employee-expenses", filters);
   const businessExpensesHref = buildDashboardHref("/dashboard/business-expenses", filters);
@@ -154,6 +161,18 @@ export function getDashboardBreadcrumbs(
       { label: "Inventory Pricing", href: inventoryPricingHref },
       { label: "Add Pricing" },
     ];
+  }
+
+  if (pathname === "/dashboard/vendors/new") {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Vendors", href: vendorsHref },
+      { label: "Add Vendor" },
+    ];
+  }
+
+  if (pathname === "/dashboard/vendors") {
+    return [{ label: "Home", href: homeHref }, { label: "Vendors" }];
   }
 
   if (pathname === "/dashboard/expenses/categories/new") {

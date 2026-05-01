@@ -152,6 +152,7 @@ Role-based access is defined in `lib/auth/permissions.ts`. Every guarded action 
 - Permissions: staff can view, operators can create/edit, managers/admins can archive/restore.
 - Added inventory pricing management: list/create pages, API routes, Zod validation, mutations, overlap-safe DB rules, and audit logs.
 - Added expense category management: list/create UI, API routes, active/inactive handling, RBAC permissions, and audit logs.
+- Added vendors management: list/create UI, edit modal, soft deactivate/restore, RBAC permissions, audit logs.
 - Added new migrations for inventory v1, inventory pricing audit logs, expense category management, and expense category audit logs.
 - Shared dashboard table/filter primitives are now used by the newer inventory pricing and expense category screens too.
 

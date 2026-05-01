@@ -49,6 +49,7 @@ async function DashboardShellWrapper({
       canCreateInventory={hasPermission(currentUser, "inventory:create")}
       canCreateExpense={hasPermission(currentUser, "expenses:create")}
       canCreateUser={hasPermission(currentUser, "users:create")}
+      canCreateCustomer={hasPermission(currentUser, "customers:create")}
       canCreateVendor={hasPermission(currentUser, "vendors:create")}
       canCreateOffer={hasPermission(currentUser, "offers:create")}
     >

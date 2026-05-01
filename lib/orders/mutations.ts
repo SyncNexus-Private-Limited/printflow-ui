@@ -758,7 +758,12 @@ export async function updateOrder(
     let subtotal = 0;
     for (const itemInput of input.items) {
       const quantity = Number.parseFloat(itemInput.quantity);
-      const item = await getPricedInventory(client, order.branch_id, itemInput.inventoryId, customer.type);
+      const item = await getPricedInventory(
+        client,
+        order.branch_id,
+        itemInput.inventoryId,
+        customer.type,
+      );
       if (item.quantity < quantity) {
         throw new OrderMutationError(`Insufficient stock for ${item.name}.`, {
           status: 400,
@@ -836,7 +841,10 @@ export async function updateOrder(
       await insertOrderAudit(client, order.id, "items_updated", currentUser.userId);
     }
 
-    if (input.vendorId && canEditOrderVendor(currentUser, { branchId: order.branch_id, status: order.status })) {
+    if (
+      input.vendorId &&
+      canEditOrderVendor(currentUser, { branchId: order.branch_id, status: order.status })
+    ) {
       const charge = parseAmount(input.vendorChargeAmount);
       const paid = parseAmount(input.vendorPaidAmount);
       const balance = roundMoney(charge - paid);
@@ -914,7 +922,8 @@ export async function updateOrder(
           `,
         );
         const categoryId = categoryRows[0]?.id;
-        if (!categoryId) throw new OrderMutationError("Vendor payment category is missing.", { status: 500 });
+        if (!categoryId)
+          throw new OrderMutationError("Vendor payment category is missing.", { status: 500 });
         await client.query(
           `
             INSERT INTO branch_expenses

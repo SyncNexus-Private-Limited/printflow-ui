@@ -1,5 +1,9 @@
 import { notFound, redirect } from "next/navigation";
-import { DataPill, getOrderPaymentStatusLabel, getOrderStatusLabel } from "@/components/dashboard/data-pill";
+import {
+  DataPill,
+  getOrderPaymentStatusLabel,
+  getOrderStatusLabel,
+} from "@/components/dashboard/data-pill";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { OrderDetailActions } from "@/components/orders/order-detail-actions";
 import { getCurrentUser } from "@/lib/auth/current-user";
@@ -56,7 +60,10 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
 
         <SectionCard title="Order summary">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <DetailRow label="Status" value={<DataPill>{getOrderStatusLabel(order.status)}</DataPill>} />
+            <DetailRow
+              label="Status"
+              value={<DataPill>{getOrderStatusLabel(order.status)}</DataPill>}
+            />
             <DetailRow label="Payment" value={getOrderPaymentStatusLabel(order.paymentStatus)} />
             <DetailRow label="Order date" value={formatDate(order.orderDate)} />
             <DetailRow label="Branch" value={order.branchName} />
@@ -91,7 +98,9 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                 {detail.items.map((item) => (
                   <tr key={item.id} className="border-b border-[rgb(var(--border)/0.4)]">
                     <td className="py-3 pr-4 font-medium">{item.name}</td>
-                    <td className="py-3 pr-4 text-right">{item.quantity} {item.unit}</td>
+                    <td className="py-3 pr-4 text-right">
+                      {item.quantity} {item.unit}
+                    </td>
                     <td className="py-3 pr-4 text-right">{formatCurrency(item.unitPrice)}</td>
                     <td className="py-3 text-right">{formatCurrency(item.lineTotal)}</td>
                   </tr>
@@ -104,16 +113,24 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
         <div className="grid gap-6 lg:grid-cols-2">
           <SectionCard title="Applied offers">
             <div className="space-y-3">
-              {detail.offers.length === 0 ? <p className="text-sm text-[rgb(var(--muted-foreground))]">No offers applied.</p> : null}
+              {detail.offers.length === 0 ? (
+                <p className="text-sm text-[rgb(var(--muted-foreground))]">No offers applied.</p>
+              ) : null}
               {detail.offers.map((offer) => (
-                <DetailRow key={offer.id} label={offer.code} value={`${offer.name} - ${formatCurrency(offer.discountAmount)}`} />
+                <DetailRow
+                  key={offer.id}
+                  label={offer.code}
+                  value={`${offer.name} - ${formatCurrency(offer.discountAmount)}`}
+                />
               ))}
             </div>
           </SectionCard>
 
           <SectionCard title="Payments received">
             <div className="space-y-3">
-              {detail.payments.length === 0 ? <p className="text-sm text-[rgb(var(--muted-foreground))]">No payments recorded.</p> : null}
+              {detail.payments.length === 0 ? (
+                <p className="text-sm text-[rgb(var(--muted-foreground))]">No payments recorded.</p>
+              ) : null}
               {detail.payments.map((payment) => (
                 <DetailRow
                   key={payment.id}
@@ -128,7 +145,9 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
         <div className="grid gap-6 lg:grid-cols-2">
           <SectionCard title="Vendor / outsource details">
             <div className="space-y-3">
-              {detail.vendors.length === 0 ? <p className="text-sm text-[rgb(var(--muted-foreground))]">No vendor assigned.</p> : null}
+              {detail.vendors.length === 0 ? (
+                <p className="text-sm text-[rgb(var(--muted-foreground))]">No vendor assigned.</p>
+              ) : null}
               {detail.vendors.map((vendor) => (
                 <DetailRow
                   key={vendor.id}
@@ -141,7 +160,9 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
 
           <SectionCard title="Status history">
             <div className="space-y-3">
-              {detail.auditLogs.length === 0 ? <p className="text-sm text-[rgb(var(--muted-foreground))]">No audit history yet.</p> : null}
+              {detail.auditLogs.length === 0 ? (
+                <p className="text-sm text-[rgb(var(--muted-foreground))]">No audit history yet.</p>
+              ) : null}
               {detail.auditLogs.map((log) => (
                 <DetailRow
                   key={log.id}

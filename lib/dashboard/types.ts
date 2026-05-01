@@ -61,11 +61,10 @@ export type CustomersSummary = {
 };
 
 export type CustomersPageSummary = {
-  totalCustomersInRange: number;
-  studioCustomersInRange: number;
-  customersWithOrders: number;
-  totalPayable: number;
-  totalOutstanding: number;
+  activeCustomers: number;
+  newCustomersInRange: number;
+  studioCustomers: number;
+  outstandingCustomers: number;
 };
 
 export type InventorySummary = {
@@ -163,6 +162,7 @@ export type CustomerDetailRow = {
   phone: string;
   alternatePhone: string | null;
   address: string | null;
+  isActive: boolean;
   createdAt: string;
   updatedAt: string;
   orderCount: number;

@@ -38,6 +38,7 @@ export const customerDateFieldValues = ["created", "updated"] as const;
 export const customerQuickDatePresetValues = ["this-month", "last-month", "custom"] as const;
 export const customerPresenceValues = ["all", "with", "without"] as const;
 export const customerHasOrdersValues = ["all", "yes", "no"] as const;
+export const customerStatusValues = ["all", "active", "inactive"] as const;
 
 export const DEFAULT_CUSTOMER_SORT: CustomerSortValue = "created-desc";
 
@@ -47,10 +48,12 @@ export type CustomerDateField = (typeof customerDateFieldValues)[number];
 export type CustomerQuickDatePreset = (typeof customerQuickDatePresetValues)[number];
 export type CustomerPresenceValue = (typeof customerPresenceValues)[number];
 export type CustomerHasOrdersValue = (typeof customerHasOrdersValues)[number];
+export type CustomerStatusValue = (typeof customerStatusValues)[number];
 
 export type CustomerPageFilterState = DashboardPageFilterState & {
   dateField: CustomerDateField;
   sort: CustomerSortValue;
+  status: CustomerStatusValue;
   type: string | null;
   name: string | null;
   phone: string | null;
@@ -94,6 +97,10 @@ function isValidCustomerPresence(value: string | undefined): value is CustomerPr
 
 function isValidHasOrders(value: string | undefined): value is CustomerHasOrdersValue {
   return customerHasOrdersValues.includes(value as CustomerHasOrdersValue);
+}
+
+function isValidCustomerStatus(value: string | undefined): value is CustomerStatusValue {
+  return customerStatusValues.includes(value as CustomerStatusValue);
 }
 
 function isValidDateInput(value: string) {
@@ -182,6 +189,7 @@ export function parseCustomerPageFilters(
 
   const sortValue = normalizeDashboardSearchParam(searchParams?.sort);
   const dateFieldValue = normalizeDashboardSearchParam(searchParams?.dateField);
+  const statusValue = normalizeDashboardSearchParam(searchParams?.status);
   const typeValue = normalizeDashboardSearchParam(searchParams?.type);
 
   const hasAlternatePhoneValue = normalizeDashboardSearchParam(searchParams?.hasAlternatePhone);
@@ -221,6 +229,7 @@ export function parseCustomerPageFilters(
     ...baseFilters,
     dateField: isValidCustomerDateField(dateFieldValue) ? dateFieldValue : "created",
     sort: normalizeCustomerSort(sortValue),
+    status: isValidCustomerStatus(statusValue) ? statusValue : "all",
     type: isValidCustomerType(typeValue) ? typeValue : null,
     name: normalizeCustomerTextInput(normalizeDashboardSearchParam(searchParams?.name)),
     phone: normalizeCustomerTextInput(normalizeDashboardSearchParam(searchParams?.phone)),
@@ -309,6 +318,10 @@ export function buildCustomerPageHref(
 
   if (nextFilters.sort !== DEFAULT_CUSTOMER_SORT) {
     searchParams.set("sort", nextFilters.sort);
+  }
+
+  if (nextFilters.status !== "all") {
+    searchParams.set("status", nextFilters.status);
   }
 
   if (nextFilters.type) {

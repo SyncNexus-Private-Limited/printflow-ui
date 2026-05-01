@@ -156,13 +156,41 @@ Role-based access is defined in `lib/auth/permissions.ts`. Every guarded action 
 - Added new migrations for inventory v1, inventory pricing audit logs, expense category management, and expense category audit logs.
 - Shared dashboard table/filter primitives are now used by the newer inventory pricing and expense category screens too.
 
+- `/dashboard/inventory` lists items with stock state, pricing status, and per-item reorder levels.
+- Creating an active item redirects to the pricing form (`/dashboard/inventory/pricing/new`) so a price can be set immediately.
+- `/api/inventory/[id]` handles update, archive, restore, toggle-active, and adjust-stock via PATCH actions.
+- Mutations in `lib/inventory/mutations.ts` always write `inventory_audit_logs`; quantity changes also write `inventory_stock_movements`.
+- Permissions: staff can view; operators can create/edit; managers/admins can archive/restore.
+
+## Inventory pricing
+
+- `/dashboard/inventory/pricing` lists active, upcoming, expiring-soon, and expired price windows.
+- Overlap prevention is enforced by `trg_validate_inventory_pricing` in the DB — not in application code.
+- Pricing reuses `inventory:create` / `inventory:edit` permissions.
+
+## Customer management
+
+- `/dashboard/customers` lists customers with create, edit, deactivate, and restore actions.
+- Mutations in `lib/customers/mutations.ts` enforce RBAC and branch access.
+- Deactivate is soft (sets `is_active = false`); hard deletes are not supported.
+
+## Expense categories
+
+- `/dashboard/expenses/categories` lists categories with create, edit, deactivate, and restore actions.
+- All writes are audited in `expense_category_audit_logs`.
+
+## Vendor management
+
+- `/dashboard/vendors` lists vendors with create, edit, deactivate, and restore actions.
+- Mutations in `lib/vendors/mutations.ts` enforce RBAC and audit every change.
+
 ## Toast system
 
 A minimal `ToastProvider` / `useToast()` lives in `lib/ui/toast-context.tsx`, mirroring the `GlobalLoaderContext` pattern. `ToastContainer` (fixed bottom-right) and `ToastItem` (glass card with variant icon) are in `components/ui/toast.tsx`. Both are wired up in `GlobalUiProvider`.
 
 ## Dashboard frontend architecture
 
-All six list pages (orders, customers, inventory, employee-expenses, business-expenses, active-users) share a common set of primitives:
+All list pages (orders, customers, inventory, inventory-pricing, employee-expenses, business-expenses, expense-categories, active-users, users) share a common set of primitives:
 
 **`lib/dashboard/`**
 

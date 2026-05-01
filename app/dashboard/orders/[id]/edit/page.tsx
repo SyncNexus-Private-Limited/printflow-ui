@@ -18,7 +18,12 @@ export default async function EditOrderPage({ params }: EditOrderPageProps) {
   const { id } = await params;
   const data = await getEditOrderPageData(currentUser, id);
   if (!data) notFound();
-  if (!canEditOrder(currentUser, { branchId: data.detail.order.branchId, status: data.detail.order.status })) {
+  if (
+    !canEditOrder(currentUser, {
+      branchId: data.detail.order.branchId,
+      status: data.detail.order.status,
+    })
+  ) {
     notFound();
   }
 

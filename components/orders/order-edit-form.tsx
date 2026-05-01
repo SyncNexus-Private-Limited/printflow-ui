@@ -30,7 +30,13 @@ function parseNumber(value: string) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export function OrderEditForm({ detail, customers, inventoryItems, offers, vendors }: EditOrderPageData) {
+export function OrderEditForm({
+  detail,
+  customers,
+  inventoryItems,
+  offers,
+  vendors,
+}: EditOrderPageData) {
   const router = useRouter();
   const existingVendor = detail.vendors[0] ?? null;
   const [customerId, setCustomerId] = useState(detail.order.customerId);
@@ -74,7 +80,8 @@ export function OrderEditForm({ detail, customers, inventoryItems, offers, vendo
   });
   const selectedOffers = eligibleOffers.filter((offer) => offerIds.includes(offer.id));
   const discount = selectedOffers.reduce((sum, offer) => {
-    if (offer.offerType === "percentage") return sum + subtotal * ((offer.discountValue ?? 0) / 100);
+    if (offer.offerType === "percentage")
+      return sum + subtotal * ((offer.discountValue ?? 0) / 100);
     if (offer.offerType === "flat") return sum + (offer.discountValue ?? 0);
     return sum;
   }, 0);
@@ -150,7 +157,10 @@ export function OrderEditForm({ detail, customers, inventoryItems, offers, vendo
               </option>
             ))}
           </Select>
-          <Select value={status} onChange={(event) => setStatus(event.target.value as OrderStatusValue)}>
+          <Select
+            value={status}
+            onChange={(event) => setStatus(event.target.value as OrderStatusValue)}
+          >
             {orderStatusValues.map((value) => (
               <option key={value} value={value}>
                 {value}
@@ -167,7 +177,10 @@ export function OrderEditForm({ detail, customers, inventoryItems, offers, vendo
               key={index}
               className="grid gap-3 rounded-2xl border border-[rgb(var(--border)/0.72)] bg-[rgb(var(--muted)/0.28)] p-3 md:grid-cols-[1fr_8rem_8rem_2.5rem]"
             >
-              <Select value={item.inventoryId} onChange={(event) => selectInventory(index, event.target.value)}>
+              <Select
+                value={item.inventoryId}
+                onChange={(event) => selectInventory(index, event.target.value)}
+              >
                 <option value="">Select item</option>
                 {inventoryItems.map((option) => (
                   <option key={option.id} value={option.id}>
@@ -175,7 +188,10 @@ export function OrderEditForm({ detail, customers, inventoryItems, offers, vendo
                   </option>
                 ))}
               </Select>
-              <Input value={item.quantity} onChange={(event) => updateItem(index, { quantity: event.target.value })} />
+              <Input
+                value={item.quantity}
+                onChange={(event) => updateItem(index, { quantity: event.target.value })}
+              />
               <Input value={item.unitPrice} readOnly />
               <Button
                 type="button"
@@ -183,7 +199,9 @@ export function OrderEditForm({ detail, customers, inventoryItems, offers, vendo
                 size="icon"
                 className="rounded-xl shadow-none"
                 disabled={items.length === 1}
-                onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))}
+                onClick={() =>
+                  setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))
+                }
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
@@ -193,7 +211,9 @@ export function OrderEditForm({ detail, customers, inventoryItems, offers, vendo
             type="button"
             variant="secondary"
             className="h-10 rounded-2xl px-4 shadow-none"
-            onClick={() => setItems((current) => [...current, { inventoryId: "", quantity: "1", unitPrice: "" }])}
+            onClick={() =>
+              setItems((current) => [...current, { inventoryId: "", quantity: "1", unitPrice: "" }])
+            }
           >
             <Plus className="mr-2 h-4 w-4" />
             Add item
@@ -238,9 +258,20 @@ export function OrderEditForm({ detail, customers, inventoryItems, offers, vendo
               </option>
             ))}
           </Select>
-          <Input value={vendorChargeAmount} onChange={(event) => setVendorChargeAmount(event.target.value)} placeholder="Vendor charge" />
-          <Input value={vendorPaidAmount} onChange={(event) => setVendorPaidAmount(event.target.value)} placeholder="Paid to vendor" />
-          <Select value={paymentMode} onChange={(event) => setPaymentMode(event.target.value as PaymentMode)}>
+          <Input
+            value={vendorChargeAmount}
+            onChange={(event) => setVendorChargeAmount(event.target.value)}
+            placeholder="Vendor charge"
+          />
+          <Input
+            value={vendorPaidAmount}
+            onChange={(event) => setVendorPaidAmount(event.target.value)}
+            placeholder="Paid to vendor"
+          />
+          <Select
+            value={paymentMode}
+            onChange={(event) => setPaymentMode(event.target.value as PaymentMode)}
+          >
             <option value="">Vendor payment mode</option>
             {paymentModeValues.map((mode) => (
               <option key={mode} value={mode}>
@@ -248,8 +279,16 @@ export function OrderEditForm({ detail, customers, inventoryItems, offers, vendo
               </option>
             ))}
           </Select>
-          <Input type="date" value={vendorExpectedDeliveryDate} onChange={(event) => setVendorExpectedDeliveryDate(event.target.value)} />
-          <Textarea value={vendorNotes} onChange={(event) => setVendorNotes(event.target.value)} placeholder="Vendor notes" />
+          <Input
+            type="date"
+            value={vendorExpectedDeliveryDate}
+            onChange={(event) => setVendorExpectedDeliveryDate(event.target.value)}
+          />
+          <Textarea
+            value={vendorNotes}
+            onChange={(event) => setVendorNotes(event.target.value)}
+            placeholder="Vendor notes"
+          />
         </div>
       </SectionCard>
 
@@ -262,7 +301,11 @@ export function OrderEditForm({ detail, customers, inventoryItems, offers, vendo
       </SectionCard>
 
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <Button type="button" variant="secondary" onClick={() => router.push(`/dashboard/orders/${detail.order.id}`)}>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => router.push(`/dashboard/orders/${detail.order.id}`)}
+        >
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting}>

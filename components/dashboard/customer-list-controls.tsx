@@ -9,6 +9,8 @@ import {
 import { FilterDrawerShell } from "@/components/dashboard/filter-drawer-shell";
 import { FilterTriggerButton } from "@/components/dashboard/filter-trigger-button";
 import { useFilterDrawer } from "@/components/dashboard/use-filter-drawer";
+import Link from "next/link";
+import { UserRoundPlus } from "lucide-react";
 import { getCustomerTypeTone } from "@/components/dashboard/data-pill";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -30,6 +32,7 @@ type CustomerListControlsProps = {
   currentPath: string;
   currentFilters: CustomerPageFilterState;
   selectedBranchName: string;
+  canCreate?: boolean;
 };
 
 const summaryCurrencyFormatter = new Intl.NumberFormat("en-IN", {
@@ -42,6 +45,7 @@ const summaryCurrencyFormatter = new Intl.NumberFormat("en-IN", {
 const RESET_CUSTOMER_FILTERS: Partial<CustomerPageFilterState> = {
   page: 1,
   dateField: "created",
+  status: "all",
   type: null,
   name: null,
   phone: null,
@@ -77,6 +81,7 @@ function getActiveFilterCount(filters: CustomerPageFilterState) {
   if (filters.dateField !== "created") count += 1;
   if (getCustomerQuickDatePreset({ from: filters.from, to: filters.to }) !== "this-month")
     count += 1;
+  if (filters.status !== "all") count += 1;
   if (filters.type) count += 1;
   if (filters.name) count += 1;
   if (filters.phone) count += 1;
@@ -142,6 +147,10 @@ function buildAppliedFilterSummaryItems(
   branchName: string,
 ): AppliedFilterSummaryItem[] {
   const items: AppliedFilterSummaryItem[] = [{ key: "branch", label: `Branch: ${branchName}` }];
+
+  if (filters.status !== "all") {
+    items.push({ key: "status", label: `Status: ${capitalizeFirst(filters.status)}` });
+  }
 
   if (filters.type) {
     items.push({
@@ -245,6 +254,7 @@ export function CustomerListControls({
   currentPath,
   currentFilters,
   selectedBranchName,
+  canCreate = false,
 }: CustomerListControlsProps) {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
@@ -332,15 +342,9 @@ export function CustomerListControls({
   };
 
   const handleResetFilters = () => {
-    const currentMonthDateRange = getCurrentMonthDashboardDateRange();
-    const resetOverrides = {
-      ...RESET_CUSTOMER_FILTERS,
-      from: currentMonthDateRange.from,
-      to: currentMonthDateRange.to,
-    };
-    const nextHref = buildCustomerPageHref(currentPath, currentFilters, resetOverrides);
+    const nextHref = buildCustomerPageHref(currentPath, currentFilters, RESET_CUSTOMER_FILTERS);
 
-    setDraftFilters((currentValue) => ({ ...currentValue, ...resetOverrides }));
+    setDraftFilters((currentValue) => ({ ...currentValue, ...RESET_CUSTOMER_FILTERS }));
     navigateToHref(nextHref);
   };
 
@@ -357,6 +361,15 @@ export function CustomerListControls({
           </div>
 
           <div className="flex shrink-0 items-center gap-2 self-start">
+            {canCreate ? (
+              <Link
+                href="/dashboard/customers/new"
+                className="inline-flex h-10 w-10 items-center justify-center gap-2 rounded-xl border border-transparent bg-[rgb(var(--primary))] text-sm font-semibold text-[rgb(var(--primary-foreground))] shadow-[0_16px_40px_-32px_rgb(var(--shadow)/0.4)] transition-colors hover:bg-[rgb(var(--primary)/0.9)] focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:outline-none lg:w-auto lg:px-4"
+              >
+                <UserRoundPlus className="h-4 w-4 shrink-0" strokeWidth={1.9} aria-hidden="true" />
+                <span className="hidden lg:inline">Add Customer</span>
+              </Link>
+            ) : null}
             <FilterTriggerButton
               ref={filterButtonRef}
               activeCount={activeFilterCount}
@@ -385,23 +398,29 @@ export function CustomerListControls({
           <section className="space-y-3">
             <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">Date range</p>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {customerQuickDatePresetValues.map((preset) => {
                 const isActive = preset === currentDatePreset;
+                const label =
+                  preset === "this-month"
+                    ? "This month"
+                    : preset === "last-month"
+                      ? "Last month"
+                      : "Custom";
                 return (
                   <button
                     key={preset}
                     type="button"
                     onClick={() => handleDatePresetSelect(preset)}
                     className={cn(
-                      "rounded-full border px-3 py-2 text-xs font-semibold capitalize transition-colors",
+                      "rounded-full border px-3 py-2 text-xs font-semibold transition-colors",
                       "focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none",
                       isActive
                         ? "border-[rgb(var(--primary)/0.38)] bg-[rgb(var(--primary-soft))] text-[rgb(var(--primary-soft-foreground))]"
                         : "border-[rgb(var(--border))] bg-[rgb(var(--background))] text-[rgb(var(--muted-foreground))] hover:text-[rgb(var(--foreground))]",
                     )}
                   >
-                    {preset.replace("-", " ")}
+                    {label}
                   </button>
                 );
               })}
@@ -460,25 +479,48 @@ export function CustomerListControls({
           <section className="space-y-3">
             <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">Customer</p>
 
-            <label className="space-y-2">
-              <span className={FILTER_FIELD_LABEL_CLASS}>Type</span>
-              <Select
-                value={draftFilters.type ?? ""}
-                onChange={(event) =>
-                  updateDraftFilters((currentValue) => ({
-                    ...currentValue,
-                    type: event.target.value.length > 0 ? event.target.value : null,
-                  }))
-                }
-                className="h-11 rounded-2xl bg-[rgb(var(--background))]"
-              >
-                <option value="">All types</option>
-                <option value="studio">Studio</option>
-                <option value="amateur">Amateur</option>
-                <option value="other">Other</option>
-                <option value="employee">Employee</option>
-              </Select>
-            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="space-y-2">
+                <span className={FILTER_FIELD_LABEL_CLASS}>Type</span>
+                <Select
+                  value={draftFilters.type ?? ""}
+                  onChange={(event) =>
+                    updateDraftFilters((currentValue) => ({
+                      ...currentValue,
+                      type: event.target.value.length > 0 ? event.target.value : null,
+                    }))
+                  }
+                  className="h-11 rounded-2xl bg-[rgb(var(--background))]"
+                >
+                  <option value="">All types</option>
+                  <option value="studio">Studio</option>
+                  <option value="amateur">Amateur</option>
+                  <option value="other">Other</option>
+                  <option value="employee">Employee</option>
+                </Select>
+              </label>
+
+              <label className="space-y-2">
+                <span className={FILTER_FIELD_LABEL_CLASS}>Status</span>
+                <Select
+                  value={draftFilters.status}
+                  onChange={(event) =>
+                    updateDraftFilters((currentValue) => ({
+                      ...currentValue,
+                      status:
+                        event.target.value === "active" || event.target.value === "inactive"
+                          ? event.target.value
+                          : "all",
+                    }))
+                  }
+                  className="h-11 rounded-2xl bg-[rgb(var(--background))]"
+                >
+                  <option value="all">All statuses</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </Select>
+              </label>
+            </div>
 
             <div className="grid grid-cols-2 gap-3">
               <label className="space-y-2">

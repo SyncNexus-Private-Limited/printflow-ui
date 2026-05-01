@@ -182,8 +182,8 @@ export async function getOrderDetail(
   if (!order) return null;
   if (!canAccessBranch(currentUser, order.branchId)) return null;
 
-  const [itemsResult, offersResult, paymentsResult, vendorsResult, auditResult] =
-    await Promise.all([
+  const [itemsResult, offersResult, paymentsResult, vendorsResult, auditResult] = await Promise.all(
+    [
       db.query<OrderDetailData["items"][number]>(
         `
           SELECT
@@ -266,7 +266,8 @@ export async function getOrderDetail(
         `,
         [orderId],
       ),
-    ]);
+    ],
+  );
 
   return {
     order,

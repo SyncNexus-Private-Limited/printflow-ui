@@ -131,6 +131,8 @@ export function getDashboardBreadcrumbs(
   const offersHref = buildDashboardHref("/dashboard/offers", filters);
   const vendorsHref = buildDashboardHref("/dashboard/vendors", filters);
   const usersHref = buildDashboardHref("/dashboard/users", filters);
+  const customersHref = buildDashboardHref("/dashboard/customers", filters);
+  const salesHref = ordersHref;
   const employeeExpensesHref = buildDashboardHref("/dashboard/employee-expenses", filters);
   const businessExpensesHref = buildDashboardHref("/dashboard/business-expenses", filters);
   const expenseCategoriesHref = buildDashboardHref("/dashboard/expenses/categories", filters);
@@ -170,6 +172,23 @@ export function getDashboardBreadcrumbs(
       { label: "Home", href: homeHref },
       { label: "Orders", href: ordersHref },
       { label: "Order Details" },
+    ];
+  }
+
+  if (pathname === "/dashboard/customers/new") {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Sales", href: salesHref },
+      { label: "Customers", href: customersHref },
+      { label: "Add Customer" },
+    ];
+  }
+
+  if (pathname === "/dashboard/customers") {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Sales", href: salesHref },
+      { label: "Customers" },
     ];
   }
 

@@ -242,7 +242,11 @@ export const updateOrderSchema = z
         message: "Vendor paid amount cannot exceed vendor charge",
       });
     }
-    if (value.vendorPaidAmount && Number.parseFloat(value.vendorPaidAmount) > 0 && !value.paymentMode) {
+    if (
+      value.vendorPaidAmount &&
+      Number.parseFloat(value.vendorPaidAmount) > 0 &&
+      !value.paymentMode
+    ) {
       ctx.addIssue({ code: "custom", path: ["paymentMode"], message: "Payment mode is required" });
     }
   });

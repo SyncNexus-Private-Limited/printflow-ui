@@ -40,6 +40,7 @@ type CreateMenuProps = {
   canCreateInventory: boolean;
   canCreateExpense: boolean;
   canCreateUser: boolean;
+  canCreateCustomer: boolean;
   canCreateVendor: boolean;
   canCreateOffer: boolean;
 };
@@ -72,6 +73,7 @@ function getCreateActions({
   canCreateInventory,
   canCreateExpense,
   canCreateUser,
+  canCreateCustomer,
   canCreateVendor,
   canCreateOffer,
 }: CreateMenuProps): CreateAction[] {
@@ -89,8 +91,8 @@ function getCreateActions({
       label: "Add Customer",
       href: "/dashboard/customers/new",
       icon: UserRound,
-      disabled: true,
-      disabledReason: "Coming soon",
+      disabled: !canCreateCustomer,
+      disabledReason: "Unavailable",
     },
     {
       key: "inventory",
@@ -165,6 +167,7 @@ export function CreateMenu({
   canCreateInventory,
   canCreateExpense,
   canCreateUser,
+  canCreateCustomer,
   canCreateVendor,
   canCreateOffer,
 }: CreateMenuProps) {
@@ -188,6 +191,7 @@ export function CreateMenu({
         canCreateOrder,
         canCreateExpense,
         canCreateUser,
+        canCreateCustomer,
         canCreateVendor,
         canCreateOffer,
       }),
@@ -196,6 +200,7 @@ export function CreateMenu({
       canCreateInventory,
       canCreateOffer,
       canCreateOrder,
+      canCreateCustomer,
       canCreateUser,
       canCreateVendor,
     ],

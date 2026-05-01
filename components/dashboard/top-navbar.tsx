@@ -23,6 +23,7 @@ type TopNavbarProps = {
   canCreateInventory: boolean;
   canCreateExpense: boolean;
   canCreateUser: boolean;
+  canCreateCustomer: boolean;
   canCreateVendor: boolean;
   canCreateOffer: boolean;
 };
@@ -134,6 +135,7 @@ export function TopNavbar({
   canCreateInventory,
   canCreateExpense,
   canCreateUser,
+  canCreateCustomer,
   canCreateVendor,
   canCreateOffer,
 }: TopNavbarProps) {
@@ -223,6 +225,7 @@ export function TopNavbar({
             canCreateInventory={canCreateInventory}
             canCreateExpense={canCreateExpense}
             canCreateUser={canCreateUser}
+            canCreateCustomer={canCreateCustomer}
             canCreateVendor={canCreateVendor}
             canCreateOffer={canCreateOffer}
           />

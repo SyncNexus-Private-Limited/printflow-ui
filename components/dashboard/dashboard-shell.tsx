@@ -24,6 +24,7 @@ type DashboardShellProps = {
   canCreateInventory: boolean;
   canCreateExpense: boolean;
   canCreateUser: boolean;
+  canCreateCustomer: boolean;
   canCreateVendor: boolean;
   canCreateOffer: boolean;
 };
@@ -75,6 +76,7 @@ export function DashboardShell({
   canCreateInventory,
   canCreateExpense,
   canCreateUser,
+  canCreateCustomer,
   canCreateVendor,
   canCreateOffer,
 }: DashboardShellProps) {
@@ -186,6 +188,7 @@ export function DashboardShell({
           canCreateInventory={canCreateInventory}
           canCreateExpense={canCreateExpense}
           canCreateUser={canCreateUser}
+          canCreateCustomer={canCreateCustomer}
           canCreateVendor={canCreateVendor}
           canCreateOffer={canCreateOffer}
         />

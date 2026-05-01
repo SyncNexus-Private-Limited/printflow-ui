@@ -39,6 +39,11 @@ import {
   type OrderPageFilterState,
 } from "@/lib/dashboard/order-page-filters";
 import {
+  buildOffersPageHref,
+  buildOffersPaginationHref,
+  type OffersPageFilterState,
+} from "@/lib/dashboard/offers-page-filters";
+import {
   DASHBOARD_PAGE_SIZE_OPTIONS,
   buildDashboardPageHref,
   buildDashboardPaginationHref,
@@ -77,6 +82,7 @@ type DashboardPaginationProps<
     | "inventory"
     | "inventory-pricing"
     | "order"
+    | "offers"
     | "active-users"
     | "users"
     | "vendors";
@@ -113,6 +119,7 @@ export function DashboardPagination<
   const isInventoryVariant = variant === "inventory";
   const isInventoryPricingVariant = variant === "inventory-pricing";
   const isOrderVariant = variant === "order";
+  const isOffersVariant = variant === "offers";
   const isActiveUsersVariant = variant === "active-users";
   const isUsersVariant = variant === "users";
   const isVendorsVariant = variant === "vendors";
@@ -123,6 +130,7 @@ export function DashboardPagination<
     isInventoryVariant ||
     isInventoryPricingVariant ||
     isOrderVariant ||
+    isOffersVariant ||
     isActiveUsersVariant ||
     isUsersVariant ||
     isVendorsVariant;
@@ -146,6 +154,8 @@ export function DashboardPagination<
         );
       if (isOrderVariant)
         return buildOrderPageHref(path, filters as unknown as OrderPageFilterState);
+      if (isOffersVariant)
+        return buildOffersPageHref(path, filters as unknown as OffersPageFilterState);
       if (isActiveUsersVariant)
         return buildActiveUsersPageHref(path, filters as unknown as ActiveUserPageFilterState);
       if (isUsersVariant)
@@ -162,6 +172,7 @@ export function DashboardPagination<
       isInventoryVariant,
       isInventoryPricingVariant,
       isOrderVariant,
+      isOffersVariant,
       isUsersVariant,
       isVendorsVariant,
     ],
@@ -208,6 +219,12 @@ export function DashboardPagination<
       return buildOrderPaginationHref(
         path,
         filters as unknown as OrderPageFilterState,
+        nextPagination,
+      );
+    if (isOffersVariant)
+      return buildOffersPaginationHref(
+        path,
+        filters as unknown as OffersPageFilterState,
         nextPagination,
       );
     if (isActiveUsersVariant)

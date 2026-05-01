@@ -449,3 +449,39 @@ export type VendorsPageData = {
   summary: VendorManagementSummary;
   result: PaginatedListResult<VendorManagementRow>;
 };
+
+export type OfferTimingState = "current" | "upcoming" | "expired";
+
+export type OfferManagementRow = {
+  id: string;
+  branchId: string;
+  branchName: string;
+  code: string;
+  name: string;
+  description: string | null;
+  offerType: string;
+  discountValue: number | null;
+  buyQuantity: number | null;
+  getQuantity: number | null;
+  minimumOrderValue: number | null;
+  customerType: string | null;
+  startsAt: string;
+  endsAt: string | null;
+  isActive: boolean;
+  timingState: OfferTimingState;
+  updatedByName: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type OfferManagementSummary = {
+  totalOffers: number;
+  activeOffers: number;
+  currentOffers: number;
+  upcomingOffers: number;
+};
+
+export type OffersPageData = {
+  summary: OfferManagementSummary;
+  result: PaginatedListResult<OfferManagementRow>;
+};

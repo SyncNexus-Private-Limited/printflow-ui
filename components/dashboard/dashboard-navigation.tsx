@@ -52,6 +52,7 @@ export const dashboardNavigation: DashboardNavItem[] = [
     children: [
       { label: "Orders", href: "/dashboard/orders" },
       { label: "Customers", href: "/dashboard/customers" },
+      { label: "Offers", href: "/dashboard/offers" },
     ],
   },
   {
@@ -126,6 +127,7 @@ export function getDashboardBreadcrumbs(
 ): DashboardBreadcrumb[] {
   const homeHref = buildDashboardHref("/dashboard", filters);
   const inventoryHref = buildDashboardHref("/dashboard/inventory", filters);
+  const offersHref = buildDashboardHref("/dashboard/offers", filters);
   const vendorsHref = buildDashboardHref("/dashboard/vendors", filters);
   const usersHref = buildDashboardHref("/dashboard/users", filters);
   const employeeExpensesHref = buildDashboardHref("/dashboard/employee-expenses", filters);
@@ -173,6 +175,18 @@ export function getDashboardBreadcrumbs(
 
   if (pathname === "/dashboard/vendors") {
     return [{ label: "Home", href: homeHref }, { label: "Vendors" }];
+  }
+
+  if (pathname === "/dashboard/offers/new") {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Offers", href: offersHref },
+      { label: "Add Offer" },
+    ];
+  }
+
+  if (pathname === "/dashboard/offers") {
+    return [{ label: "Home", href: homeHref }, { label: "Offers" }];
   }
 
   if (pathname === "/dashboard/expenses/categories/new") {

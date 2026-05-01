@@ -11,6 +11,7 @@ import {
 import { createPortal } from "react-dom";
 import type { LucideIcon } from "lucide-react";
 import {
+  BadgePercent,
   Boxes,
   ChevronDown,
   Plus,
@@ -39,6 +40,7 @@ type CreateMenuProps = {
   canCreateExpense: boolean;
   canCreateUser: boolean;
   canCreateVendor: boolean;
+  canCreateOffer: boolean;
 };
 
 const STAFF_CREATE_USER_HREF =
@@ -69,6 +71,7 @@ function getCreateActions({
   canCreateExpense,
   canCreateUser,
   canCreateVendor,
+  canCreateOffer,
 }: CreateMenuProps): CreateAction[] {
   return [
     {
@@ -112,6 +115,14 @@ function getCreateActions({
       disabledReason: "Unavailable",
     },
     {
+      key: "offer",
+      label: "Add Offer",
+      href: "/dashboard/offers/new",
+      icon: BadgePercent,
+      disabled: !canCreateOffer,
+      disabledReason: "Unavailable",
+    },
+    {
       key: "vendor",
       label: "Add Vendor",
       href: "/dashboard/vendors/new",
@@ -152,6 +163,7 @@ export function CreateMenu({
   canCreateExpense,
   canCreateUser,
   canCreateVendor,
+  canCreateOffer,
 }: CreateMenuProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -168,8 +180,14 @@ export function CreateMenu({
   const [isOpen, setIsOpen] = useState(false);
   const actions = useMemo(
     () =>
-      getCreateActions({ canCreateInventory, canCreateExpense, canCreateUser, canCreateVendor }),
-    [canCreateExpense, canCreateInventory, canCreateUser, canCreateVendor],
+      getCreateActions({
+        canCreateInventory,
+        canCreateExpense,
+        canCreateUser,
+        canCreateVendor,
+        canCreateOffer,
+      }),
+    [canCreateExpense, canCreateInventory, canCreateOffer, canCreateUser, canCreateVendor],
   );
   const focusableActionIndices = useMemo(() => getFocusableActionIndices(actions), [actions]);
   const currentHref = useMemo(

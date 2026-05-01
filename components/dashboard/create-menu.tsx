@@ -38,6 +38,7 @@ type CreateMenuProps = {
   canCreateInventory: boolean;
   canCreateExpense: boolean;
   canCreateUser: boolean;
+  canCreateCustomer: boolean;
 };
 
 const STAFF_CREATE_USER_HREF =
@@ -67,6 +68,7 @@ function getCreateActions({
   canCreateInventory,
   canCreateExpense,
   canCreateUser,
+  canCreateCustomer,
 }: CreateMenuProps): CreateAction[] {
   return [
     {
@@ -82,8 +84,8 @@ function getCreateActions({
       label: "Add Customer",
       href: "/dashboard/customers/new",
       icon: UserRound,
-      disabled: true,
-      disabledReason: "Coming soon",
+      disabled: !canCreateCustomer,
+      disabledReason: "Unavailable",
     },
     {
       key: "inventory",
@@ -149,6 +151,7 @@ export function CreateMenu({
   canCreateInventory,
   canCreateExpense,
   canCreateUser,
+  canCreateCustomer,
 }: CreateMenuProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -164,8 +167,8 @@ export function CreateMenu({
   const focusTargetIndexRef = useRef<number | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const actions = useMemo(
-    () => getCreateActions({ canCreateInventory, canCreateExpense, canCreateUser }),
-    [canCreateExpense, canCreateInventory, canCreateUser],
+    () => getCreateActions({ canCreateInventory, canCreateExpense, canCreateUser, canCreateCustomer }),
+    [canCreateCustomer, canCreateExpense, canCreateInventory, canCreateUser],
   );
   const focusableActionIndices = useMemo(() => getFocusableActionIndices(actions), [actions]);
   const currentHref = useMemo(

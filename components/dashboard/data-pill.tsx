@@ -211,6 +211,10 @@ export function getExpenseCategoryStatusTone(status: string): DataPillTone {
   return status === "active" ? "emerald" : "neutral";
 }
 
+export function getCustomerStatusTone(status: string): DataPillTone {
+  return status === "active" ? "emerald" : "neutral";
+}
+
 export function getUserAccountStatusTone(status: string): DataPillTone {
   switch (status) {
     case "active":

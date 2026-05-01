@@ -23,6 +23,7 @@ type DashboardShellProps = {
   canCreateInventory: boolean;
   canCreateExpense: boolean;
   canCreateUser: boolean;
+  canCreateCustomer: boolean;
 };
 
 function readDesktopSidebarPreference() {
@@ -71,6 +72,7 @@ export function DashboardShell({
   canCreateInventory,
   canCreateExpense,
   canCreateUser,
+  canCreateCustomer,
 }: DashboardShellProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -179,6 +181,7 @@ export function DashboardShell({
           canCreateInventory={canCreateInventory}
           canCreateExpense={canCreateExpense}
           canCreateUser={canCreateUser}
+          canCreateCustomer={canCreateCustomer}
         />
 
         {isMobileSidebarMounted ? (

@@ -5,10 +5,11 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { ListStatCard } from "@/components/dashboard/list-stat-card";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasPermission } from "@/lib/auth/permissions";
 import { parseCustomerPageFilters } from "@/lib/dashboard/customer-page-filters";
 import { buildBranchFilterOptions } from "@/lib/dashboard/helpers";
 import { getCustomersPageData, getDashboardContext } from "@/lib/dashboard/queries";
-import { formatCompactNumber, formatDateRangeLabel } from "@/lib/utils/format";
+import { formatCompactNumber } from "@/lib/utils/format";
 
 type CustomersPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -19,6 +20,10 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
 
   if (!currentUser) {
     redirect("/login");
+  }
+
+  if (!hasPermission(currentUser, "customers:view")) {
+    redirect("/dashboard?forbidden=1");
   }
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
@@ -32,8 +37,6 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
     };
     const pageData = await getCustomersPageData(context.selectedBranchId, currentFilters);
     const branchOptions = buildBranchFilterOptions(context);
-    const dateRangeLabel = formatDateRangeLabel(currentFilters.from, currentFilters.to);
-    const dateBasisLabel = currentFilters.dateField === "updated" ? "updated date" : "created date";
 
     return (
       <main className="min-h-screen px-4 py-8">
@@ -45,24 +48,30 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
             branchFilterDisabled={!context.canSelectAll}
           />
 
-          <section className="grid gap-4 lg:grid-cols-3">
+          <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <ListStatCard
-              label="Customers in range"
-              value={formatCompactNumber(pageData.summary.totalCustomersInRange)}
-              meta={`Added by ${dateBasisLabel} for ${dateRangeLabel}`}
+              label="Active Customers"
+              value={formatCompactNumber(pageData.summary.activeCustomers)}
+              meta="Currently active"
+              accent="emerald"
+            />
+            <ListStatCard
+              label="New Customers"
+              value={formatCompactNumber(pageData.summary.newCustomersInRange)}
+              meta="Added in range"
               accent="blue"
             />
             <ListStatCard
-              label="Studios in range"
-              value={formatCompactNumber(pageData.summary.studioCustomersInRange)}
-              meta="Studio accounts matching filters"
+              label="Studio Customers"
+              value={formatCompactNumber(pageData.summary.studioCustomers)}
+              meta="Studio accounts"
               accent="violet"
             />
             <ListStatCard
-              label="With orders"
-              value={formatCompactNumber(pageData.summary.customersWithOrders)}
-              meta="Have at least one order in scope"
-              accent="emerald"
+              label="Outstanding"
+              value={formatCompactNumber(pageData.summary.outstandingCustomers)}
+              meta="Payment pending"
+              accent="amber"
             />
           </section>
 
@@ -70,6 +79,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
             currentPath="/dashboard/customers"
             currentFilters={currentFilters}
             selectedBranchName={context.selectedBranchName}
+            canCreate={hasPermission(currentUser, "customers:create")}
           />
 
           <CustomerDataTable
@@ -78,6 +88,9 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
             currentPath="/dashboard/customers"
             currentFilters={currentFilters}
             pagination={pageData.result.pagination}
+            canEdit={hasPermission(currentUser, "customers:edit")}
+            canDeactivate={hasPermission(currentUser, "customers:deactivate")}
+            canRestore={hasPermission(currentUser, "customers:restore")}
           />
         </div>
       </main>

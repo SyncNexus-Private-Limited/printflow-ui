@@ -138,6 +138,17 @@ export function getDashboardBreadcrumbs(
     ];
   }
 
+  if (pathname === "/dashboard/customers/new") {
+    const customersHref = buildDashboardHref("/dashboard/customers", filters);
+    const salesHref = buildDashboardHref("/dashboard/orders", filters);
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Sales", href: salesHref },
+      { label: "Customers", href: customersHref },
+      { label: "Add Customer" },
+    ];
+  }
+
   if (pathname === "/dashboard/inventory/new") {
     return [
       { label: "Home", href: homeHref },

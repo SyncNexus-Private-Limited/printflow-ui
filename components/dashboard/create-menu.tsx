@@ -36,6 +36,7 @@ type CreateAction = {
 };
 
 type CreateMenuProps = {
+  canCreateOrder: boolean;
   canCreateInventory: boolean;
   canCreateExpense: boolean;
   canCreateUser: boolean;
@@ -67,6 +68,7 @@ function isSameHref(leftHref: string, rightHref: string) {
 }
 
 function getCreateActions({
+  canCreateOrder,
   canCreateInventory,
   canCreateExpense,
   canCreateUser,
@@ -79,8 +81,8 @@ function getCreateActions({
       label: "Add Order",
       href: "/dashboard/orders/new",
       icon: ShoppingBag,
-      disabled: true,
-      disabledReason: "Coming soon",
+      disabled: !canCreateOrder,
+      disabledReason: "Unavailable",
     },
     {
       key: "customer",
@@ -159,6 +161,7 @@ function useIsDesktopViewport() {
 }
 
 export function CreateMenu({
+  canCreateOrder,
   canCreateInventory,
   canCreateExpense,
   canCreateUser,
@@ -182,12 +185,20 @@ export function CreateMenu({
     () =>
       getCreateActions({
         canCreateInventory,
+        canCreateOrder,
         canCreateExpense,
         canCreateUser,
         canCreateVendor,
         canCreateOffer,
       }),
-    [canCreateExpense, canCreateInventory, canCreateOffer, canCreateUser, canCreateVendor],
+    [
+      canCreateExpense,
+      canCreateInventory,
+      canCreateOffer,
+      canCreateOrder,
+      canCreateUser,
+      canCreateVendor,
+    ],
   );
   const focusableActionIndices = useMemo(() => getFocusableActionIndices(actions), [actions]);
   const currentHref = useMemo(

@@ -39,11 +39,24 @@ function buildDefaultValues(selectedBranchId: string): OfferFormValues {
   };
 }
 
-function FieldLabel({ htmlFor, children, optional = false }: { htmlFor: string; children: string; optional?: boolean }) {
+function FieldLabel({
+  htmlFor,
+  children,
+  optional = false,
+}: {
+  htmlFor: string;
+  children: string;
+  optional?: boolean;
+}) {
   return (
-    <label htmlFor={htmlFor} className="block text-[11px] font-semibold tracking-[0.16em] text-[rgb(var(--muted-foreground))] uppercase">
+    <label
+      htmlFor={htmlFor}
+      className="block text-[11px] font-semibold tracking-[0.16em] text-[rgb(var(--muted-foreground))] uppercase"
+    >
       {children}
-      {optional ? <span className="ml-1.5 font-normal tracking-normal normal-case">Optional</span> : null}
+      {optional ? (
+        <span className="ml-1.5 font-normal tracking-normal normal-case">Optional</span>
+      ) : null}
     </label>
   );
 }
@@ -110,7 +123,9 @@ export function OfferForm({ branchOptions, selectedBranchId, canSelectBranch }: 
 
       if (!res.ok || !data?.success) {
         if (data && !data.success && data.fieldErrors) {
-          for (const [field, message] of Object.entries(data.fieldErrors) as Array<[OfferFieldName, string]>) {
+          for (const [field, message] of Object.entries(data.fieldErrors) as Array<
+            [OfferFieldName, string]
+          >) {
             if (message) setError(field, { type: "server", message });
           }
         }
@@ -188,7 +203,12 @@ export function OfferForm({ branchOptions, selectedBranchId, canSelectBranch }: 
           <FieldLabel htmlFor="offer-discount" optional>
             Discount value
           </FieldLabel>
-          <Input id="offer-discount" inputMode="decimal" disabled={isSubmitting || offerType === "buy_x_get_y"} {...register("discountValue")} />
+          <Input
+            id="offer-discount"
+            inputMode="decimal"
+            disabled={isSubmitting || offerType === "buy_x_get_y"}
+            {...register("discountValue")}
+          />
           <FieldError message={getFieldError("discountValue")} />
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -196,14 +216,24 @@ export function OfferForm({ branchOptions, selectedBranchId, canSelectBranch }: 
             <FieldLabel htmlFor="offer-buy-qty" optional>
               Buy qty
             </FieldLabel>
-            <Input id="offer-buy-qty" inputMode="numeric" disabled={isSubmitting || offerType !== "buy_x_get_y"} {...register("buyQuantity")} />
+            <Input
+              id="offer-buy-qty"
+              inputMode="numeric"
+              disabled={isSubmitting || offerType !== "buy_x_get_y"}
+              {...register("buyQuantity")}
+            />
             <FieldError message={getFieldError("buyQuantity")} />
           </div>
           <div className="space-y-1.5">
             <FieldLabel htmlFor="offer-get-qty" optional>
               Get qty
             </FieldLabel>
-            <Input id="offer-get-qty" inputMode="numeric" disabled={isSubmitting || offerType !== "buy_x_get_y"} {...register("getQuantity")} />
+            <Input
+              id="offer-get-qty"
+              inputMode="numeric"
+              disabled={isSubmitting || offerType !== "buy_x_get_y"}
+              {...register("getQuantity")}
+            />
             <FieldError message={getFieldError("getQuantity")} />
           </div>
         </div>
@@ -211,7 +241,12 @@ export function OfferForm({ branchOptions, selectedBranchId, canSelectBranch }: 
           <FieldLabel htmlFor="offer-minimum" optional>
             Minimum order
           </FieldLabel>
-          <Input id="offer-minimum" inputMode="decimal" disabled={isSubmitting} {...register("minimumOrderValue")} />
+          <Input
+            id="offer-minimum"
+            inputMode="decimal"
+            disabled={isSubmitting}
+            {...register("minimumOrderValue")}
+          />
           <FieldError message={getFieldError("minimumOrderValue")} />
         </div>
         <div className="space-y-1.5">
@@ -231,7 +266,12 @@ export function OfferForm({ branchOptions, selectedBranchId, canSelectBranch }: 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <FieldLabel htmlFor="offer-starts-at">Starts</FieldLabel>
-            <Input id="offer-starts-at" type="date" disabled={isSubmitting} {...register("startsAt")} />
+            <Input
+              id="offer-starts-at"
+              type="date"
+              disabled={isSubmitting}
+              {...register("startsAt")}
+            />
             <FieldError message={getFieldError("startsAt")} />
           </div>
           <div className="space-y-1.5">
@@ -267,7 +307,13 @@ export function OfferForm({ branchOptions, selectedBranchId, canSelectBranch }: 
       </div>
 
       <div className="flex flex-col-reverse gap-2 border-t border-[rgb(var(--border)/0.62)] pt-5 sm:flex-row sm:justify-end">
-        <Button type="button" variant="secondary" className="h-10 rounded-2xl px-4 shadow-none" disabled={isSubmitting} onClick={() => router.push("/dashboard/offers")}>
+        <Button
+          type="button"
+          variant="secondary"
+          className="h-10 rounded-2xl px-4 shadow-none"
+          disabled={isSubmitting}
+          onClick={() => router.push("/dashboard/offers")}
+        >
           Cancel
         </Button>
         <Button type="submit" className="h-10 min-w-32 rounded-2xl px-5" disabled={isSubmitting}>

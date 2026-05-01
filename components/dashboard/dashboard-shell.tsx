@@ -20,6 +20,7 @@ type DashboardShellProps = {
   canSelectAllBranches: boolean;
   canManageUsers: boolean;
   canViewExpenseCategories: boolean;
+  canCreateOrder: boolean;
   canCreateInventory: boolean;
   canCreateExpense: boolean;
   canCreateUser: boolean;
@@ -70,6 +71,7 @@ export function DashboardShell({
   canSelectAllBranches,
   canManageUsers,
   canViewExpenseCategories,
+  canCreateOrder,
   canCreateInventory,
   canCreateExpense,
   canCreateUser,
@@ -180,6 +182,7 @@ export function DashboardShell({
           initialBranchId={initialBranchId}
           initialBranchName={initialBranchName}
           canSelectAllBranches={canSelectAllBranches}
+          canCreateOrder={canCreateOrder}
           canCreateInventory={canCreateInventory}
           canCreateExpense={canCreateExpense}
           canCreateUser={canCreateUser}

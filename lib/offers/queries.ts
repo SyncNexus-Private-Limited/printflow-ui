@@ -97,7 +97,9 @@ function buildQueryParts(branchId: string | null, filters: OffersPageFilterState
   }
 
   if (filters.timing === "current") {
-    whereParts.push("(o.starts_at <= CURRENT_DATE AND (o.ends_at IS NULL OR o.ends_at >= CURRENT_DATE))");
+    whereParts.push(
+      "(o.starts_at <= CURRENT_DATE AND (o.ends_at IS NULL OR o.ends_at >= CURRENT_DATE))",
+    );
   } else if (filters.timing === "upcoming") {
     whereParts.push("o.starts_at > CURRENT_DATE");
   } else if (filters.timing === "expired") {

@@ -19,6 +19,12 @@ export type Permission =
   | "users:deactivate"
   | "users:lock"
   | "users:reset_password"
+  | "orders:create"
+  | "orders:view"
+  | "orders:edit"
+  | "orders:add_payment"
+  | "orders:update_status"
+  | "orders:cancel"
   | "expenses:view"
   | "expenses:create"
   | "expenses:edit"
@@ -81,6 +87,12 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
     "users:deactivate",
     "users:lock",
     "users:reset_password",
+    "orders:create",
+    "orders:view",
+    "orders:edit",
+    "orders:add_payment",
+    "orders:update_status",
+    "orders:cancel",
     "expenses:view",
     "expenses:create",
     "expenses:edit",
@@ -111,6 +123,12 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
   manager: new Set<Permission>([
     "dashboard:view",
     "users:view",
+    "orders:create",
+    "orders:view",
+    "orders:edit",
+    "orders:add_payment",
+    "orders:update_status",
+    "orders:cancel",
     "expenses:view",
     "expenses:create",
     "expenses:edit",
@@ -140,6 +158,12 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
   // Day-to-day operations: full expense CRUD, no user management.
   operator: new Set<Permission>([
     "dashboard:view",
+    "orders:create",
+    "orders:view",
+    "orders:edit",
+    "orders:add_payment",
+    "orders:update_status",
+    "orders:cancel",
     "expenses:view",
     "expenses:create",
     "expenses:edit",
@@ -155,6 +179,9 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
   // Limited access: can record and edit expenses, but cannot delete them.
   staff: new Set<Permission>([
     "dashboard:view",
+    "orders:create",
+    "orders:view",
+    "orders:add_payment",
     "expenses:view",
     "expenses:create",
     "expenses:edit",

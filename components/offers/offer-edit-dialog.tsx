@@ -41,11 +41,24 @@ type OfferEditDialogProps = {
   onSuccess: () => void;
 };
 
-function FieldLabel({ htmlFor, children, optional = false }: { htmlFor: string; children: string; optional?: boolean }) {
+function FieldLabel({
+  htmlFor,
+  children,
+  optional = false,
+}: {
+  htmlFor: string;
+  children: string;
+  optional?: boolean;
+}) {
   return (
-    <label htmlFor={htmlFor} className="block text-[11px] font-semibold tracking-[0.16em] text-[rgb(var(--muted-foreground))] uppercase">
+    <label
+      htmlFor={htmlFor}
+      className="block text-[11px] font-semibold tracking-[0.16em] text-[rgb(var(--muted-foreground))] uppercase"
+    >
       {children}
-      {optional ? <span className="ml-1.5 font-normal tracking-normal normal-case">Optional</span> : null}
+      {optional ? (
+        <span className="ml-1.5 font-normal tracking-normal normal-case">Optional</span>
+      ) : null}
     </label>
   );
 }
@@ -166,7 +179,9 @@ export function OfferEditDialog({
 
       if (!res.ok || !data?.success) {
         if (data && !data.success && data.fieldErrors) {
-          for (const [field, message] of Object.entries(data.fieldErrors) as Array<[OfferFieldName, string]>) {
+          for (const [field, message] of Object.entries(data.fieldErrors) as Array<
+            [OfferFieldName, string]
+          >) {
             if (message) setError(field, { type: "server", message });
           }
         }
@@ -183,7 +198,13 @@ export function OfferEditDialog({
   const readyOffer = loadState.status === "ready" ? loadState.offer : null;
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} title="Edit offer" description="Changes apply to future order creation." size="lg">
+    <Dialog
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Edit offer"
+      description="Changes apply to future order creation."
+      size="lg"
+    >
       {loadState.status === "loading" || loadState.status === "idle" ? (
         <div className="space-y-4 px-5 pt-4 pb-6" aria-busy="true">
           {[1, 2, 3].map((row) => (
@@ -208,7 +229,14 @@ export function OfferEditDialog({
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <FieldLabel htmlFor="edit-offer-branch">Branch</FieldLabel>
-                <Select id="edit-offer-branch" value={watch("branchId")} disabled={isSubmitting || !canSelectBranch} onChange={(event) => setValue("branchId", event.target.value, { shouldValidate: true })}>
+                <Select
+                  id="edit-offer-branch"
+                  value={watch("branchId")}
+                  disabled={isSubmitting || !canSelectBranch}
+                  onChange={(event) =>
+                    setValue("branchId", event.target.value, { shouldValidate: true })
+                  }
+                >
                   {branchOptions.map((branch) => (
                     <option key={branch.id} value={branch.id}>
                       {branch.name}
@@ -229,7 +257,16 @@ export function OfferEditDialog({
               </div>
               <div className="space-y-1.5">
                 <FieldLabel htmlFor="edit-offer-type">Type</FieldLabel>
-                <Select id="edit-offer-type" value={offerType} disabled={isSubmitting} onChange={(event) => setValue("offerType", event.target.value as OfferFormValues["offerType"], { shouldValidate: true })}>
+                <Select
+                  id="edit-offer-type"
+                  value={offerType}
+                  disabled={isSubmitting}
+                  onChange={(event) =>
+                    setValue("offerType", event.target.value as OfferFormValues["offerType"], {
+                      shouldValidate: true,
+                    })
+                  }
+                >
                   {offerTypeValues.map((value) => (
                     <option key={value} value={value}>
                       {offerTypeLabels[value]}
@@ -242,7 +279,12 @@ export function OfferEditDialog({
                 <FieldLabel htmlFor="edit-offer-discount" optional>
                   Discount value
                 </FieldLabel>
-                <Input id="edit-offer-discount" inputMode="decimal" disabled={isSubmitting || offerType === "buy_x_get_y"} {...register("discountValue")} />
+                <Input
+                  id="edit-offer-discount"
+                  inputMode="decimal"
+                  disabled={isSubmitting || offerType === "buy_x_get_y"}
+                  {...register("discountValue")}
+                />
                 <FieldError message={getFieldError("discountValue")} />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -250,14 +292,24 @@ export function OfferEditDialog({
                   <FieldLabel htmlFor="edit-offer-buy-qty" optional>
                     Buy qty
                   </FieldLabel>
-                  <Input id="edit-offer-buy-qty" inputMode="numeric" disabled={isSubmitting || offerType !== "buy_x_get_y"} {...register("buyQuantity")} />
+                  <Input
+                    id="edit-offer-buy-qty"
+                    inputMode="numeric"
+                    disabled={isSubmitting || offerType !== "buy_x_get_y"}
+                    {...register("buyQuantity")}
+                  />
                   <FieldError message={getFieldError("buyQuantity")} />
                 </div>
                 <div className="space-y-1.5">
                   <FieldLabel htmlFor="edit-offer-get-qty" optional>
                     Get qty
                   </FieldLabel>
-                  <Input id="edit-offer-get-qty" inputMode="numeric" disabled={isSubmitting || offerType !== "buy_x_get_y"} {...register("getQuantity")} />
+                  <Input
+                    id="edit-offer-get-qty"
+                    inputMode="numeric"
+                    disabled={isSubmitting || offerType !== "buy_x_get_y"}
+                    {...register("getQuantity")}
+                  />
                   <FieldError message={getFieldError("getQuantity")} />
                 </div>
               </div>
@@ -265,14 +317,23 @@ export function OfferEditDialog({
                 <FieldLabel htmlFor="edit-offer-minimum" optional>
                   Minimum order
                 </FieldLabel>
-                <Input id="edit-offer-minimum" inputMode="decimal" disabled={isSubmitting} {...register("minimumOrderValue")} />
+                <Input
+                  id="edit-offer-minimum"
+                  inputMode="decimal"
+                  disabled={isSubmitting}
+                  {...register("minimumOrderValue")}
+                />
                 <FieldError message={getFieldError("minimumOrderValue")} />
               </div>
               <div className="space-y-1.5">
                 <FieldLabel htmlFor="edit-offer-customer-type" optional>
                   Customer type
                 </FieldLabel>
-                <Select id="edit-offer-customer-type" disabled={isSubmitting} {...register("customerType")}>
+                <Select
+                  id="edit-offer-customer-type"
+                  disabled={isSubmitting}
+                  {...register("customerType")}
+                >
                   <option value="">All customers</option>
                   {customerTypeValues.map((value) => (
                     <option key={value} value={value}>
@@ -285,20 +346,37 @@ export function OfferEditDialog({
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <FieldLabel htmlFor="edit-offer-starts-at">Starts</FieldLabel>
-                  <Input id="edit-offer-starts-at" type="date" disabled={isSubmitting} {...register("startsAt")} />
+                  <Input
+                    id="edit-offer-starts-at"
+                    type="date"
+                    disabled={isSubmitting}
+                    {...register("startsAt")}
+                  />
                   <FieldError message={getFieldError("startsAt")} />
                 </div>
                 <div className="space-y-1.5">
                   <FieldLabel htmlFor="edit-offer-ends-at" optional>
                     Ends
                   </FieldLabel>
-                  <Input id="edit-offer-ends-at" type="date" disabled={isSubmitting} {...register("endsAt")} />
+                  <Input
+                    id="edit-offer-ends-at"
+                    type="date"
+                    disabled={isSubmitting}
+                    {...register("endsAt")}
+                  />
                   <FieldError message={getFieldError("endsAt")} />
                 </div>
               </div>
               <div className="space-y-1.5">
                 <FieldLabel htmlFor="edit-offer-status">Status</FieldLabel>
-                <Select id="edit-offer-status" value={isActive ? "active" : "inactive"} disabled={isSubmitting} onChange={(event) => setValue("isActive", event.target.value === "active", { shouldValidate: true })}>
+                <Select
+                  id="edit-offer-status"
+                  value={isActive ? "active" : "inactive"}
+                  disabled={isSubmitting}
+                  onChange={(event) =>
+                    setValue("isActive", event.target.value === "active", { shouldValidate: true })
+                  }
+                >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                 </Select>
@@ -308,7 +386,11 @@ export function OfferEditDialog({
                 <FieldLabel htmlFor="edit-offer-description" optional>
                   Description
                 </FieldLabel>
-                <Textarea id="edit-offer-description" disabled={isSubmitting} {...register("description")} />
+                <Textarea
+                  id="edit-offer-description"
+                  disabled={isSubmitting}
+                  {...register("description")}
+                />
                 <FieldError message={getFieldError("description")} />
               </div>
             </div>
@@ -316,14 +398,28 @@ export function OfferEditDialog({
           <div className="sticky bottom-0 border-t border-[rgb(var(--border)/0.62)] bg-[rgb(var(--card)/0.98)] px-5 py-4">
             {readyOffer ? (
               <p className="mb-3 text-xs text-[rgb(var(--muted-foreground))]">
-                Last edited by <span className="font-medium text-[rgb(var(--foreground))]">{readyOffer.updatedByName ?? "Unknown user"}</span> on {formatDateTime(readyOffer.updatedAt)}
+                Last edited by{" "}
+                <span className="font-medium text-[rgb(var(--foreground))]">
+                  {readyOffer.updatedByName ?? "Unknown user"}
+                </span>{" "}
+                on {formatDateTime(readyOffer.updatedAt)}
               </p>
             ) : null}
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button type="button" variant="secondary" className="h-10 rounded-2xl px-4 shadow-none" disabled={isSubmitting} onClick={onClose}>
+              <Button
+                type="button"
+                variant="secondary"
+                className="h-10 rounded-2xl px-4 shadow-none"
+                disabled={isSubmitting}
+                onClick={onClose}
+              >
                 Cancel
               </Button>
-              <Button type="submit" className="h-10 min-w-28 rounded-2xl px-5" disabled={isSubmitting}>
+              <Button
+                type="submit"
+                className="h-10 min-w-28 rounded-2xl px-5"
+                disabled={isSubmitting}
+              >
                 {isSubmitting ? (
                   <>
                     <Spinner size="xs" ariaHidden className="mr-2" />

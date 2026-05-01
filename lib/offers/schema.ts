@@ -76,7 +76,10 @@ export const offerSchema = z
       .or(z.literal(""))
       .transform((value) => (value === "" ? undefined : value))
       .optional(),
-    startsAt: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Start date is required"),
+    startsAt: z
+      .string()
+      .trim()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Start date is required"),
     endsAt: z
       .string()
       .trim()
@@ -122,10 +125,18 @@ export const offerSchema = z
 
     if (value.offerType === "buy_x_get_y") {
       if (!value.buyQuantity) {
-        ctx.addIssue({ code: "custom", path: ["buyQuantity"], message: "Buy quantity is required" });
+        ctx.addIssue({
+          code: "custom",
+          path: ["buyQuantity"],
+          message: "Buy quantity is required",
+        });
       }
       if (!value.getQuantity) {
-        ctx.addIssue({ code: "custom", path: ["getQuantity"], message: "Get quantity is required" });
+        ctx.addIssue({
+          code: "custom",
+          path: ["getQuantity"],
+          message: "Get quantity is required",
+        });
       }
       if (value.discountValue) {
         ctx.addIssue({

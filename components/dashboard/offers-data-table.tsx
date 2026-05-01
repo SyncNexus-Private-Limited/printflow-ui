@@ -29,7 +29,11 @@ import {
   getStickyHeaderCellClass,
   getStickyHeaderCellStyle,
 } from "@/lib/dashboard/sticky-column-utils";
-import type { BranchOption, DashboardPaginationState, OfferManagementRow } from "@/lib/dashboard/types";
+import type {
+  BranchOption,
+  DashboardPaginationState,
+  OfferManagementRow,
+} from "@/lib/dashboard/types";
 import { cn } from "@/lib/utils/cn";
 import { formatCurrency, formatDate, formatEnumLabel } from "@/lib/utils/format";
 
@@ -123,7 +127,9 @@ export function OffersDataTable({
 
   const resolvedHeaders = headerConfigs
     .filter((header) => showBranchColumn || header.key !== "branch")
-    .map((header) => (header.sortField ? { ...header, sort: getSortConfig(header.sortField) } : header));
+    .map((header) =>
+      header.sortField ? { ...header, sort: getSortConfig(header.sortField) } : header,
+    );
   const stickySpecs = computeStickySpecs(resolvedHeaders);
   const stickyLeftWidth = getStickyEdgeTotalWidth(resolvedHeaders, "left") || undefined;
   const actionsStickySpec = stickySpecs[stickySpecs.length - 1];
@@ -133,9 +139,12 @@ export function OffersDataTable({
   const currentSort = getSortValue(currentFilters.sortField, currentFilters.sortDirection);
 
   function handleSortChange(sortValue: string) {
-    router.replace(buildOffersPageHref(currentPath, currentFilters, { ...parseSortValue(sortValue), page: 1 }), {
-      scroll: false,
-    });
+    router.replace(
+      buildOffersPageHref(currentPath, currentFilters, { ...parseSortValue(sortValue), page: 1 }),
+      {
+        scroll: false,
+      },
+    );
   }
 
   async function executeAction(offer: OfferManagementRow, action: "deactivate" | "restore") {
@@ -146,13 +155,18 @@ export function OffersDataTable({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
       });
-      const data = (await res.json().catch(() => null)) as { success: boolean; message?: string } | null;
+      const data = (await res.json().catch(() => null)) as {
+        success: boolean;
+        message?: string;
+      } | null;
       if (!res.ok || !data?.success) {
         setActionError(data?.message ?? "Unable to update offer right now.");
         return;
       }
       setLocalItems((current) =>
-        current.map((item) => (item.id === offer.id ? { ...item, isActive: action === "restore" } : item)),
+        current.map((item) =>
+          item.id === offer.id ? { ...item, isActive: action === "restore" } : item,
+        ),
       );
       setPendingDeactivate(null);
       startTransition(() => router.refresh());
@@ -199,15 +213,34 @@ export function OffersDataTable({
         </div>
       ) : null}
       <DataTableContainer>
-        <TableScrollArea className="bg-[rgb(var(--card)/0.98)]" viewportClassName="pb-0" stickyLeftWidth={stickyLeftWidth}>
+        <TableScrollArea
+          className="bg-[rgb(var(--card)/0.98)]"
+          viewportClassName="pb-0"
+          stickyLeftWidth={stickyLeftWidth}
+        >
           <table className="w-max min-w-7xl border-collapse text-left text-sm">
             <thead>
               <tr>
                 {resolvedHeaders.map((header, index) =>
                   header.sort ? (
-                    <SortableHeaderCell key={header.key} label={header.label} sortConfig={header.sort} currentSort={currentSort} onSort={handleSortChange} stickySpec={stickySpecs[index] ?? undefined} />
+                    <SortableHeaderCell
+                      key={header.key}
+                      label={header.label}
+                      sortConfig={header.sort}
+                      currentSort={currentSort}
+                      onSort={handleSortChange}
+                      stickySpec={stickySpecs[index] ?? undefined}
+                    />
                   ) : (
-                    <th key={header.key} scope="col" className={cn(TABLE_HEADER_CELL_CLASS, getStickyHeaderCellClass(stickySpecs[index]))} style={getStickyHeaderCellStyle(stickySpecs[index])}>
+                    <th
+                      key={header.key}
+                      scope="col"
+                      className={cn(
+                        TABLE_HEADER_CELL_CLASS,
+                        getStickyHeaderCellClass(stickySpecs[index]),
+                      )}
+                      style={getStickyHeaderCellStyle(stickySpecs[index])}
+                    >
                       {header.label || <span className="sr-only">Actions</span>}
                     </th>
                   ),
@@ -219,39 +252,73 @@ export function OffersDataTable({
                 const rowActions = buildRowActions(offer);
                 const status = offer.isActive ? "active" : "inactive";
                 return (
-                  <tr key={offer.id} className="group border-b border-[rgb(var(--border)/0.58)] transition-colors last:border-b-0 hover:bg-[rgb(var(--muted)/0.28)]">
-                    <td className={cn(TABLE_BODY_CELL_CLASS, getStickyBodyCellClass(stickySpecs[0]))} style={getStickyBodyCellStyle(stickySpecs[0])}>
-                      <p className="font-semibold wrap-break-word text-[rgb(var(--card-foreground))]">{offer.name}</p>
-                      <p className="mt-1 font-mono text-xs text-[rgb(var(--muted-foreground))]">{offer.code}</p>
+                  <tr
+                    key={offer.id}
+                    className="group border-b border-[rgb(var(--border)/0.58)] transition-colors last:border-b-0 hover:bg-[rgb(var(--muted)/0.28)]"
+                  >
+                    <td
+                      className={cn(TABLE_BODY_CELL_CLASS, getStickyBodyCellClass(stickySpecs[0]))}
+                      style={getStickyBodyCellStyle(stickySpecs[0])}
+                    >
+                      <p className="font-semibold wrap-break-word text-[rgb(var(--card-foreground))]">
+                        {offer.name}
+                      </p>
+                      <p className="mt-1 font-mono text-xs text-[rgb(var(--muted-foreground))]">
+                        {offer.code}
+                      </p>
                     </td>
                     <td className={TABLE_BODY_CELL_CLASS}>
-                      <DataPill tone="blue" appearance="outline">{formatEnumLabel(offer.offerType)}</DataPill>
+                      <DataPill tone="blue" appearance="outline">
+                        {formatEnumLabel(offer.offerType)}
+                      </DataPill>
                     </td>
                     <td className={TABLE_BODY_CELL_CLASS}>
-                      <p className="font-semibold text-[rgb(var(--foreground))]">{getOfferValue(offer)}</p>
+                      <p className="font-semibold text-[rgb(var(--foreground))]">
+                        {getOfferValue(offer)}
+                      </p>
                       <p className="mt-1 text-xs text-[rgb(var(--muted-foreground))]">
-                        Min {offer.minimumOrderValue === null ? "none" : formatCurrency(offer.minimumOrderValue)}
+                        Min{" "}
+                        {offer.minimumOrderValue === null
+                          ? "none"
+                          : formatCurrency(offer.minimumOrderValue)}
                       </p>
                     </td>
                     <td className={TABLE_BODY_CELL_CLASS}>
                       {offer.customerType ? formatEnumLabel(offer.customerType) : "All customers"}
                     </td>
                     <td className={TABLE_BODY_CELL_CLASS}>
-                      <p className="whitespace-nowrap text-[rgb(var(--foreground)/0.72)]">{formatDate(offer.startsAt)}</p>
-                      <p className="mt-1 whitespace-nowrap text-xs text-[rgb(var(--muted-foreground))]">
+                      <p className="whitespace-nowrap text-[rgb(var(--foreground)/0.72)]">
+                        {formatDate(offer.startsAt)}
+                      </p>
+                      <p className="mt-1 text-xs whitespace-nowrap text-[rgb(var(--muted-foreground))]">
                         Ends {offer.endsAt ? formatDate(offer.endsAt) : "never"}
                       </p>
                     </td>
                     <td className={TABLE_BODY_CELL_CLASS}>
-                      <DataPill tone={getTimingTone(offer.timingState)} appearance="outline">{formatEnumLabel(offer.timingState)}</DataPill>
+                      <DataPill tone={getTimingTone(offer.timingState)} appearance="outline">
+                        {formatEnumLabel(offer.timingState)}
+                      </DataPill>
                     </td>
                     <td className={TABLE_BODY_CELL_CLASS}>
-                      <DataPill tone={getExpenseCategoryStatusTone(status)} appearance="outline">{formatEnumLabel(status)}</DataPill>
+                      <DataPill tone={getExpenseCategoryStatusTone(status)} appearance="outline">
+                        {formatEnumLabel(status)}
+                      </DataPill>
                     </td>
-                    {showBranchColumn ? <td className={TABLE_BODY_CELL_CLASS}>{offer.branchName}</td> : null}
+                    {showBranchColumn ? (
+                      <td className={TABLE_BODY_CELL_CLASS}>{offer.branchName}</td>
+                    ) : null}
                     <td className={TABLE_BODY_CELL_CLASS}>{formatDate(offer.updatedAt)}</td>
-                    <td className={cn(TABLE_BODY_CELL_CLASS, "px-2", getStickyBodyCellClass(actionsStickySpec))} style={getStickyBodyCellStyle(actionsStickySpec)}>
-                      {rowActions.length > 0 ? <RowActionMenu label={`Actions for ${offer.name}`} actions={rowActions} /> : null}
+                    <td
+                      className={cn(
+                        TABLE_BODY_CELL_CLASS,
+                        "px-2",
+                        getStickyBodyCellClass(actionsStickySpec),
+                      )}
+                      style={getStickyBodyCellStyle(actionsStickySpec)}
+                    >
+                      {rowActions.length > 0 ? (
+                        <RowActionMenu label={`Actions for ${offer.name}`} actions={rowActions} />
+                      ) : null}
                     </td>
                   </tr>
                 );
@@ -259,7 +326,12 @@ export function OffersDataTable({
             </tbody>
           </table>
         </TableScrollArea>
-        <DashboardPagination currentPath={currentPath} currentFilters={currentFilters} pagination={pagination} variant="offers" />
+        <DashboardPagination
+          currentPath={currentPath}
+          currentFilters={currentFilters}
+          pagination={pagination}
+          variant="offers"
+        />
       </DataTableContainer>
 
       <ConfirmDialog
@@ -279,8 +351,12 @@ export function OffersDataTable({
       >
         {pendingDeactivate ? (
           <div className="rounded-2xl border border-[rgb(var(--border)/0.72)] bg-[rgb(var(--muted)/0.4)] px-4 py-3">
-            <p className="text-sm font-medium text-[rgb(var(--foreground))]">{pendingDeactivate.name}</p>
-            <p className="mt-0.5 text-xs text-[rgb(var(--muted-foreground))]">Code: {pendingDeactivate.code}</p>
+            <p className="text-sm font-medium text-[rgb(var(--foreground))]">
+              {pendingDeactivate.name}
+            </p>
+            <p className="mt-0.5 text-xs text-[rgb(var(--muted-foreground))]">
+              Code: {pendingDeactivate.code}
+            </p>
           </div>
         ) : null}
       </ConfirmDialog>

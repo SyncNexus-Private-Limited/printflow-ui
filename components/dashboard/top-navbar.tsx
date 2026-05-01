@@ -19,6 +19,7 @@ type TopNavbarProps = {
   initialBranchId: string | null;
   initialBranchName: string | null;
   canSelectAllBranches: boolean;
+  canCreateOrder: boolean;
   canCreateInventory: boolean;
   canCreateExpense: boolean;
   canCreateUser: boolean;
@@ -129,6 +130,7 @@ export function TopNavbar({
   initialBranchId,
   initialBranchName,
   canSelectAllBranches,
+  canCreateOrder,
   canCreateInventory,
   canCreateExpense,
   canCreateUser,
@@ -217,6 +219,7 @@ export function TopNavbar({
          */}
         <div className="order-2 ml-auto flex shrink-0 items-center gap-2 md:order-3 md:ml-0">
           <CreateMenu
+            canCreateOrder={canCreateOrder}
             canCreateInventory={canCreateInventory}
             canCreateExpense={canCreateExpense}
             canCreateUser={canCreateUser}

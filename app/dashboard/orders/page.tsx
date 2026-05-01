@@ -5,6 +5,7 @@ import { OrderListControls } from "@/components/dashboard/order-list-controls";
 import { ListStatCard } from "@/components/dashboard/list-stat-card";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasPermission } from "@/lib/auth/permissions";
 import { parseOrderPageFilters } from "@/lib/dashboard/order-page-filters";
 import { buildBranchFilterOptions } from "@/lib/dashboard/helpers";
 import {
@@ -26,6 +27,12 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   }
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const canCreate = hasPermission(currentUser, "orders:create");
+  const canView = hasPermission(currentUser, "orders:view");
+  const canEdit = hasPermission(currentUser, "orders:edit");
+  const canAddPayment = hasPermission(currentUser, "orders:add_payment");
+  const canUpdateStatus = hasPermission(currentUser, "orders:update_status");
+  const canCancel = hasPermission(currentUser, "orders:cancel");
 
   try {
     const filters = parseOrderPageFilters(resolvedSearchParams);
@@ -83,6 +90,7 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
             currentFilters={currentFilters}
             filterOptions={filterOptions}
             selectedBranchName={context.selectedBranchName}
+            canCreate={canCreate}
           />
 
           <OrderDataTable
@@ -92,6 +100,11 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
             currentFilters={currentFilters}
             pagination={pageData.result.pagination}
             showBranch={context.selectedBranchId === null}
+            canView={canView}
+            canEdit={canEdit}
+            canAddPayment={canAddPayment}
+            canUpdateStatus={canUpdateStatus}
+            canCancel={canCancel}
           />
         </div>
       </main>

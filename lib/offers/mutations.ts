@@ -287,10 +287,12 @@ export async function createOffer(
     );
 
     const createdId = rows[0]?.id;
-    if (!createdId) throw new OfferMutationError("Unable to create offer right now.", { status: 500 });
+    if (!createdId)
+      throw new OfferMutationError("Unable to create offer right now.", { status: 500 });
 
     const snapshot = await fetchOfferSnapshotForAudit(client, createdId);
-    if (!snapshot) throw new OfferMutationError("Unable to create offer right now.", { status: 500 });
+    if (!snapshot)
+      throw new OfferMutationError("Unable to create offer right now.", { status: 500 });
 
     await logOfferAudit(client, createdId, "create", snapshot, currentUser.userId);
     await client.query("COMMIT");
@@ -377,7 +379,10 @@ export async function updateOffer(
   }
 }
 
-export async function deactivateOffer(currentUser: AuthenticatedUser, offerId: string): Promise<void> {
+export async function deactivateOffer(
+  currentUser: AuthenticatedUser,
+  offerId: string,
+): Promise<void> {
   assertPermission(currentUser, "offers:deactivate");
 
   const db = getPool();

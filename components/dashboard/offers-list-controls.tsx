@@ -3,7 +3,11 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { Plus, X } from "lucide-react";
-import { DataPill, type DataPillTone, getExpenseCategoryStatusTone } from "@/components/dashboard/data-pill";
+import {
+  DataPill,
+  type DataPillTone,
+  getExpenseCategoryStatusTone,
+} from "@/components/dashboard/data-pill";
 import { FilterDrawerShell } from "@/components/dashboard/filter-drawer-shell";
 import { FilterTriggerButton } from "@/components/dashboard/filter-trigger-button";
 import { useFilterDrawer } from "@/components/dashboard/use-filter-drawer";
@@ -89,7 +93,8 @@ function buildAppliedItems(
     items.push({
       key: "timing",
       label: `Timing: ${formatEnumLabel(filters.timing)}`,
-      tone: filters.timing === "current" ? "emerald" : filters.timing === "upcoming" ? "amber" : "rose",
+      tone:
+        filters.timing === "current" ? "emerald" : filters.timing === "upcoming" ? "amber" : "rose",
       href: buildOffersPageHref(path, filters, { ...base, timing: "all" }),
     });
   }
@@ -116,7 +121,9 @@ function RemovablePills({ items }: { items: AppliedItem[] }) {
           <DataPill tone={item.tone ?? "neutral"} appearance="outline">
             <span className="inline-flex items-center gap-1.5">
               {item.label}
-              {item.key !== "branch" ? <X className="h-3 w-3 opacity-70 transition-opacity group-hover:opacity-100" /> : null}
+              {item.key !== "branch" ? (
+                <X className="h-3 w-3 opacity-70 transition-opacity group-hover:opacity-100" />
+              ) : null}
             </span>
           </DataPill>
         </Link>
@@ -229,7 +236,9 @@ export function OffersListControls({
         panelId={filterPanelId}
         titleId={filterTitleId}
         title="Filter offers"
-        subtitle={activeFilterCount > 0 ? `${activeFilterCount} active filters` : "Narrow down offers"}
+        subtitle={
+          activeFilterCount > 0 ? `${activeFilterCount} active filters` : "Narrow down offers"
+        }
         isOpen={isOpen}
         onClose={closeDrawer}
         onApply={handleApplyFilters}
@@ -255,7 +264,16 @@ export function OffersListControls({
           <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-2">
               <span className={FILTER_FIELD_LABEL_CLASS}>Status</span>
-              <Select value={draftFilters.status} onChange={(event) => updateDraft((current) => ({ ...current, status: event.target.value as OfferStatusFilter }))} className="h-11 rounded-2xl bg-[rgb(var(--background))]">
+              <Select
+                value={draftFilters.status}
+                onChange={(event) =>
+                  updateDraft((current) => ({
+                    ...current,
+                    status: event.target.value as OfferStatusFilter,
+                  }))
+                }
+                className="h-11 rounded-2xl bg-[rgb(var(--background))]"
+              >
                 <option value="all">All</option>
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
@@ -263,7 +281,16 @@ export function OffersListControls({
             </label>
             <label className="block space-y-2">
               <span className={FILTER_FIELD_LABEL_CLASS}>Type</span>
-              <Select value={draftFilters.offerType} onChange={(event) => updateDraft((current) => ({ ...current, offerType: event.target.value as OfferTypeFilter }))} className="h-11 rounded-2xl bg-[rgb(var(--background))]">
+              <Select
+                value={draftFilters.offerType}
+                onChange={(event) =>
+                  updateDraft((current) => ({
+                    ...current,
+                    offerType: event.target.value as OfferTypeFilter,
+                  }))
+                }
+                className="h-11 rounded-2xl bg-[rgb(var(--background))]"
+              >
                 <option value="all">All</option>
                 <option value="percentage">Percentage</option>
                 <option value="flat">Flat</option>
@@ -272,7 +299,16 @@ export function OffersListControls({
             </label>
             <label className="block space-y-2">
               <span className={FILTER_FIELD_LABEL_CLASS}>Timing</span>
-              <Select value={draftFilters.timing} onChange={(event) => updateDraft((current) => ({ ...current, timing: event.target.value as OfferTimingFilter }))} className="h-11 rounded-2xl bg-[rgb(var(--background))]">
+              <Select
+                value={draftFilters.timing}
+                onChange={(event) =>
+                  updateDraft((current) => ({
+                    ...current,
+                    timing: event.target.value as OfferTimingFilter,
+                  }))
+                }
+                className="h-11 rounded-2xl bg-[rgb(var(--background))]"
+              >
                 <option value="all">All</option>
                 <option value="current">Current</option>
                 <option value="upcoming">Upcoming</option>
@@ -283,11 +319,25 @@ export function OffersListControls({
           <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-2">
               <span className={FILTER_FIELD_LABEL_CLASS}>Starts from</span>
-              <Input type="date" value={draftFilters.startsFrom ?? ""} onChange={(event) => updateDraft((current) => ({ ...current, startsFrom: event.target.value || null }))} className="h-11 rounded-2xl bg-[rgb(var(--background))]" />
+              <Input
+                type="date"
+                value={draftFilters.startsFrom ?? ""}
+                onChange={(event) =>
+                  updateDraft((current) => ({ ...current, startsFrom: event.target.value || null }))
+                }
+                className="h-11 rounded-2xl bg-[rgb(var(--background))]"
+              />
             </label>
             <label className="block space-y-2">
               <span className={FILTER_FIELD_LABEL_CLASS}>Starts to</span>
-              <Input type="date" value={draftFilters.startsTo ?? ""} onChange={(event) => updateDraft((current) => ({ ...current, startsTo: event.target.value || null }))} className="h-11 rounded-2xl bg-[rgb(var(--background))]" />
+              <Input
+                type="date"
+                value={draftFilters.startsTo ?? ""}
+                onChange={(event) =>
+                  updateDraft((current) => ({ ...current, startsTo: event.target.value || null }))
+                }
+                className="h-11 rounded-2xl bg-[rgb(var(--background))]"
+              />
             </label>
           </div>
         </div>

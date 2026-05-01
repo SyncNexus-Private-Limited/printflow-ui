@@ -48,10 +48,30 @@ export default async function OffersPage({ searchParams }: OffersPageProps) {
           />
 
           <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <ListStatCard label="Total offers" value={formatCompactNumber(pageData.summary.totalOffers)} meta="Promotion rules" accent="blue" />
-            <ListStatCard label="Active offers" value={formatCompactNumber(pageData.summary.activeOffers)} meta="Enabled rules" accent="emerald" />
-            <ListStatCard label="Current offers" value={formatCompactNumber(pageData.summary.currentOffers)} meta="Valid today" accent="violet" />
-            <ListStatCard label="Upcoming offers" value={formatCompactNumber(pageData.summary.upcomingOffers)} meta="Starts later" accent="amber" />
+            <ListStatCard
+              label="Total offers"
+              value={formatCompactNumber(pageData.summary.totalOffers)}
+              meta="Promotion rules"
+              accent="blue"
+            />
+            <ListStatCard
+              label="Active offers"
+              value={formatCompactNumber(pageData.summary.activeOffers)}
+              meta="Enabled rules"
+              accent="emerald"
+            />
+            <ListStatCard
+              label="Current offers"
+              value={formatCompactNumber(pageData.summary.currentOffers)}
+              meta="Valid today"
+              accent="violet"
+            />
+            <ListStatCard
+              label="Upcoming offers"
+              value={formatCompactNumber(pageData.summary.upcomingOffers)}
+              meta="Starts later"
+              accent="amber"
+            />
           </section>
 
           <OffersListControls

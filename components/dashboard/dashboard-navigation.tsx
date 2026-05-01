@@ -126,6 +126,7 @@ export function getDashboardBreadcrumbs(
   searchParams?: Pick<URLSearchParams, "get">,
 ): DashboardBreadcrumb[] {
   const homeHref = buildDashboardHref("/dashboard", filters);
+  const ordersHref = buildDashboardHref("/dashboard/orders", filters);
   const inventoryHref = buildDashboardHref("/dashboard/inventory", filters);
   const offersHref = buildDashboardHref("/dashboard/offers", filters);
   const vendorsHref = buildDashboardHref("/dashboard/vendors", filters);
@@ -144,6 +145,31 @@ export function getDashboardBreadcrumbs(
       { label: "Home", href: homeHref },
       { label: "Users", href: usersHref },
       { label: "Add User" },
+    ];
+  }
+
+  if (pathname === "/dashboard/orders/new") {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Orders", href: ordersHref },
+      { label: "Add Order" },
+    ];
+  }
+
+  if (pathname.startsWith("/dashboard/orders/") && pathname.endsWith("/edit")) {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Orders", href: ordersHref },
+      { label: "Order Details", href: pathname.replace(/\/edit$/, "") },
+      { label: "Edit Order" },
+    ];
+  }
+
+  if (pathname.startsWith("/dashboard/orders/")) {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Orders", href: ordersHref },
+      { label: "Order Details" },
     ];
   }
 

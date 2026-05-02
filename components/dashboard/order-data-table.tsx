@@ -36,7 +36,7 @@ import type { DashboardPaginationState, OrderDetailRow } from "@/lib/dashboard/t
 import type { OrderStatusValue } from "@/lib/orders/types";
 import { cn } from "@/lib/utils/cn";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
-import { CreditCard, HandCoins, Eye, Pencil, RotateCcw, Truck, XCircle } from "lucide-react";
+import { CreditCard, Eye, Pencil, RotateCcw, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -52,8 +52,6 @@ type OrderDataTableProps = {
   canAddPayment?: boolean;
   canUpdateStatus?: boolean;
   canCancel?: boolean;
-  canEditVendor?: boolean;
-  canAddVendorPayment?: boolean;
 };
 
 type HeaderConfig = {
@@ -149,8 +147,6 @@ export function OrderDataTable({
   canAddPayment = false,
   canUpdateStatus = false,
   canCancel = false,
-  canEditVendor = false,
-  canAddVendorPayment = false,
 }: OrderDataTableProps) {
   const router = useRouter();
   const headerConfigs = getHeaderConfigs(showBranch);
@@ -370,23 +366,6 @@ export function OrderDataTable({
                         icon: <RotateCcw className="h-4 w-4" />,
                         disabled: !canUpdateStatus || order.status === "cancelled",
                         onClick: () => setStatusOrder(order),
-                      },
-                      {
-                        key: "vendor",
-                        label: order.vendorCount > 0 ? "Edit Vendor" : "Assign Vendor",
-                        icon: <Truck className="h-4 w-4" />,
-                        disabled: !canEditVendor || order.status === "cancelled",
-                        onClick: () => router.push(`/dashboard/orders/${order.id}`),
-                      },
-                      {
-                        key: "vendor-payment",
-                        label: "Record Vendor Payment",
-                        icon: <HandCoins className="h-4 w-4" />,
-                        disabled:
-                          !canAddVendorPayment ||
-                          order.status === "cancelled" ||
-                          order.vendorCount === 0,
-                        onClick: () => router.push(`/dashboard/orders/${order.id}`),
                       },
                       {
                         key: "cancel",

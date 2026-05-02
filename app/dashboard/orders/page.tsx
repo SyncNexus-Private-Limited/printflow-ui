@@ -33,8 +33,6 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
   const canAddPayment = hasPermission(currentUser, "orders:add_payment");
   const canUpdateStatus = hasPermission(currentUser, "orders:update_status");
   const canCancel = hasPermission(currentUser, "orders:cancel");
-  const canEditVendor = hasPermission(currentUser, "orders:edit_vendor");
-  const canAddVendorPayment = hasPermission(currentUser, "orders:add_vendor_payment");
 
   try {
     const filters = parseOrderPageFilters(resolvedSearchParams);
@@ -107,8 +105,6 @@ export default async function OrdersPage({ searchParams }: OrdersPageProps) {
             canAddPayment={canAddPayment}
             canUpdateStatus={canUpdateStatus}
             canCancel={canCancel}
-            canEditVendor={canEditVendor}
-            canAddVendorPayment={canAddVendorPayment}
           />
         </div>
       </main>

@@ -300,6 +300,12 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 - Enforce `assertPermission` + `canAccessBranch` for all customer mutations.
 - Deactivate is soft — sets `is_active = false`; restore re-activates. Do not hard-delete customers.
 
+## Order Management Rules
+
+- Add Order lives at `/dashboard/orders/new` and uses `components/orders/order-form.tsx`.
+- Order detail at `/dashboard/orders/[id]` separates customer payments (`payments`) from vendor payments (`branch_expenses` linked to `order_vendor_id`).
+- Order breadcrumbs follow `Home > Sales > Orders`, including Add/Edit/Detail routes.
+
 ## UI Rules
 
 - Use existing components from `components/`. Avoid new UI primitives unless necessary
@@ -373,6 +379,7 @@ All list pages (orders, customers, inventory, inventory-pricing, employee-expens
 - Inventory pricing now has dashboard list/create pages, API routes, `lib/inventory-pricing` schemas/mutations/types, overlap-safe DB enforcement, close/update flows, and `inventory_pricing_audit_logs`.
 - Expense categories now have dashboard list/create pages, API routes, `lib/expense-categories` logic, active/inactive/restore handling, RBAC permissions, and `expense_category_audit_logs`.
 - Vendors now have dashboard list/create pages, API routes, `lib/vendors` logic, edit modal, soft deactivate/restore, RBAC permissions, `vendor_audit_logs`.
+- Orders now have Add Order, detail/edit, status, customer payment, vendor assignment/payment, and audit history flows.
 - New migrations dated 20260430 cover inventory v1, inventory pricing audit logs, expense category management, and expense category audit logs.
 - Shared dashboard list/table/filter primitives also support the newer inventory pricing and expense category pages.
 - Keep using `assertPermission` plus `canAccessBranch` for these flows; inventory pricing reuses inventory create/edit permissions.

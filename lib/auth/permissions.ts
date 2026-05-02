@@ -25,6 +25,8 @@ export type Permission =
   | "orders:add_payment"
   | "orders:update_status"
   | "orders:cancel"
+  | "orders:edit_vendor"
+  | "orders:add_vendor_payment"
   | "expenses:view"
   | "expenses:create"
   | "expenses:edit"
@@ -98,6 +100,8 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
     "orders:add_payment",
     "orders:update_status",
     "orders:cancel",
+    "orders:edit_vendor",
+    "orders:add_vendor_payment",
     "expenses:view",
     "expenses:create",
     "expenses:edit",
@@ -139,6 +143,8 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
     "orders:add_payment",
     "orders:update_status",
     "orders:cancel",
+    "orders:edit_vendor",
+    "orders:add_vendor_payment",
     "expenses:view",
     "expenses:create",
     "expenses:edit",
@@ -179,6 +185,8 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
     "orders:add_payment",
     "orders:update_status",
     "orders:cancel",
+    "orders:edit_vendor",
+    "orders:add_vendor_payment",
     "expenses:view",
     "expenses:create",
     "expenses:edit",

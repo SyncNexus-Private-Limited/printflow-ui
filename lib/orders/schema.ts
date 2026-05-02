@@ -3,6 +3,7 @@ import { paymentModeValues } from "@/lib/expenses/types";
 import { customerTypeValues } from "@/lib/offers/types";
 import {
   createOrderFieldNames,
+  orderVendorStatusValues,
   orderStatusValues,
   type CreateOrderFieldName,
 } from "@/lib/orders/types";
@@ -167,91 +168,78 @@ export const updateOrderStatusSchema = z.object({
   status: z.enum(orderStatusValues),
 });
 
-export const updateOrderSchema = z
-  .object({
-    customerId: z
-      .string()
-      .trim()
-      .refine((value) => uuidPattern.test(value), "Select a customer"),
-    status: z.enum(orderStatusValues),
-    items: z
-      .array(
-        z.object({
-          inventoryId: z
-            .string()
-            .trim()
-            .refine((value) => uuidPattern.test(value), "Select an item"),
-          quantity: z
-            .string()
-            .trim()
-            .regex(/^\d+(\.\d{1,3})?$/, "Quantity must be valid")
-            .refine((value) => Number.parseFloat(value) > 0, "Quantity is required"),
-          unitPrice: z.string().trim().optional().default(""),
-        }),
-      )
-      .min(1, "Add at least one order item"),
-    offerIds: z
-      .array(
-        z
+export const upsertOrderVendorSchema = z.object({
+  vendorId: z
+    .string()
+    .trim()
+    .refine((value) => uuidPattern.test(value), "Select a vendor"),
+  vendorChargeAmount: optionalAmount("Vendor charge").refine(
+    (value) => value !== undefined && Number.parseFloat(value) >= 0,
+    "Vendor charge is required",
+  ),
+  vendorStatus: z.enum(orderVendorStatusValues).default("assigned"),
+  expectedDeliveryDate: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => (value && value.length > 0 ? value : undefined))
+    .refine(
+      (value) => value === undefined || /^\d{4}-\d{2}-\d{2}$/.test(value),
+      "Expected delivery must be a valid date",
+    ),
+  notes: optionalText(400),
+});
+
+export const recordOrderVendorPaymentSchema = z.object({
+  amount: z
+    .string()
+    .trim()
+    .regex(/^\d+(\.\d{1,2})?$/, "Amount must be valid")
+    .refine((value) => Number.parseFloat(value) > 0, "Amount must be greater than 0"),
+  paymentMode: z.enum(paymentModeValues),
+  expenseDate: z
+    .string()
+    .trim()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Expense date must be valid")
+    .optional()
+    .default(() => new Date().toISOString().slice(0, 10)),
+  remarks: optionalText(400),
+});
+
+export const updateOrderSchema = z.object({
+  customerId: z
+    .string()
+    .trim()
+    .refine((value) => uuidPattern.test(value), "Select a customer"),
+  items: z
+    .array(
+      z.object({
+        inventoryId: z
           .string()
           .trim()
-          .refine((value) => uuidPattern.test(value)),
-      )
-      .default([]),
-    vendorId: z.string().trim().optional().default(""),
-    vendorChargeAmount: optionalAmount("Vendor charge"),
-    vendorPaidAmount: optionalAmount("Vendor paid amount"),
-    vendorExpectedDeliveryDate: z
-      .string()
-      .trim()
-      .optional()
-      .transform((value) => (value && value.length > 0 ? value : undefined))
-      .refine(
-        (value) => value === undefined || /^\d{4}-\d{2}-\d{2}$/.test(value),
-        "Expected delivery must be a valid date",
-      ),
-    vendorNotes: optionalText(400),
-    paymentMode: z.enum(paymentModeValues).or(z.literal("")).optional().default(""),
-  })
-  .superRefine((value, ctx) => {
-    const hasVendor = value.vendorId.length > 0;
-    if (hasVendor && !uuidPattern.test(value.vendorId)) {
-      ctx.addIssue({ code: "custom", path: ["vendorId"], message: "Select a valid vendor" });
-    }
-    if (
-      (value.vendorChargeAmount || value.vendorPaidAmount || value.vendorExpectedDeliveryDate) &&
-      !hasVendor
-    ) {
-      ctx.addIssue({ code: "custom", path: ["vendorId"], message: "Select a vendor" });
-    }
-    if (value.vendorPaidAmount && !value.vendorChargeAmount) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["vendorChargeAmount"],
-        message: "Vendor charge is required",
-      });
-    }
-    if (
-      value.vendorPaidAmount &&
-      value.vendorChargeAmount &&
-      Number.parseFloat(value.vendorPaidAmount) > Number.parseFloat(value.vendorChargeAmount)
-    ) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["vendorPaidAmount"],
-        message: "Vendor paid amount cannot exceed vendor charge",
-      });
-    }
-    if (
-      value.vendorPaidAmount &&
-      Number.parseFloat(value.vendorPaidAmount) > 0 &&
-      !value.paymentMode
-    ) {
-      ctx.addIssue({ code: "custom", path: ["paymentMode"], message: "Payment mode is required" });
-    }
-  });
+          .refine((value) => uuidPattern.test(value), "Select an item"),
+        quantity: z
+          .string()
+          .trim()
+          .regex(/^\d+(\.\d{1,3})?$/, "Quantity must be valid")
+          .refine((value) => Number.parseFloat(value) > 0, "Quantity is required"),
+        unitPrice: z.string().trim().optional().default(""),
+      }),
+    )
+    .min(1, "Add at least one order item"),
+  offerIds: z
+    .array(
+      z
+        .string()
+        .trim()
+        .refine((value) => uuidPattern.test(value)),
+    )
+    .default([]),
+});
 
 export type AddOrderPaymentInput = z.infer<typeof addOrderPaymentSchema>;
+export type UpsertOrderVendorInput = z.infer<typeof upsertOrderVendorSchema>;
+export type RecordOrderVendorPaymentInput = z.infer<typeof recordOrderVendorPaymentSchema>;
 export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusSchema>;
 export type UpdateOrderInput = z.infer<typeof updateOrderSchema>;
 

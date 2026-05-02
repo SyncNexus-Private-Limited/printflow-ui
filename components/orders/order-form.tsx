@@ -561,7 +561,7 @@ export function OrderForm(props: AddOrderPageData) {
             value={values.vendorPaidAmount}
             onChange={(event) => updateValue("vendorPaidAmount", event.target.value)}
             inputMode="decimal"
-            placeholder="Paid to vendor"
+            placeholder="Initial vendor payment"
           />
           <Input
             type="date"

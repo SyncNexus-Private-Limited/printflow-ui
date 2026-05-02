@@ -184,6 +184,13 @@ Role-based access is defined in `lib/auth/permissions.ts`. Every guarded action 
 - `/dashboard/vendors` lists vendors with create, edit, deactivate, and restore actions.
 - Mutations in `lib/vendors/mutations.ts` enforce RBAC and audit every change.
 
+## Order management
+
+- `/dashboard/orders/new` creates orders with customer, items, offers, payment, vendor, and summary sections.
+- `/dashboard/orders/[id]` shows order summary, customer payments, vendor expenses, and audit/history.
+- Customer payments use `payments`; vendor payments use `branch_expenses` linked to `order_vendor_id`.
+- Orders breadcrumbs use `Home > Sales > Orders`, including Add/Edit/Detail routes.
+
 ## Toast system
 
 A minimal `ToastProvider` / `useToast()` lives in `lib/ui/toast-context.tsx`, mirroring the `GlobalLoaderContext` pattern. `ToastContainer` (fixed bottom-right) and `ToastItem` (glass card with variant icon) are in `components/ui/toast.tsx`. Both are wired up in `GlobalUiProvider`.

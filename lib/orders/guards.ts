@@ -1,8 +1,12 @@
 import type { AuthenticatedUser } from "@/lib/auth/current-user";
-import { canAccessBranch } from "@/lib/auth/permissions";
+import { canAccessBranch, hasPermission } from "@/lib/auth/permissions";
 
 export function canEditOrder(user: AuthenticatedUser, order: { branchId: string; status: string }) {
-  return order.status !== "cancelled" && canAccessBranch(user, order.branchId);
+  return (
+    hasPermission(user, "orders:edit") &&
+    order.status !== "cancelled" &&
+    canAccessBranch(user, order.branchId)
+  );
 }
 
 export function canEditOrderItems(
@@ -12,16 +16,64 @@ export function canEditOrderItems(
   return canEditOrder(user, order);
 }
 
-export function canEditOrderVendor(
+export function canEditOrderDiscount(
   user: AuthenticatedUser,
   order: { branchId: string; status: string },
 ) {
   return canEditOrder(user, order);
 }
 
-export function canEditOrderPayment(
+export function canUpdateOrderStatus(
   user: AuthenticatedUser,
   order: { branchId: string; status: string },
 ) {
-  return canEditOrder(user, order);
+  return (
+    hasPermission(user, "orders:update_status") &&
+    order.status !== "cancelled" &&
+    canAccessBranch(user, order.branchId)
+  );
+}
+
+export function canCancelOrder(
+  user: AuthenticatedUser,
+  order: { branchId: string; status: string },
+) {
+  return (
+    hasPermission(user, "orders:cancel") &&
+    order.status !== "cancelled" &&
+    canAccessBranch(user, order.branchId)
+  );
+}
+
+export function canAddCustomerPayment(
+  user: AuthenticatedUser,
+  order: { branchId: string; status: string },
+) {
+  return (
+    hasPermission(user, "orders:add_payment") &&
+    order.status !== "cancelled" &&
+    canAccessBranch(user, order.branchId)
+  );
+}
+
+export function canEditOrderVendor(
+  user: AuthenticatedUser,
+  order: { branchId: string; status: string },
+) {
+  return (
+    hasPermission(user, "orders:edit_vendor") &&
+    order.status !== "cancelled" &&
+    canAccessBranch(user, order.branchId)
+  );
+}
+
+export function canAddVendorPayment(
+  user: AuthenticatedUser,
+  order: { branchId: string; status: string },
+) {
+  return (
+    hasPermission(user, "orders:add_vendor_payment") &&
+    order.status !== "cancelled" &&
+    canAccessBranch(user, order.branchId)
+  );
 }

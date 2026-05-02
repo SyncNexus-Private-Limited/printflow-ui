@@ -153,14 +153,24 @@ export function getDashboardBreadcrumbs(
   if (pathname === "/dashboard/orders/new") {
     return [
       { label: "Home", href: homeHref },
+      { label: "Sales", href: salesHref },
       { label: "Orders", href: ordersHref },
       { label: "Add Order" },
+    ];
+  }
+
+  if (pathname === "/dashboard/orders") {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Sales", href: salesHref },
+      { label: "Orders" },
     ];
   }
 
   if (pathname.startsWith("/dashboard/orders/") && pathname.endsWith("/edit")) {
     return [
       { label: "Home", href: homeHref },
+      { label: "Sales", href: salesHref },
       { label: "Orders", href: ordersHref },
       { label: "Order Details", href: pathname.replace(/\/edit$/, "") },
       { label: "Edit Order" },
@@ -170,6 +180,7 @@ export function getDashboardBreadcrumbs(
   if (pathname.startsWith("/dashboard/orders/")) {
     return [
       { label: "Home", href: homeHref },
+      { label: "Sales", href: salesHref },
       { label: "Orders", href: ordersHref },
       { label: "Order Details" },
     ];

@@ -124,6 +124,15 @@ export const orderStatusValues = [
 
 export type OrderStatusValue = (typeof orderStatusValues)[number];
 
+export const orderVendorStatusValues = [
+  "assigned",
+  "in_progress",
+  "received",
+  "cancelled",
+] as const;
+
+export type OrderVendorStatusValue = (typeof orderVendorStatusValues)[number];
+
 export type OrderDetailData = {
   order: {
     id: string;
@@ -178,13 +187,24 @@ export type OrderDetailData = {
     chargeAmount: number;
     paidAmount: number;
     balanceAmount: number;
-    status: string;
+    status: OrderVendorStatusValue;
     expectedDeliveryDate: string | null;
     notes: string | null;
+    payments: Array<{
+      id: string;
+      title: string | null;
+      amount: number;
+      paymentMode: PaymentMode;
+      expenseDate: string;
+      remarks: string | null;
+      createdByName: string | null;
+      createdAt: string;
+    }>;
   }>;
   auditLogs: Array<{
     id: string;
     action: string;
+    changedFields: Record<string, unknown> | null;
     changedByName: string | null;
     createdAt: string;
   }>;

@@ -6,14 +6,20 @@ import { getPool } from "@/lib/db/postgres";
 import {
   type AddOrderPaymentInput,
   type CreateOrderInput,
+  type RecordOrderVendorPaymentInput,
   type UpdateOrderInput,
   type UpdateOrderStatusInput,
+  type UpsertOrderVendorInput,
 } from "@/lib/orders/schema";
 import {
+  canAddCustomerPayment,
+  canAddVendorPayment,
+  canCancelOrder,
   canEditOrder,
+  canEditOrderDiscount,
   canEditOrderItems,
-  canEditOrderPayment,
   canEditOrderVendor,
+  canUpdateOrderStatus,
 } from "@/lib/orders/guards";
 
 type MutationFieldErrors = Partial<Record<string, string>>;
@@ -60,9 +66,21 @@ type MutableOrderRow = {
   branch_id: string;
   customer_id: string;
   status: string;
+  discount_amount: number;
   payable_amount: number;
   paid_amount: number;
 };
+
+type OrderAuditAction =
+  | "order_updated"
+  | "items_updated"
+  | "discount_updated"
+  | "status_changed"
+  | "cancelled"
+  | "customer_payment_added"
+  | "vendor_assigned"
+  | "vendor_updated"
+  | "vendor_payment_recorded";
 
 function parseAmount(value: string | undefined) {
   return value ? Number.parseFloat(value) : 0;
@@ -74,12 +92,6 @@ function normalizeOptional(value: string | undefined) {
 
 function roundMoney(value: number) {
   return Math.round(value * 100) / 100;
-}
-
-function buildVendorStatus(charge: number, paid: number) {
-  if (paid <= 0) return "pending";
-  if (paid < charge) return "partial";
-  return "paid";
 }
 
 async function resolveCustomer(client: PoolClient, input: CreateOrderInput): Promise<CustomerRow> {
@@ -283,6 +295,7 @@ async function fetchMutableOrder(client: PoolClient, orderId: string): Promise<M
         branch_id::text AS branch_id,
         customer_id::text AS customer_id,
         status::text AS status,
+        discount_amount::double precision AS discount_amount,
         payable_amount::double precision AS payable_amount,
         paid_amount::double precision AS paid_amount
       FROM orders
@@ -298,20 +311,83 @@ async function fetchMutableOrder(client: PoolClient, orderId: string): Promise<M
   return order;
 }
 
+type MutableOrderVendorRow = {
+  id: string;
+  order_id: string;
+  branch_id: string;
+  order_code: string;
+  order_status: string;
+  vendor_id: string;
+  vendor_status: string;
+  vendor_charge_amount: number;
+  paid_amount: number;
+};
+
+async function fetchMutableOrderVendor(
+  client: PoolClient,
+  orderVendorId: string,
+): Promise<MutableOrderVendorRow> {
+  const { rows } = await client.query<MutableOrderVendorRow>(
+    `
+      SELECT
+        ov.id::text AS id,
+        ov.order_id::text AS order_id,
+        o.branch_id::text AS branch_id,
+        o.order_code,
+        o.status::text AS order_status,
+        ov.vendor_id::text AS vendor_id,
+        ov.status AS vendor_status,
+        ov.vendor_charge_amount::double precision AS vendor_charge_amount,
+        COALESCE(expenses.paid_amount, 0)::double precision AS paid_amount
+      FROM order_vendors ov
+      JOIN orders o ON o.id = ov.order_id
+      LEFT JOIN LATERAL (
+        SELECT SUM(be.amount) AS paid_amount
+        FROM branch_expenses be
+        WHERE be.order_vendor_id = ov.id
+      ) expenses ON true
+      WHERE ov.id = $1::uuid
+      FOR UPDATE OF ov
+      LIMIT 1
+    `,
+    [orderVendorId],
+  );
+
+  const orderVendor = rows[0];
+  if (!orderVendor) throw new OrderMutationError("Order vendor not found.", { status: 404 });
+  return orderVendor;
+}
+
+async function getVendorPaymentCategoryId(client: PoolClient): Promise<string> {
+  const { rows } = await client.query<{ id: string }>(
+    `
+      SELECT id::text AS id
+      FROM expense_categories
+      WHERE code = 'vendor_payment'
+        AND is_active = true
+      LIMIT 1
+    `,
+  );
+  const categoryId = rows[0]?.id;
+  if (!categoryId) {
+    throw new OrderMutationError("Vendor payment category is missing.", { status: 500 });
+  }
+  return categoryId;
+}
+
 async function insertOrderAudit(
   client: PoolClient,
   orderId: string,
-  action: string,
+  action: OrderAuditAction,
   changedBy: string,
 ) {
-  const checkedAction = action === "order_cancelled" || action === "cancel" ? "cancel" : "update";
   const snapshot = await fetchOrderSnapshot(client, orderId);
   await client.query(
     `
-      INSERT INTO order_audit_logs (order_id, action, snapshot, changed_fields, changed_by)
-      VALUES ($1::uuid, $2, $3::jsonb, $4::jsonb, $5::uuid)
+      INSERT INTO order_audit_logs (order_id, action, snapshot, changed_by)
+      VALUES ($1::uuid, $2, $3::jsonb, $4::uuid)
     `,
-    [orderId, checkedAction, JSON.stringify(snapshot), JSON.stringify({ action }), changedBy],
+    [orderId, action, JSON.stringify(snapshot), changedBy],
   );
 }
 
@@ -467,17 +543,16 @@ export async function createOrder(
       const charge = parseAmount(input.vendorChargeAmount);
       const paid = parseAmount(input.vendorPaidAmount);
       const balance = roundMoney(charge - paid);
-      const status = buildVendorStatus(charge, paid);
       const { rows: vendorRows } = await client.query<{ id: string }>(
         `
           INSERT INTO order_vendors
             (
               order_id, vendor_id, vendor_charge_amount, vendor_paid_amount,
-              vendor_balance_amount, status, expected_delivery_date, notes, updated_by
+              vendor_balance_amount, status, expected_delivery_date, notes, created_by, updated_by
             )
           VALUES
             ($1::uuid, $2::uuid, $3::numeric(14,2), $4::numeric(14,2),
-             $5::numeric(14,2), $6, $7::date, $8, $9::uuid)
+             $5::numeric(14,2), $6, $7::date, $8, $9::uuid, $9::uuid)
           RETURNING id::text AS id
         `,
         [
@@ -486,7 +561,7 @@ export async function createOrder(
           charge,
           paid,
           balance,
-          status,
+          "assigned",
           input.vendorExpectedDeliveryDate ?? null,
           normalizeOptional(input.vendorNotes),
           currentUser.userId,
@@ -590,7 +665,7 @@ export async function addOrderPayment(
     await client.query("BEGIN");
 
     const order = await fetchMutableOrder(client, orderId);
-    if (!canEditOrderPayment(currentUser, { branchId: order.branch_id, status: order.status })) {
+    if (!canAddCustomerPayment(currentUser, { branchId: order.branch_id, status: order.status })) {
       throw new OrderMutationError("Payments are not allowed for this order.", { status: 403 });
     }
 
@@ -618,13 +693,247 @@ export async function addOrderPayment(
       ],
     );
 
-    await insertOrderAudit(client, order.id, "payment_added", currentUser.userId);
+    await insertOrderAudit(client, order.id, "customer_payment_added", currentUser.userId);
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
     if (error instanceof OrderMutationError) throw error;
     console.error("Order payment failed", error);
     throw new OrderMutationError("Unable to record payment right now.", { status: 500 });
+  } finally {
+    client.release();
+  }
+}
+
+export async function upsertOrderVendor(
+  currentUser: AuthenticatedUser,
+  orderId: string,
+  input: UpsertOrderVendorInput,
+) {
+  assertPermission(currentUser, "orders:edit_vendor");
+
+  const db = getPool();
+  const client = await db.connect();
+
+  try {
+    await client.query("BEGIN");
+    const order = await fetchMutableOrder(client, orderId);
+    if (!canEditOrderVendor(currentUser, { branchId: order.branch_id, status: order.status })) {
+      throw new OrderMutationError("Vendor details cannot be edited for this order.", {
+        status: 403,
+      });
+    }
+
+    const { rows: vendorRows } = await client.query<{ id: string }>(
+      `
+        SELECT id::text AS id
+        FROM vendors
+        WHERE id = $1::uuid
+          AND is_active = true
+        LIMIT 1
+      `,
+      [input.vendorId],
+    );
+    if (!vendorRows[0]) {
+      throw new OrderMutationError("Select an active vendor.", {
+        status: 400,
+        fieldErrors: { vendorId: "Select an active vendor." },
+      });
+    }
+
+    const charge = parseAmount(input.vendorChargeAmount);
+    const { rows: existingRows } = await client.query<{ id: string }>(
+      `
+        SELECT id::text AS id
+        FROM order_vendors
+        WHERE order_id = $1::uuid
+        ORDER BY created_at DESC
+        LIMIT 1
+        FOR UPDATE
+      `,
+      [order.id],
+    );
+    const existing = existingRows[0];
+
+    if (existing) {
+      const { rows: paidRows } = await client.query<{ paidAmount: number }>(
+        `
+          SELECT COALESCE(SUM(amount), 0)::double precision AS "paidAmount"
+          FROM branch_expenses
+          WHERE order_vendor_id = $1::uuid
+        `,
+        [existing.id],
+      );
+      const paidAmount = paidRows[0]?.paidAmount ?? 0;
+      if (paidAmount > charge) {
+        throw new OrderMutationError("Vendor charge cannot be below amount already paid.", {
+          status: 400,
+          fieldErrors: { vendorChargeAmount: "Charge cannot be below paid amount." },
+        });
+      }
+
+      await client.query(
+        `
+          UPDATE order_vendors
+          SET vendor_id = $2::uuid,
+              vendor_charge_amount = $3::numeric(14,2),
+              vendor_paid_amount = $4::numeric(14,2),
+              vendor_balance_amount = $5::numeric(14,2),
+              status = $6,
+              expected_delivery_date = $7::date,
+              notes = $8,
+              updated_by = $9::uuid,
+              updated_at = now()
+          WHERE id = $1::uuid
+        `,
+        [
+          existing.id,
+          input.vendorId,
+          charge,
+          paidAmount,
+          roundMoney(charge - paidAmount),
+          input.vendorStatus,
+          input.expectedDeliveryDate ?? null,
+          normalizeOptional(input.notes),
+          currentUser.userId,
+        ],
+      );
+      await insertOrderAudit(client, order.id, "vendor_updated", currentUser.userId);
+    } else {
+      await client.query(
+        `
+          INSERT INTO order_vendors
+            (
+              order_id, vendor_id, vendor_charge_amount, vendor_paid_amount,
+              vendor_balance_amount, status, expected_delivery_date, notes,
+              created_by, updated_by
+            )
+          VALUES
+            (
+              $1::uuid, $2::uuid, $3::numeric(14,2), 0,
+              $3::numeric(14,2), $4, $5::date, $6,
+              $7::uuid, $7::uuid
+            )
+        `,
+        [
+          order.id,
+          input.vendorId,
+          charge,
+          input.vendorStatus,
+          input.expectedDeliveryDate ?? null,
+          normalizeOptional(input.notes),
+          currentUser.userId,
+        ],
+      );
+      await insertOrderAudit(client, order.id, "vendor_assigned", currentUser.userId);
+    }
+
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    if (error instanceof OrderMutationError) throw error;
+    console.error("Order vendor update failed", error);
+    throw new OrderMutationError("Unable to update vendor details right now.", { status: 500 });
+  } finally {
+    client.release();
+  }
+}
+
+export async function recordOrderVendorPayment(
+  currentUser: AuthenticatedUser,
+  orderId: string,
+  orderVendorId: string,
+  input: RecordOrderVendorPaymentInput,
+) {
+  assertPermission(currentUser, "orders:add_vendor_payment");
+
+  const db = getPool();
+  const client = await db.connect();
+
+  try {
+    await client.query("BEGIN");
+    const orderVendor = await fetchMutableOrderVendor(client, orderVendorId);
+    if (orderVendor.order_id !== orderId) {
+      throw new OrderMutationError("Order vendor does not belong to this order.", { status: 404 });
+    }
+    if (orderVendor.vendor_status === "cancelled") {
+      throw new OrderMutationError("Cancelled vendors cannot receive payments.", { status: 400 });
+    }
+    if (
+      !canAddVendorPayment(currentUser, {
+        branchId: orderVendor.branch_id,
+        status: orderVendor.order_status,
+      })
+    ) {
+      throw new OrderMutationError("Vendor payments are not allowed for this order.", {
+        status: 403,
+      });
+    }
+
+    const amount = Number.parseFloat(input.amount);
+    const balance = roundMoney(orderVendor.vendor_charge_amount - orderVendor.paid_amount);
+    if (amount > balance) {
+      throw new OrderMutationError("Vendor payment cannot exceed vendor balance.", {
+        status: 400,
+        fieldErrors: { amount: "Payment cannot exceed vendor balance." },
+      });
+    }
+
+    const categoryId = await getVendorPaymentCategoryId(client);
+    await client.query(
+      `
+        INSERT INTO branch_expenses
+          (
+            branch_id, title, amount, category_id, expense_date,
+            remarks, payment_mode, order_vendor_id, created_by, updated_by
+          )
+        VALUES
+          ($1::uuid, $2, $3::numeric(14,2), $4::uuid, $5::date,
+           $6, $7::payment_mode, $8::uuid, $9::uuid, $9::uuid)
+      `,
+      [
+        orderVendor.branch_id,
+        `Vendor payment for ${orderVendor.order_code}`,
+        amount,
+        categoryId,
+        input.expenseDate,
+        normalizeOptional(input.remarks),
+        input.paymentMode,
+        orderVendor.id,
+        currentUser.userId,
+      ],
+    );
+
+    const nextPaid = roundMoney(orderVendor.paid_amount + amount);
+    await client.query(
+      `
+        UPDATE order_vendors
+        SET vendor_paid_amount = $2::numeric(14,2),
+            vendor_balance_amount = $3::numeric(14,2),
+            updated_by = $4::uuid,
+            updated_at = now()
+        WHERE id = $1::uuid
+      `,
+      [
+        orderVendor.id,
+        nextPaid,
+        roundMoney(orderVendor.vendor_charge_amount - nextPaid),
+        currentUser.userId,
+      ],
+    );
+
+    await insertOrderAudit(
+      client,
+      orderVendor.order_id,
+      "vendor_payment_recorded",
+      currentUser.userId,
+    );
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    if (error instanceof OrderMutationError) throw error;
+    console.error("Order vendor payment failed", error);
+    throw new OrderMutationError("Unable to record vendor payment right now.", { status: 500 });
   } finally {
     client.release();
   }
@@ -643,10 +952,7 @@ export async function updateOrderStatus(
   try {
     await client.query("BEGIN");
     const order = await fetchMutableOrder(client, orderId);
-    if (!canAccessBranch(currentUser, order.branch_id)) {
-      throw new OrderMutationError("You do not have access to this branch.", { status: 403 });
-    }
-    if (order.status === "cancelled") {
+    if (!canUpdateOrderStatus(currentUser, { branchId: order.branch_id, status: order.status })) {
       throw new OrderMutationError("Cancelled orders cannot be updated.", { status: 400 });
     }
 
@@ -662,7 +968,7 @@ export async function updateOrderStatus(
     await insertOrderAudit(
       client,
       order.id,
-      input.status === "cancelled" ? "order_cancelled" : "status_changed",
+      input.status === "cancelled" ? "cancelled" : "status_changed",
       currentUser.userId,
     );
     await client.query("COMMIT");
@@ -685,10 +991,7 @@ export async function cancelOrder(currentUser: AuthenticatedUser, orderId: strin
   try {
     await client.query("BEGIN");
     const order = await fetchMutableOrder(client, orderId);
-    if (!canAccessBranch(currentUser, order.branch_id)) {
-      throw new OrderMutationError("You do not have access to this branch.", { status: 403 });
-    }
-    if (order.status === "cancelled") {
+    if (!canCancelOrder(currentUser, { branchId: order.branch_id, status: order.status })) {
       throw new OrderMutationError("Order is already cancelled.", { status: 400 });
     }
 
@@ -700,7 +1003,7 @@ export async function cancelOrder(currentUser: AuthenticatedUser, orderId: strin
       `,
       [order.id],
     );
-    await insertOrderAudit(client, order.id, "order_cancelled", currentUser.userId);
+    await insertOrderAudit(client, order.id, "cancelled", currentUser.userId);
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
@@ -750,7 +1053,21 @@ export async function updateOrder(
       branchId: order.branch_id,
       status: order.status,
     });
+    const canChangeDiscount = canEditOrderDiscount(currentUser, {
+      branchId: order.branch_id,
+      status: order.status,
+    });
+
     if (canChangeItems) {
+      await client.query(
+        `
+          UPDATE orders
+          SET discount_amount = 0,
+              updated_at = now()
+          WHERE id = $1::uuid
+        `,
+        [order.id],
+      );
       await client.query("DELETE FROM order_items WHERE order_id = $1::uuid", [order.id]);
     }
 
@@ -791,18 +1108,6 @@ export async function updateOrder(
     }
     discountAmount = Math.min(discountAmount, subtotal);
 
-    await client.query(
-      `
-        UPDATE orders
-        SET customer_id = $2::uuid,
-            status = $3::order_status,
-            discount_amount = $4::numeric(14,2),
-            updated_at = now()
-        WHERE id = $1::uuid
-      `,
-      [order.id, customer.id, input.status, discountAmount],
-    );
-
     if (canChangeItems) {
       for (const item of pricedItems) {
         await client.query(
@@ -841,111 +1146,19 @@ export async function updateOrder(
       await insertOrderAudit(client, order.id, "items_updated", currentUser.userId);
     }
 
-    if (
-      input.vendorId &&
-      canEditOrderVendor(currentUser, { branchId: order.branch_id, status: order.status })
-    ) {
-      const charge = parseAmount(input.vendorChargeAmount);
-      const paid = parseAmount(input.vendorPaidAmount);
-      const balance = roundMoney(charge - paid);
-      const status = buildVendorStatus(charge, paid);
-      const { rows: existingVendorRows } = await client.query<{ id: string; paid: number }>(
-        `
-          SELECT id::text AS id, vendor_paid_amount::double precision AS paid
-          FROM order_vendors
-          WHERE order_id = $1::uuid
-          ORDER BY created_at DESC
-          LIMIT 1
-        `,
-        [order.id],
-      );
-      const existingVendor = existingVendorRows[0];
-      const { rows: vendorRows } = await client.query<{ id: string }>(
-        existingVendor
-          ? `
-              UPDATE order_vendors
-              SET vendor_id = $2::uuid,
-                  vendor_charge_amount = $3::numeric(14,2),
-                  vendor_paid_amount = $4::numeric(14,2),
-                  vendor_balance_amount = $5::numeric(14,2),
-                  status = $6,
-                  expected_delivery_date = $7::date,
-                  notes = $8,
-                  updated_by = $9::uuid,
-                  updated_at = now()
-              WHERE id = $1::uuid
-              RETURNING id::text AS id
-            `
-          : `
-              INSERT INTO order_vendors
-                (order_id, vendor_id, vendor_charge_amount, vendor_paid_amount,
-                 vendor_balance_amount, status, expected_delivery_date, notes, updated_by)
-              VALUES
-                ($1::uuid, $2::uuid, $3::numeric(14,2), $4::numeric(14,2),
-                 $5::numeric(14,2), $6, $7::date, $8, $9::uuid)
-              RETURNING id::text AS id
-            `,
-        existingVendor
-          ? [
-              existingVendor.id,
-              input.vendorId,
-              charge,
-              paid,
-              balance,
-              status,
-              input.vendorExpectedDeliveryDate ?? null,
-              normalizeOptional(input.vendorNotes),
-              currentUser.userId,
-            ]
-          : [
-              order.id,
-              input.vendorId,
-              charge,
-              paid,
-              balance,
-              status,
-              input.vendorExpectedDeliveryDate ?? null,
-              normalizeOptional(input.vendorNotes),
-              currentUser.userId,
-            ],
-      );
+    await client.query(
+      `
+        UPDATE orders
+        SET customer_id = $2::uuid,
+            discount_amount = $3::numeric(14,2),
+            updated_at = now()
+        WHERE id = $1::uuid
+      `,
+      [order.id, customer.id, canChangeDiscount ? discountAmount : order.discount_amount],
+    );
 
-      const paidDelta = roundMoney(paid - (existingVendor?.paid ?? 0));
-      if (paidDelta > 0) {
-        const { rows: categoryRows } = await client.query<{ id: string }>(
-          `
-            SELECT id::text AS id
-            FROM expense_categories
-            WHERE code = 'vendor_payment'
-              AND is_active = true
-            LIMIT 1
-          `,
-        );
-        const categoryId = categoryRows[0]?.id;
-        if (!categoryId)
-          throw new OrderMutationError("Vendor payment category is missing.", { status: 500 });
-        await client.query(
-          `
-            INSERT INTO branch_expenses
-              (branch_id, title, amount, category_id, expense_date, remarks,
-               payment_mode, order_vendor_id, created_by, updated_by)
-            VALUES
-              ($1::uuid, $2, $3::numeric(14,2), $4::uuid, CURRENT_DATE, $5,
-               $6::payment_mode, $7::uuid, $8::uuid, $8::uuid)
-          `,
-          [
-            order.branch_id,
-            `Vendor payment for ${order.order_code}`,
-            paidDelta,
-            categoryId,
-            normalizeOptional(input.vendorNotes),
-            input.paymentMode || "cash",
-            vendorRows[0].id,
-            currentUser.userId,
-          ],
-        );
-      }
-      await insertOrderAudit(client, order.id, "vendor_updated", currentUser.userId);
+    if (canChangeDiscount && order.discount_amount !== discountAmount) {
+      await insertOrderAudit(client, order.id, "discount_updated", currentUser.userId);
     }
 
     await insertOrderAudit(client, order.id, "order_updated", currentUser.userId);

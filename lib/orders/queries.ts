@@ -182,10 +182,16 @@ export async function getOrderDetail(
   if (!order) return null;
   if (!canAccessBranch(currentUser, order.branchId)) return null;
 
-  const [itemsResult, offersResult, paymentsResult, vendorsResult, auditResult] = await Promise.all(
-    [
-      db.query<OrderDetailData["items"][number]>(
-        `
+  const [
+    itemsResult,
+    offersResult,
+    paymentsResult,
+    vendorsResult,
+    vendorPaymentsResult,
+    auditResult,
+  ] = await Promise.all([
+    db.query<OrderDetailData["items"][number]>(
+      `
           SELECT
             oi.id::text AS id,
             oi.inventory_id::text AS "inventoryId",
@@ -200,10 +206,10 @@ export async function getOrderDetail(
           WHERE oi.order_id = $1::uuid
           ORDER BY oi.created_at ASC
         `,
-        [orderId],
-      ),
-      db.query<OrderDetailData["offers"][number]>(
-        `
+      [orderId],
+    ),
+    db.query<OrderDetailData["offers"][number]>(
+      `
           SELECT
             oao.id::text AS id,
             oao.code,
@@ -214,10 +220,10 @@ export async function getOrderDetail(
           WHERE oao.order_id = $1::uuid
           ORDER BY oao.created_at ASC
         `,
-        [orderId],
-      ),
-      db.query<OrderDetailData["payments"][number]>(
-        `
+      [orderId],
+    ),
+    db.query<OrderDetailData["payments"][number]>(
+      `
           SELECT
             p.id::text AS id,
             p.amount::double precision AS amount,
@@ -230,32 +236,64 @@ export async function getOrderDetail(
           WHERE p.order_id = $1::uuid
           ORDER BY p.created_at DESC
         `,
-        [orderId],
-      ),
-      db.query<OrderDetailData["vendors"][number]>(
-        `
+      [orderId],
+    ),
+    db.query<Omit<OrderDetailData["vendors"][number], "payments">>(
+      `
           SELECT
             ov.id::text AS id,
             ov.vendor_id::text AS "vendorId",
             v.name AS "vendorName",
             ov.vendor_charge_amount::double precision AS "chargeAmount",
-            ov.vendor_paid_amount::double precision AS "paidAmount",
-            ov.vendor_balance_amount::double precision AS "balanceAmount",
+            COALESCE(expenses.paid_amount, 0)::double precision AS "paidAmount",
+            GREATEST(
+              ov.vendor_charge_amount - COALESCE(expenses.paid_amount, 0),
+              0
+            )::double precision AS "balanceAmount",
             ov.status,
             ov.expected_delivery_date::text AS "expectedDeliveryDate",
             ov.notes
           FROM order_vendors ov
           JOIN vendors v ON v.id = ov.vendor_id
+          LEFT JOIN LATERAL (
+            SELECT SUM(be.amount) AS paid_amount
+            FROM branch_expenses be
+            WHERE be.order_vendor_id = ov.id
+          ) expenses ON true
           WHERE ov.order_id = $1::uuid
           ORDER BY ov.created_at DESC
         `,
-        [orderId],
-      ),
-      db.query<OrderDetailData["auditLogs"][number]>(
-        `
+      [orderId],
+    ),
+    db.query<OrderDetailData["vendors"][number]["payments"][number] & { orderVendorId: string }>(
+      `
+          SELECT
+            be.order_vendor_id::text AS "orderVendorId",
+            be.id::text AS id,
+            be.title,
+            be.amount::double precision AS amount,
+            be.payment_mode::text AS "paymentMode",
+            be.expense_date::text AS "expenseDate",
+            be.remarks,
+            u.full_name AS "createdByName",
+            be.created_at::text AS "createdAt"
+          FROM branch_expenses be
+          LEFT JOIN users u ON u.id = be.created_by
+          WHERE be.order_vendor_id IN (
+            SELECT ov.id
+            FROM order_vendors ov
+            WHERE ov.order_id = $1::uuid
+          )
+          ORDER BY be.expense_date DESC, be.created_at DESC
+        `,
+      [orderId],
+    ),
+    db.query<OrderDetailData["auditLogs"][number]>(
+      `
           SELECT
             oal.id::text AS id,
-            COALESCE(oal.changed_fields->>'action', oal.action) AS action,
+            oal.action,
+            oal.changed_fields AS "changedFields",
             u.full_name AS "changedByName",
             oal.created_at::text AS "createdAt"
           FROM order_audit_logs oal
@@ -264,17 +302,38 @@ export async function getOrderDetail(
           ORDER BY oal.created_at DESC
           LIMIT 30
         `,
-        [orderId],
-      ),
-    ],
-  );
+      [orderId],
+    ),
+  ]);
+
+  const vendorPaymentsByOrderVendorId = new Map<
+    string,
+    OrderDetailData["vendors"][number]["payments"]
+  >();
+  for (const payment of vendorPaymentsResult.rows) {
+    const payments = vendorPaymentsByOrderVendorId.get(payment.orderVendorId) ?? [];
+    payments.push({
+      id: payment.id,
+      title: payment.title,
+      amount: payment.amount,
+      paymentMode: payment.paymentMode,
+      expenseDate: payment.expenseDate,
+      remarks: payment.remarks,
+      createdByName: payment.createdByName,
+      createdAt: payment.createdAt,
+    });
+    vendorPaymentsByOrderVendorId.set(payment.orderVendorId, payments);
+  }
 
   return {
     order,
     items: itemsResult.rows,
     offers: offersResult.rows,
     payments: paymentsResult.rows,
-    vendors: vendorsResult.rows,
+    vendors: vendorsResult.rows.map((vendor) => ({
+      ...vendor,
+      payments: vendorPaymentsByOrderVendorId.get(vendor.id) ?? [],
+    })),
     auditLogs: auditResult.rows,
   };
 }

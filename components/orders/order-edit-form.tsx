@@ -7,16 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { Textarea } from "@/components/ui/textarea";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { DataPill } from "@/components/dashboard/data-pill";
-import { paymentModeLabels, paymentModeValues, type PaymentMode } from "@/lib/expenses/types";
 import { offerTypeLabels, type OfferCustomerType } from "@/lib/offers/types";
-import {
-  orderStatusValues,
-  type EditOrderPageData,
-  type OrderStatusValue,
-} from "@/lib/orders/types";
+import { type EditOrderPageData } from "@/lib/orders/types";
 import { formatCurrency } from "@/lib/utils/format";
 
 type ItemDraft = {
@@ -30,17 +24,9 @@ function parseNumber(value: string) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-export function OrderEditForm({
-  detail,
-  customers,
-  inventoryItems,
-  offers,
-  vendors,
-}: EditOrderPageData) {
+export function OrderEditForm({ detail, customers, inventoryItems, offers }: EditOrderPageData) {
   const router = useRouter();
-  const existingVendor = detail.vendors[0] ?? null;
   const [customerId, setCustomerId] = useState(detail.order.customerId);
-  const [status, setStatus] = useState<OrderStatusValue>(detail.order.status);
   const [items, setItems] = useState<ItemDraft[]>(
     detail.items.map((item) => ({
       inventoryId: item.inventoryId,
@@ -49,18 +35,6 @@ export function OrderEditForm({
     })),
   );
   const [offerIds, setOfferIds] = useState(detail.offers.map((offer) => offer.id));
-  const [vendorId, setVendorId] = useState(existingVendor?.vendorId ?? "");
-  const [vendorChargeAmount, setVendorChargeAmount] = useState(
-    existingVendor ? String(existingVendor.chargeAmount) : "",
-  );
-  const [vendorPaidAmount, setVendorPaidAmount] = useState(
-    existingVendor ? String(existingVendor.paidAmount) : "",
-  );
-  const [vendorExpectedDeliveryDate, setVendorExpectedDeliveryDate] = useState(
-    existingVendor?.expectedDeliveryDate ?? "",
-  );
-  const [vendorNotes, setVendorNotes] = useState(existingVendor?.notes ?? "");
-  const [paymentMode, setPaymentMode] = useState<PaymentMode | "">("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -112,15 +86,8 @@ export function OrderEditForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customerId,
-          status,
           items,
           offerIds,
-          vendorId,
-          vendorChargeAmount,
-          vendorPaidAmount,
-          vendorExpectedDeliveryDate,
-          vendorNotes,
-          paymentMode,
         }),
       });
       const data = (await response.json().catch(() => null)) as
@@ -150,23 +117,15 @@ export function OrderEditForm({
 
       <SectionCard title="Customer">
         <div className="grid gap-4 sm:grid-cols-2">
-          <Select value={customerId} onChange={(event) => setCustomerId(event.target.value)}>
-            {customerOptions.map((customer) => (
-              <option key={customer.id} value={customer.id}>
-                {customer.name} - {customer.phone}
-              </option>
-            ))}
-          </Select>
-          <Select
-            value={status}
-            onChange={(event) => setStatus(event.target.value as OrderStatusValue)}
-          >
-            {orderStatusValues.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </Select>
+          <div className="sm:col-span-2">
+            <Select value={customerId} onChange={(event) => setCustomerId(event.target.value)}>
+              {customerOptions.map((customer) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.name} - {customer.phone}
+                </option>
+              ))}
+            </Select>
+          </div>
         </div>
       </SectionCard>
 
@@ -245,50 +204,6 @@ export function OrderEditForm({
               </label>
             );
           })}
-        </div>
-      </SectionCard>
-
-      <SectionCard title="Vendor / outsource details">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Select value={vendorId} onChange={(event) => setVendorId(event.target.value)}>
-            <option value="">No vendor</option>
-            {vendors.map((vendor) => (
-              <option key={vendor.id} value={vendor.id}>
-                {vendor.name}
-              </option>
-            ))}
-          </Select>
-          <Input
-            value={vendorChargeAmount}
-            onChange={(event) => setVendorChargeAmount(event.target.value)}
-            placeholder="Vendor charge"
-          />
-          <Input
-            value={vendorPaidAmount}
-            onChange={(event) => setVendorPaidAmount(event.target.value)}
-            placeholder="Paid to vendor"
-          />
-          <Select
-            value={paymentMode}
-            onChange={(event) => setPaymentMode(event.target.value as PaymentMode)}
-          >
-            <option value="">Vendor payment mode</option>
-            {paymentModeValues.map((mode) => (
-              <option key={mode} value={mode}>
-                {paymentModeLabels[mode]}
-              </option>
-            ))}
-          </Select>
-          <Input
-            type="date"
-            value={vendorExpectedDeliveryDate}
-            onChange={(event) => setVendorExpectedDeliveryDate(event.target.value)}
-          />
-          <Textarea
-            value={vendorNotes}
-            onChange={(event) => setVendorNotes(event.target.value)}
-            placeholder="Vendor notes"
-          />
         </div>
       </SectionCard>
 

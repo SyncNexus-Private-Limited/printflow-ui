@@ -1,4 +1,6 @@
 import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { OrderEditForm } from "@/components/orders/order-edit-form";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { assertPermission } from "@/lib/auth/permissions";
@@ -30,6 +32,52 @@ export default async function EditOrderPage({ params }: EditOrderPageProps) {
   return (
     <main className="min-h-screen px-4 py-8">
       <div className="mx-auto max-w-7xl space-y-6">
+        <nav
+          aria-label="Breadcrumb"
+          className="flex items-center gap-1 text-xs font-medium text-[rgb(var(--muted-foreground))]"
+        >
+          <ol className="flex flex-wrap items-center gap-1">
+            <li className="flex items-center gap-1">
+              <Link
+                className="rounded-md px-1 py-0.5 transition-colors hover:text-[rgb(var(--foreground))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none"
+                href="/dashboard"
+              >
+                Home
+              </Link>
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" strokeWidth={1.9} />
+            </li>
+            <li className="flex items-center gap-1">
+              <Link
+                className="rounded-md px-1 py-0.5 transition-colors hover:text-[rgb(var(--foreground))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none"
+                href="/dashboard/orders"
+              >
+                Sales
+              </Link>
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" strokeWidth={1.9} />
+            </li>
+            <li className="flex items-center gap-1">
+              <Link
+                className="rounded-md px-1 py-0.5 transition-colors hover:text-[rgb(var(--foreground))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none"
+                href="/dashboard/orders"
+              >
+                Orders
+              </Link>
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" strokeWidth={1.9} />
+            </li>
+            <li className="flex items-center gap-1">
+              <Link
+                className="rounded-md px-1 py-0.5 transition-colors hover:text-[rgb(var(--foreground))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none"
+                href={`/dashboard/orders/${data.detail.order.id}`}
+              >
+                Order Details
+              </Link>
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" strokeWidth={1.9} />
+            </li>
+            <li className="px-1 py-0.5 text-[rgb(var(--foreground))]" aria-current="page">
+              Edit Order
+            </li>
+          </ol>
+        </nav>
         <div>
           <p className="text-sm text-[rgb(var(--muted-foreground))]">Edit Order</p>
           <h1 className="text-3xl font-semibold text-[rgb(var(--foreground))]">

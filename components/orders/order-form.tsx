@@ -1267,13 +1267,12 @@ export function OrderForm(props: AddOrderPageData) {
             </div>
 
             {/* Action footer */}
-            <div className="grid gap-2 border-t border-[rgb(var(--border))] bg-[rgb(var(--muted)/0.3)] px-5 pt-3.5 pb-4.5">
+            <div className="grid grid-cols-2 gap-2 border-t border-[rgb(var(--border))] bg-[rgb(var(--muted)/0.3)] px-5 pt-3.5 pb-4.5 max-[460px]:grid-cols-1">
               <Button
                 type="submit"
                 form="order-form"
-                fullWidth
                 disabled={isSubmitting}
-                className="gap-2 shadow-[0_1px_0_rgb(255_255_255/0.18)_inset,0_6px_16px_-8px_rgb(var(--primary)/0.6)]"
+                className="w-full gap-2 shadow-[0_1px_0_rgb(255_255_255/0.18)_inset,0_6px_16px_-8px_rgb(var(--primary)/0.6)]"
               >
                 {isSubmitting ? (
                   <>
@@ -1282,17 +1281,18 @@ export function OrderForm(props: AddOrderPageData) {
                   </>
                 ) : (
                   <>
-                    Create order
+                    Create
                     <ArrowRight className="h-3.5 w-3.5" />
                   </>
                 )}
               </Button>
+
               <Button
                 type="button"
                 variant="secondary"
-                fullWidth
                 disabled={isSubmitting}
                 onClick={() => router.push("/dashboard/orders")}
+                className="w-full"
               >
                 Cancel
               </Button>

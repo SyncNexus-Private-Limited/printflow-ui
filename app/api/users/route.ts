@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasPermission } from "@/lib/auth/permissions";
 import { UserMutationError, createUser } from "@/lib/users/mutations";
 import { createUserSchema, getCreateUserFieldErrors, toCreateUserInput } from "@/lib/users/schema";
 import { NextResponse } from "next/server";
@@ -14,6 +15,9 @@ export async function POST(request: Request) {
 
   if (!currentUser) {
     return getUnauthorizedResponse();
+  }
+  if (!hasPermission(currentUser, "users:create")) {
+    return NextResponse.json({ success: false, message: "Forbidden." }, { status: 403 });
   }
 
   try {
@@ -33,7 +37,7 @@ export async function POST(request: Request) {
 
     const result = await createUser(currentUser, toCreateUserInput(parsed.data));
 
-    return NextResponse.json({ success: true, data: result });
+    return NextResponse.json({ success: true, data: result }, { status: 201 });
   } catch (error) {
     if (error instanceof UserMutationError) {
       return NextResponse.json(

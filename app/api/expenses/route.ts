@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasPermission } from "@/lib/auth/permissions";
 import { ExpenseMutationError, createExpense } from "@/lib/expenses/mutations";
 import { createExpenseSchema, getCreateExpenseFieldErrors } from "@/lib/expenses/schema";
 
@@ -21,6 +22,9 @@ export async function POST(request: Request) {
   if (!currentUser) {
     return getUnauthorizedResponse();
   }
+  if (!hasPermission(currentUser, "expenses:create")) {
+    return NextResponse.json({ success: false, message: "Forbidden." }, { status: 403 });
+  }
 
   try {
     const body = await request.json();
@@ -39,10 +43,13 @@ export async function POST(request: Request) {
 
     const createdExpense = await createExpense(currentUser, parsed.data);
 
-    return NextResponse.json({
-      success: true,
-      data: createdExpense,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        data: createdExpense,
+      },
+      { status: 201 },
+    );
   } catch (error) {
     if (error instanceof ExpenseMutationError) {
       return NextResponse.json(

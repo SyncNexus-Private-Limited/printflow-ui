@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getPool } from "@/lib/db/postgres";
 import { createSession, hashSessionToken } from "@/lib/auth/session";
 import { loginSchema } from "@/lib/validations/auth";
+// UNCOMMENT WHEN MIGRATING: import { getClientIp, loginRateLimiter } from "@/lib/rate-limiting";
 
 export const runtime = "nodejs";
 
@@ -31,16 +32,18 @@ function getValidationErrorResponse(fieldErrors: Record<string, string>) {
 
 function getLoginErrorResponse(error: unknown) {
   const message = error instanceof Error ? error.message : "";
+  const lower = message.toLowerCase();
 
-  // Treat account-level rejections the same as wrong credentials so that
-  // an attacker cannot enumerate whether an account exists, is locked, or
-  // is inactive by observing different status codes or messages.
-  if (
-    message.toLowerCase().includes("account locked") ||
-    message.toLowerCase().includes("user is inactive")
-  ) {
+  if (lower.includes("account locked")) {
     return {
-      message: "Invalid username or password.",
+      message: "Account locked. Please contact an administrator.",
+      status: 401,
+    };
+  }
+
+  if (lower.includes("user is inactive")) {
+    return {
+      message: "Account inactive. Please contact support.",
       status: 401,
     };
   }
@@ -74,6 +77,17 @@ function logLoginError(error: unknown) {
 }
 
 export async function POST(request: Request) {
+  // UNCOMMENT WHEN MIGRATING: restore IP-based rate limiting (5 attempts / 15 min).
+  // const ip = getClientIp(request);
+  // try {
+  //   await loginRateLimiter.consume(ip);
+  // } catch {
+  //   return NextResponse.json(
+  //     { success: false, message: "Too many login attempts. Please try again in 15 minutes." },
+  //     { status: 429, headers: { "Retry-After": "900" } },
+  //   );
+  // }
+
   try {
     const body = await request.json();
     const parsed = loginSchema.safeParse(body);
@@ -142,7 +156,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Invalid username or password.",
+          message: "Account inactive. Please contact support.",
         },
         { status: 401 },
       );

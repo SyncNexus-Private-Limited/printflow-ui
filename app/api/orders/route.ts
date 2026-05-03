@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { PermissionError } from "@/lib/auth/permissions";
+import { PermissionError, hasPermission } from "@/lib/auth/permissions";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { OrderMutationError, createOrder } from "@/lib/orders/mutations";
 import { createOrderSchema, getCreateOrderFieldErrors } from "@/lib/orders/schema";
@@ -14,6 +14,9 @@ export async function POST(request: Request) {
   const currentUser = await getCurrentUser({ touchSession: true });
 
   if (!currentUser) return getUnauthorizedResponse();
+  if (!hasPermission(currentUser, "orders:create")) {
+    return NextResponse.json({ success: false, message: "Forbidden." }, { status: 403 });
+  }
 
   try {
     const body = await request.json();
@@ -31,7 +34,7 @@ export async function POST(request: Request) {
     }
 
     const result = await createOrder(currentUser, parsed.data);
-    return NextResponse.json({ success: true, data: result });
+    return NextResponse.json({ success: true, data: result }, { status: 201 });
   } catch (error) {
     if (error instanceof PermissionError) {
       return NextResponse.json({ success: false, message: "Forbidden." }, { status: 403 });

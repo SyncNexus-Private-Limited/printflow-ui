@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
     const result = await createCustomer(currentUser, parsed.data);
 
-    return NextResponse.json({ success: true, data: result });
+    return NextResponse.json({ success: true, data: result }, { status: 201 });
   } catch (error) {
     if (error instanceof CustomerMutationError) {
       return NextResponse.json(

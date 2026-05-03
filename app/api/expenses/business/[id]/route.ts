@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasPermission } from "@/lib/auth/permissions";
 import {
   ExpenseMutationError,
   deleteBusinessExpense,
@@ -30,6 +31,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   const currentUser = await getCurrentUser({ touchSession: true });
 
   if (!currentUser) return unauthorizedResponse();
+  if (!hasPermission(currentUser, "expenses:view")) {
+    return NextResponse.json({ success: false, message: "Forbidden." }, { status: 403 });
+  }
 
   const { id } = await params;
 

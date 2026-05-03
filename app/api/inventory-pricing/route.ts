@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { hasPermission } from "@/lib/auth/permissions";
 import {
   InventoryPricingMutationError,
   createInventoryPricing,
@@ -21,6 +22,9 @@ export async function POST(request: Request) {
   if (!currentUser) {
     return getUnauthorizedResponse();
   }
+  if (!hasPermission(currentUser, "inventory:create")) {
+    return NextResponse.json({ success: false, message: "Forbidden." }, { status: 403 });
+  }
 
   try {
     const body = await request.json();
@@ -39,7 +43,7 @@ export async function POST(request: Request) {
 
     const result = await createInventoryPricing(currentUser, parsed.data);
 
-    return NextResponse.json({ success: true, data: result });
+    return NextResponse.json({ success: true, data: result }, { status: 201 });
   } catch (error) {
     if (error instanceof InventoryPricingMutationError) {
       return NextResponse.json(

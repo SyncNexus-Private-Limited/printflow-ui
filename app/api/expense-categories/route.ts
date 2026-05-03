@@ -37,6 +37,9 @@ export async function POST(request: Request) {
   const currentUser = await getCurrentUser({ touchSession: true });
 
   if (!currentUser) return getUnauthorizedResponse();
+  if (!hasPermission(currentUser, "expense-categories:create")) {
+    return NextResponse.json({ success: false, message: "Forbidden." }, { status: 403 });
+  }
 
   try {
     const body = await request.json();
@@ -55,7 +58,7 @@ export async function POST(request: Request) {
 
     const result = await createExpenseCategory(currentUser, parsed.data);
 
-    return NextResponse.json({ success: true, data: result });
+    return NextResponse.json({ success: true, data: result }, { status: 201 });
   } catch (error) {
     if (error instanceof ExpenseCategoryMutationError) {
       return NextResponse.json(

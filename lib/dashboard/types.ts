@@ -450,6 +450,35 @@ export type VendorsPageData = {
   result: PaginatedListResult<VendorManagementRow>;
 };
 
+export type BranchManagementRow = {
+  id: string;
+  code: string;
+  name: string;
+  phone: string;
+  alternatePhone: string | null;
+  email: string | null;
+  address: string | null;
+  logo: string | null;
+  banner: string | null;
+  description: string | null;
+  isActive: boolean;
+  updatedByName: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type BranchManagementSummary = {
+  totalBranches: number;
+  activeBranches: number;
+  inactiveBranches: number;
+  newBranchesInRange: number;
+};
+
+export type BranchesPageData = {
+  summary: BranchManagementSummary;
+  result: PaginatedListResult<BranchManagementRow>;
+};
+
 export type OfferTimingState = "current" | "upcoming" | "expired";
 
 export type OfferManagementRow = {

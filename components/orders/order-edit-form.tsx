@@ -294,7 +294,7 @@ export function OrderEditForm({
           <ChevronRight className="h-3.5 w-3.5 opacity-55" aria-hidden />
           <span className="font-semibold text-[rgb(var(--foreground))]">Edit Order</span>
         </nav>
-        <h1 className="text-[36px] leading-[1.05] font-extrabold tracking-[-0.022em] text-[rgb(var(--card-foreground))]">
+        <h1 className="text-2xl font-semibold tracking-tight text-[rgb(var(--foreground))] sm:text-3xl">
           {detail.order.orderCode}
         </h1>
       </div>

@@ -22,19 +22,26 @@ type OrderDetailsPageProps = {
   params: Promise<{ id: string }>;
 };
 
-type DetailRowProps = {
+// ─── helper components ────────────────────────────────────────────────────────
+
+function DetailRow({
+  label,
+  value,
+  valueClassName,
+}: {
   label: string;
   value: ReactNode;
   valueClassName?: string;
-};
-
-function DetailRow({ label, value, valueClassName }: DetailRowProps) {
+}) {
   return (
     <div className="min-w-0">
-      <p className="text-xs font-medium text-[rgb(var(--muted-foreground))]">{label}</p>
+      <p className="text-[11px] font-semibold tracking-[0.04em] text-[rgb(var(--muted-foreground))] uppercase">
+        {label}
+      </p>
       <div
         className={
-          valueClassName ?? "mt-1 font-semibold wrap-break-word text-[rgb(var(--foreground))]"
+          valueClassName ??
+          "mt-1 text-[14px] font-semibold wrap-break-word text-[rgb(var(--card-foreground))]"
         }
       >
         {value}
@@ -43,41 +50,83 @@ function DetailRow({ label, value, valueClassName }: DetailRowProps) {
   );
 }
 
+function FinancialCell({
+  label,
+  value,
+  tone,
+  colSpanMobile,
+}: {
+  label: string;
+  value: number;
+  tone?: "primary" | "emerald" | "amber";
+  colSpanMobile?: boolean;
+}) {
+  const isPrimary = tone === "primary";
+  const isEmerald = tone === "emerald";
+  const isAmber = tone === "amber";
+
+  return (
+    <div
+      className={`px-5 py-4 ${colSpanMobile ? "col-span-2 sm:col-span-1" : ""} ${
+        isPrimary
+          ? "bg-[rgb(var(--primary-soft))]"
+          : isEmerald
+            ? "bg-[rgb(var(--metric-emerald-soft))]"
+            : isAmber
+              ? "bg-[rgb(var(--metric-amber-soft))]"
+              : "bg-[rgb(var(--card))]"
+      }`}
+    >
+      <div
+        className={`text-[10.5px] font-bold tracking-[0.06em] uppercase ${
+          isPrimary
+            ? "text-[rgb(var(--primary-soft-foreground)/0.7)]"
+            : isEmerald
+              ? "text-[rgb(var(--metric-emerald-ink)/0.75)]"
+              : isAmber
+                ? "text-[rgb(var(--metric-amber-ink)/0.75)]"
+                : "text-[rgb(var(--muted-foreground))]"
+        }`}
+      >
+        {label}
+      </div>
+      <div
+        className={`mt-1.5 font-mono text-[20px] leading-none font-extrabold tracking-[-0.02em] ${
+          isPrimary
+            ? "text-[rgb(var(--primary-soft-foreground))]"
+            : isEmerald
+              ? "text-[rgb(var(--metric-emerald-ink))]"
+              : isAmber
+                ? "text-[rgb(var(--metric-amber-ink))]"
+                : "text-[rgb(var(--card-foreground))]"
+        }`}
+      >
+        {formatCurrency(value)}
+      </div>
+    </div>
+  );
+}
+
 function EmptyState({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-2xl border border-dashed border-[rgb(var(--border)/0.76)] bg-[rgb(var(--muted)/0.18)] px-4 py-5 text-sm text-[rgb(var(--muted-foreground))]">
+    <div className="rounded-xl border border-dashed border-[rgb(var(--border)/0.76)] bg-[rgb(var(--muted)/0.18)] px-4 py-5 text-[13px] text-[rgb(var(--muted-foreground))]">
       {children}
     </div>
   );
 }
 
-function ResponsiveTable({
-  headers,
-  children,
-}: {
-  headers: Array<{ label: string; align?: "left" | "right" }>;
-  children: ReactNode;
-}) {
+function TableHeader({ label, align = "left" }: { label: string; align?: "left" | "right" }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full text-left text-sm">
-        <thead>
-          <tr className="border-b border-[rgb(var(--border)/0.58)] text-xs font-semibold tracking-[0.04em] text-[rgb(var(--muted-foreground))] uppercase">
-            {headers.map((header) => (
-              <th
-                key={header.label}
-                className={header.align === "right" ? "py-2 pl-4 text-right" : "py-2 pr-4"}
-              >
-                {header.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-[rgb(var(--border)/0.42)]">{children}</tbody>
-      </table>
-    </div>
+    <th
+      className="border-b border-[rgb(var(--border))] bg-[rgb(var(--muted)/0.55)] px-3 py-2.5 font-mono text-[10.5px] font-bold tracking-[0.06em] text-[rgb(var(--muted-foreground))] uppercase"
+      style={{ textAlign: align }}
+    >
+      {label}
+    </th>
   );
 }
+
+// ─── status/label helpers ─────────────────────────────────────────────────────
 
 function getVendorStatusLabel(status: string) {
   switch (status) {
@@ -177,6 +226,8 @@ function summarizeChangedFields(log: OrderDetailData["auditLogs"][number]) {
   }
 }
 
+// ─── page ─────────────────────────────────────────────────────────────────────
+
 export default async function OrderDetailsPage({ params }: OrderDetailsPageProps) {
   const currentUser = await getCurrentUser({ touchSession: true });
   if (!currentUser) redirect("/login");
@@ -191,52 +242,43 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
   const outstandingAmount = Math.max(0, order.payableAmount - order.paidAmount);
 
   return (
-    <main className="min-h-screen px-4 py-8">
-      <div className="mx-auto max-w-7xl space-y-6">
+    <main className="min-h-screen px-7 pt-8 pb-16">
+      <div className="mx-auto max-w-330 space-y-5">
+        {/* ── Breadcrumb ──────────────────────────────────────────────────── */}
         <nav
+          className="flex items-center gap-2 text-[13px] font-medium text-[rgb(var(--muted-foreground))]"
           aria-label="Breadcrumb"
-          className="flex items-center gap-1 text-xs font-medium text-[rgb(var(--muted-foreground))]"
         >
-          <ol className="flex flex-wrap items-center gap-1">
-            <li className="flex items-center gap-1">
-              <Link
-                className="rounded-md px-1 py-0.5 transition-colors hover:text-[rgb(var(--foreground))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none"
-                href="/dashboard"
-              >
-                Home
-              </Link>
-              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" strokeWidth={1.9} />
-            </li>
-            <li className="flex items-center gap-1">
-              <Link
-                className="rounded-md px-1 py-0.5 transition-colors hover:text-[rgb(var(--foreground))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none"
-                href="/dashboard/orders"
-              >
-                Sales
-              </Link>
-              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" strokeWidth={1.9} />
-            </li>
-            <li className="flex items-center gap-1">
-              <Link
-                className="rounded-md px-1 py-0.5 transition-colors hover:text-[rgb(var(--foreground))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent focus-visible:outline-none"
-                href="/dashboard/orders"
-              >
-                Orders
-              </Link>
-              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" strokeWidth={1.9} />
-            </li>
-            <li className="px-1 py-0.5 text-[rgb(var(--foreground))]" aria-current="page">
-              Order Details
-            </li>
-          </ol>
+          <Link href="/dashboard" className="transition-colors hover:text-[rgb(var(--foreground))]">
+            Home
+          </Link>
+          <ChevronRight className="h-3.5 w-3.5 opacity-55" aria-hidden />
+          <span>Sales</span>
+          <ChevronRight className="h-3.5 w-3.5 opacity-55" aria-hidden />
+          <Link
+            href="/dashboard/orders"
+            className="transition-colors hover:text-[rgb(var(--foreground))]"
+          >
+            Orders
+          </Link>
+          <ChevronRight className="h-3.5 w-3.5 opacity-55" aria-hidden />
+          <span className="font-semibold text-[rgb(var(--foreground))]">Order Details</span>
         </nav>
 
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="min-w-0">
-            <p className="text-sm text-[rgb(var(--muted-foreground))]">Order Details</p>
-            <h1 className="text-3xl font-semibold wrap-break-word text-[rgb(var(--foreground))]">
+        {/* ── Page header ─────────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="mb-1 text-[12px] font-semibold tracking-[0.05em] text-[rgb(var(--muted-foreground))] uppercase">
+              Order Details
+            </p>
+            <h1 className="text-[36px] leading-[1.05] font-extrabold tracking-[-0.022em] text-[rgb(var(--card-foreground))]">
               {order.orderCode}
             </h1>
+            {order.customerName ? (
+              <p className="mt-1.5 text-[14px] font-medium text-[rgb(var(--muted-foreground))]">
+                {order.customerName}
+              </p>
+            ) : null}
           </div>
           <OrderDetailActions
             orderId={order.id}
@@ -254,151 +296,193 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
           />
         </div>
 
-        <SectionCard title="Order summary">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <DetailRow label="Order code" value={order.orderCode} />
-            <DetailRow
-              label="Order status"
-              value={
-                <DataPill tone={getOrderStatusTone(order.status)}>
-                  {getOrderStatusLabel(order.status)}
-                </DataPill>
-              }
-            />
-            <DetailRow
-              label="Payment status"
-              value={
-                <DataPill tone={getOrderPaymentStatusTone(order.paymentStatus)}>
-                  {getOrderPaymentStatusLabel(order.paymentStatus)}
-                </DataPill>
-              }
-            />
-            <DetailRow label="Order date" value={formatDate(order.orderDate)} />
+        {/* ── 1. Order Summary ────────────────────────────────────────────── */}
+        <div className="overflow-hidden rounded-3xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] shadow-[0_1px_0_rgb(var(--shadow)/0.04),0_8px_32px_-16px_rgb(var(--shadow)/0.18)]">
+          {/* Status + date row */}
+          <div className="flex flex-wrap items-center gap-2.5 border-b border-[rgb(var(--border)/0.7)] px-6 py-4">
+            <DataPill tone={getOrderStatusTone(order.status)}>
+              Status: {getOrderStatusLabel(order.status)}
+            </DataPill>
+            <DataPill tone={getOrderPaymentStatusTone(order.paymentStatus)}>
+              Payment: {getOrderPaymentStatusLabel(order.paymentStatus)}
+            </DataPill>
+            <span className="ml-auto font-mono text-[12.5px] text-[rgb(var(--muted-foreground))]">
+              {formatDate(order.orderDate)}
+            </span>
+          </div>
+
+          {/* Info grid — customer + meta */}
+          <div className="grid grid-cols-2 gap-x-8 gap-y-4 border-b border-[rgb(var(--border)/0.7)] px-6 py-5 sm:grid-cols-3 lg:grid-cols-4">
+            <DetailRow label="Customer" value={order.customerName} />
+            <DetailRow label="Phone" value={order.customerPhone} />
+            <DetailRow label="Code" value={order.customerCode ?? "—"} />
+            <DetailRow label="Type" value={formatEnumLabel(order.customerType)} />
             <DetailRow label="Branch" value={order.branchName} />
             <DetailRow label="Created by" value={order.createdByName ?? "System"} />
             <DetailRow label="Created at" value={formatDateTime(order.createdAt)} />
-            <DetailRow label="Paid" value={formatCurrency(order.paidAmount)} />
-            <DetailRow label="Total amount" value={formatCurrency(order.totalAmount)} />
-            <DetailRow label="Discount" value={formatCurrency(order.discountAmount)} />
-            <DetailRow label="Payable" value={formatCurrency(order.payableAmount)} />
-            <DetailRow label="Outstanding" value={formatCurrency(outstandingAmount)} />
           </div>
-        </SectionCard>
 
-        <SectionCard title="Customer details">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <DetailRow label="Name" value={order.customerName} />
-            <DetailRow label="Phone" value={order.customerPhone} />
-            <DetailRow label="Code" value={order.customerCode ?? "-"} />
-            <DetailRow label="Type" value={formatEnumLabel(order.customerType)} />
+          {/* Financial summary — full-bleed cells with gap-line dividers */}
+          <div className="grid grid-cols-2 gap-px bg-[rgb(var(--border)/0.5)] sm:grid-cols-5">
+            <FinancialCell label="Total amount" value={order.totalAmount} />
+            <FinancialCell label="Discount" value={order.discountAmount} />
+            <FinancialCell label="Payable" value={order.payableAmount} tone="primary" />
+            <FinancialCell label="Paid" value={order.paidAmount} />
+            <FinancialCell
+              label="Outstanding"
+              value={outstandingAmount}
+              tone={outstandingAmount === 0 ? "emerald" : "amber"}
+              colSpanMobile
+            />
           </div>
-        </SectionCard>
+        </div>
 
-        <SectionCard title="Order items">
+        {/* ── 2. Order Items ───────────────────────────────────────────────── */}
+        <SectionCard
+          title="Order Items"
+          description={
+            detail.items.length > 0
+              ? `${detail.items.length} ${detail.items.length === 1 ? "item" : "items"}`
+              : undefined
+          }
+        >
           {detail.items.length === 0 ? (
             <EmptyState>No items recorded for this order.</EmptyState>
           ) : (
-            <ResponsiveTable
-              headers={[
-                { label: "Item" },
-                { label: "SKU" },
-                { label: "Qty", align: "right" },
-                { label: "Rate", align: "right" },
-                { label: "Total", align: "right" },
-              ]}
-            >
-              {detail.items.map((item) => (
-                <tr key={item.id}>
-                  <td className="py-3 pr-4 font-medium text-[rgb(var(--foreground))]">
-                    {item.name}
-                  </td>
-                  <td className="py-3 pr-4 text-[rgb(var(--muted-foreground))]">{item.sku}</td>
-                  <td className="py-3 pl-4 text-right">
-                    {item.quantity} {item.unit}
-                  </td>
-                  <td className="py-3 pl-4 text-right">{formatCurrency(item.unitPrice)}</td>
-                  <td className="py-3 pl-4 text-right font-semibold">
-                    {formatCurrency(item.lineTotal)}
-                  </td>
-                </tr>
-              ))}
-            </ResponsiveTable>
+            <div className="overflow-hidden rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", minWidth: 480, borderCollapse: "collapse" }}>
+                  <colgroup>
+                    <col />
+                    <col style={{ width: 80 }} />
+                    <col style={{ width: 90 }} />
+                    <col style={{ width: 110 }} />
+                    <col style={{ width: 110 }} />
+                  </colgroup>
+                  <thead>
+                    <tr>
+                      <TableHeader label="Item" />
+                      <TableHeader label="SKU" />
+                      <TableHeader label="Qty" align="right" />
+                      <TableHeader label="Rate (₹)" align="right" />
+                      <TableHeader label="Total" align="right" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detail.items.map((item) => (
+                      <tr key={item.id}>
+                        <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 text-[13.5px] font-semibold text-[rgb(var(--card-foreground))]">
+                          {item.name}
+                        </td>
+                        <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 font-mono text-[12px] text-[rgb(var(--muted-foreground))]">
+                          {item.sku}
+                        </td>
+                        <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 text-right font-mono text-[13px]">
+                          {item.quantity}{" "}
+                          <span className="text-[rgb(var(--muted-foreground))]">{item.unit}</span>
+                        </td>
+                        <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 text-right font-mono text-[13px] text-[rgb(var(--muted-foreground))]">
+                          {formatCurrency(item.unitPrice)}
+                        </td>
+                        <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 text-right font-mono text-[13.5px] font-semibold text-[rgb(var(--card-foreground))]">
+                          {formatCurrency(item.lineTotal)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex items-center justify-between bg-[rgb(var(--muted)/0.4)] px-3.5 py-2.5">
+                <span className="text-[12.5px] text-[rgb(var(--muted-foreground))]">
+                  {detail.items.length} {detail.items.length === 1 ? "item" : "items"}
+                </span>
+                <div className="text-[12.5px] text-[rgb(var(--muted-foreground))]">
+                  Total:{" "}
+                  <b className="font-mono font-semibold text-[rgb(var(--card-foreground))]">
+                    {formatCurrency(order.totalAmount)}
+                  </b>
+                </div>
+              </div>
+            </div>
           )}
         </SectionCard>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <SectionCard title="Offers / discounts">
-            {detail.offers.length === 0 ? (
-              <EmptyState>No offers applied.</EmptyState>
-            ) : (
-              <div className="space-y-3">
-                {detail.offers.map((offer) => (
-                  <div
-                    key={offer.id}
-                    className="rounded-2xl border border-[rgb(var(--border)/0.68)] bg-[rgb(var(--muted)/0.18)] p-4"
-                  >
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0">
-                        <p className="font-semibold text-[rgb(var(--foreground))]">{offer.name}</p>
-                        <p className="mt-1 text-sm text-[rgb(var(--muted-foreground))]">
-                          {offer.code} - {formatEnumLabel(offer.offerType)}
-                        </p>
-                      </div>
-                      <DataPill tone="emerald">{formatCurrency(offer.discountAmount)}</DataPill>
-                    </div>
-                  </div>
-                ))}
+        {/* ── 3. Customer Payments ─────────────────────────────────────────── */}
+        <SectionCard
+          title="Customer Payments"
+          description={
+            detail.payments.length > 0
+              ? `${detail.payments.length} ${detail.payments.length === 1 ? "payment" : "payments"} · ${formatCurrency(order.paidAmount)} paid`
+              : undefined
+          }
+        >
+          {detail.payments.length === 0 ? (
+            <EmptyState>No customer payments recorded.</EmptyState>
+          ) : (
+            <div className="overflow-hidden rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", minWidth: 480, borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>
+                      <TableHeader label="Amount" align="right" />
+                      <TableHeader label="Mode" />
+                      <TableHeader label="Reference" />
+                      <TableHeader label="Received by" />
+                      <TableHeader label="Date" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detail.payments.map((payment) => (
+                      <tr key={payment.id}>
+                        <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 text-right font-mono text-[13.5px] font-semibold text-[rgb(var(--card-foreground))]">
+                          {formatCurrency(payment.amount)}
+                        </td>
+                        <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 text-[13px]">
+                          {paymentModeLabels[payment.mode]}
+                        </td>
+                        <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 font-mono text-[12px] text-[rgb(var(--muted-foreground))]">
+                          {payment.txnReference ?? "—"}
+                        </td>
+                        <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 text-[13px]">
+                          {payment.receivedByName ?? "System"}
+                        </td>
+                        <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 text-[12.5px] text-[rgb(var(--muted-foreground))]">
+                          {formatDateTime(payment.createdAt)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-            )}
-          </SectionCard>
+              <div className="flex items-center justify-end bg-[rgb(var(--muted)/0.4)] px-3.5 py-2.5">
+                <div className="text-[12.5px] text-[rgb(var(--muted-foreground))]">
+                  Total paid:{" "}
+                  <b className="font-mono font-semibold text-[rgb(var(--metric-emerald-ink))]">
+                    {formatCurrency(order.paidAmount)}
+                  </b>
+                </div>
+              </div>
+            </div>
+          )}
+        </SectionCard>
 
-          <SectionCard title="Customer payments">
-            {detail.payments.length === 0 ? (
-              <EmptyState>No customer payments recorded.</EmptyState>
-            ) : (
-              <ResponsiveTable
-                headers={[
-                  { label: "Amount", align: "right" },
-                  { label: "Mode" },
-                  { label: "Reference" },
-                  { label: "Received by" },
-                  { label: "Created at" },
-                ]}
-              >
-                {detail.payments.map((payment) => (
-                  <tr key={payment.id}>
-                    <td className="py-3 pl-4 text-right font-semibold">
-                      {formatCurrency(payment.amount)}
-                    </td>
-                    <td className="py-3 pr-4">{paymentModeLabels[payment.mode]}</td>
-                    <td className="py-3 pr-4 text-[rgb(var(--muted-foreground))]">
-                      {payment.txnReference ?? "-"}
-                    </td>
-                    <td className="py-3 pr-4">{payment.receivedByName ?? "System"}</td>
-                    <td className="py-3 pr-4 text-[rgb(var(--muted-foreground))]">
-                      {formatDateTime(payment.createdAt)}
-                    </td>
-                  </tr>
-                ))}
-              </ResponsiveTable>
-            )}
-          </SectionCard>
-        </div>
-
-        <SectionCard title="Vendor / outsource details">
+        {/* ── 4. Vendor / Outsource ────────────────────────────────────────── */}
+        <SectionCard
+          title="Vendor / Outsource"
+          description={assignedVendor?.vendorName ?? undefined}
+        >
           {detail.vendors.length === 0 ? (
-            <EmptyState>No vendor assigned.</EmptyState>
+            <EmptyState>No vendor assigned to this order.</EmptyState>
           ) : (
             <div className="space-y-4">
               {detail.vendors.map((vendor) => {
                 const paymentStatus = getVendorPaymentStatus(vendor);
-
                 return (
                   <div
                     key={vendor.id}
-                    className="space-y-4 rounded-2xl border border-[rgb(var(--border)/0.72)] bg-[rgb(var(--muted)/0.18)] p-4"
+                    className="space-y-4 rounded-xl border border-[rgb(var(--border)/0.72)] bg-[rgb(var(--muted)/0.18)] p-4"
                   >
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3 lg:grid-cols-4">
                       <DetailRow label="Vendor" value={vendor.vendorName} />
                       <DetailRow
                         label="Work status"
@@ -417,7 +501,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                         value={
                           vendor.expectedDeliveryDate
                             ? formatDate(vendor.expectedDeliveryDate)
-                            : "-"
+                            : "—"
                         }
                       />
                       <DetailRow
@@ -429,43 +513,58 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
                         label="Vendor balance"
                         value={formatCurrency(vendor.balanceAmount)}
                       />
-                      <DetailRow label="Notes" value={vendor.notes ?? "-"} />
+                      <DetailRow label="Notes" value={vendor.notes ?? "—"} />
                     </div>
 
                     <div>
-                      <p className="mb-2 text-sm font-semibold text-[rgb(var(--foreground))]">
+                      <p className="mb-2.5 text-[13px] font-semibold text-[rgb(var(--card-foreground))]">
                         Vendor payment history
                       </p>
                       {vendor.payments.length === 0 ? (
                         <EmptyState>No vendor payments recorded.</EmptyState>
                       ) : (
-                        <ResponsiveTable
-                          headers={[
-                            { label: "Amount", align: "right" },
-                            { label: "Mode" },
-                            { label: "Reference / notes" },
-                            { label: "Recorded by" },
-                            { label: "Expense date" },
-                          ]}
-                        >
-                          {vendor.payments.map((payment) => (
-                            <tr key={payment.id}>
-                              <td className="py-3 pl-4 text-right font-semibold">
-                                {formatCurrency(payment.amount)}
-                              </td>
-                              <td className="py-3 pr-4">
-                                {paymentModeLabels[payment.paymentMode]}
-                              </td>
-                              <td className="py-3 pr-4 text-[rgb(var(--muted-foreground))]">
-                                {payment.remarks ?? payment.title ?? "-"}
-                              </td>
-                              <td className="py-3 pr-4">{payment.createdByName ?? "System"}</td>
-                              <td className="py-3 pr-4 text-[rgb(var(--muted-foreground))]">
-                                {formatDate(payment.expenseDate)}
-                              </td>
-                            </tr>
-                          ))}
-                        </ResponsiveTable>
+                        <div className="overflow-hidden rounded-xl border border-[rgb(var(--border)/0.6)] bg-[rgb(var(--card))]">
+                          <div style={{ overflowX: "auto" }}>
+                            <table
+                              style={{
+                                width: "100%",
+                                minWidth: 420,
+                                borderCollapse: "collapse",
+                              }}
+                            >
+                              <thead>
+                                <tr>
+                                  <TableHeader label="Amount" align="right" />
+                                  <TableHeader label="Mode" />
+                                  <TableHeader label="Reference / notes" />
+                                  <TableHeader label="Recorded by" />
+                                  <TableHeader label="Expense date" />
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {vendor.payments.map((payment) => (
+                                  <tr key={payment.id}>
+                                    <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 text-right font-mono text-[13.5px] font-semibold text-[rgb(var(--card-foreground))]">
+                                      {formatCurrency(payment.amount)}
+                                    </td>
+                                    <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 text-[13px]">
+                                      {paymentModeLabels[payment.paymentMode]}
+                                    </td>
+                                    <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 font-mono text-[12px] text-[rgb(var(--muted-foreground))]">
+                                      {payment.remarks ?? payment.title ?? "—"}
+                                    </td>
+                                    <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 text-[13px]">
+                                      {payment.createdByName ?? "System"}
+                                    </td>
+                                    <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 text-[12.5px] text-[rgb(var(--muted-foreground))]">
+                                      {formatDate(payment.expenseDate)}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -475,26 +574,65 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
           )}
         </SectionCard>
 
-        <SectionCard title="Order activity / history">
+        {/* ── 5. Offers / Discounts ────────────────────────────────────────── */}
+        <SectionCard
+          title="Offers / Discounts"
+          description={
+            detail.offers.length > 0
+              ? `${detail.offers.length} applied · ${formatCurrency(order.discountAmount)} off`
+              : undefined
+          }
+        >
+          {detail.offers.length === 0 ? (
+            <EmptyState>No offers applied to this order.</EmptyState>
+          ) : (
+            <div className="flex flex-wrap gap-2.5">
+              {detail.offers.map((offer) => (
+                <div
+                  key={offer.id}
+                  className="inline-flex items-center gap-2.5 rounded-xl border border-[rgb(var(--metric-emerald)/0.3)] bg-[rgb(var(--metric-emerald-soft))] px-3.5 py-2.5"
+                >
+                  <div className="min-w-0">
+                    <div className="text-[13.5px] font-semibold text-[rgb(var(--metric-emerald-ink))]">
+                      {offer.name}
+                    </div>
+                    <div className="mt-0.5 font-mono text-[11px] text-[rgb(var(--metric-emerald-ink)/0.75)]">
+                      {offer.code} · {formatEnumLabel(offer.offerType)}
+                    </div>
+                  </div>
+                  <div className="ml-2 shrink-0 rounded-lg bg-[rgb(var(--metric-emerald))] px-2.5 py-1 font-mono text-[13px] font-bold text-white">
+                    −{formatCurrency(offer.discountAmount)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </SectionCard>
+
+        {/* ── 6. Activity / History ────────────────────────────────────────── */}
+        <SectionCard
+          title="Activity / History"
+          description={`${detail.auditLogs.length} ${detail.auditLogs.length === 1 ? "event" : "events"}`}
+        >
           {detail.auditLogs.length === 0 ? (
             <EmptyState>No audit history yet.</EmptyState>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {detail.auditLogs.map((log) => (
                 <div
                   key={log.id}
-                  className="rounded-2xl border border-[rgb(var(--border)/0.68)] bg-[rgb(var(--muted)/0.16)] p-4"
+                  className="rounded-xl border border-[rgb(var(--border)/0.68)] bg-[rgb(var(--muted)/0.18)] px-4 py-3.5"
                 >
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex flex-col gap-1.5 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
-                      <p className="font-semibold text-[rgb(var(--foreground))]">
+                      <p className="text-[13.5px] font-semibold text-[rgb(var(--card-foreground))]">
                         {getAuditActionLabel(log.action)}
                       </p>
-                      <p className="mt-1 text-sm text-[rgb(var(--muted-foreground))]">
+                      <p className="mt-0.5 text-[12.5px] text-[rgb(var(--muted-foreground))]">
                         {summarizeChangedFields(log)}
                       </p>
                     </div>
-                    <div className="text-left text-sm text-[rgb(var(--muted-foreground))] sm:text-right">
+                    <div className="shrink-0 text-left text-[12px] text-[rgb(var(--muted-foreground))] sm:text-right">
                       <p>{formatDateTime(log.createdAt)}</p>
                       <p>By {log.changedByName ?? "System"}</p>
                     </div>

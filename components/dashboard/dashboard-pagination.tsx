@@ -3,6 +3,11 @@
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import {
+  buildBranchesPageHref,
+  buildBranchesPaginationHref,
+  type BranchesPageFilterState,
+} from "@/lib/dashboard/branches-page-filters";
+import {
   buildActiveUsersPageHref,
   buildActiveUsersPaginationHref,
   type ActiveUserPageFilterState,
@@ -85,7 +90,8 @@ type DashboardPaginationProps<
     | "offers"
     | "active-users"
     | "users"
-    | "vendors";
+    | "vendors"
+    | "branches";
 };
 
 function getVisiblePageNumbers(page: number, totalPages: number) {
@@ -123,6 +129,7 @@ export function DashboardPagination<
   const isActiveUsersVariant = variant === "active-users";
   const isUsersVariant = variant === "users";
   const isVendorsVariant = variant === "vendors";
+  const isBranchesVariant = variant === "branches";
   const isInlineVariant =
     isExpenseVariant ||
     isExpenseCategoriesVariant ||
@@ -133,7 +140,8 @@ export function DashboardPagination<
     isOffersVariant ||
     isActiveUsersVariant ||
     isUsersVariant ||
-    isVendorsVariant;
+    isVendorsVariant ||
+    isBranchesVariant;
   const resolvePageHref = useCallback(
     (path: string, filters: TFilters) => {
       if (isExpenseVariant)
@@ -162,6 +170,8 @@ export function DashboardPagination<
         return buildUsersPageHref(path, filters as unknown as UserManagementPageFilterState);
       if (isVendorsVariant)
         return buildVendorsPageHref(path, filters as unknown as VendorsPageFilterState);
+      if (isBranchesVariant)
+        return buildBranchesPageHref(path, filters as unknown as BranchesPageFilterState);
       return buildDashboardPageHref(path, filters as unknown as DashboardPageFilterState);
     },
     [
@@ -175,6 +185,7 @@ export function DashboardPagination<
       isOffersVariant,
       isUsersVariant,
       isVendorsVariant,
+      isBranchesVariant,
     ],
   );
   const resolvePaginationHref = (
@@ -243,6 +254,12 @@ export function DashboardPagination<
       return buildVendorsPaginationHref(
         path,
         filters as unknown as VendorsPageFilterState,
+        nextPagination,
+      );
+    if (isBranchesVariant)
+      return buildBranchesPaginationHref(
+        path,
+        filters as unknown as BranchesPageFilterState,
         nextPagination,
       );
     return buildDashboardPaginationHref(

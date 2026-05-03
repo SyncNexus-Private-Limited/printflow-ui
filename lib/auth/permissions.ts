@@ -13,6 +13,11 @@ import type { UserRole } from "@/lib/users/types";
 export type Permission =
   | "dashboard:view"
   | "branches:select_all"
+  | "branches:view"
+  | "branches:create"
+  | "branches:edit"
+  | "branches:deactivate"
+  | "branches:restore"
   | "users:view"
   | "users:create"
   | "users:edit"
@@ -88,6 +93,11 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
   admin: new Set<Permission>([
     "dashboard:view",
     "branches:select_all",
+    "branches:view",
+    "branches:create",
+    "branches:edit",
+    "branches:deactivate",
+    "branches:restore",
     "users:view",
     "users:create",
     "users:edit",

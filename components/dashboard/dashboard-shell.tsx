@@ -18,6 +18,7 @@ type DashboardShellProps = {
   initialBranchId: string | null;
   initialBranchName: string | null;
   canSelectAllBranches: boolean;
+  canViewBranches: boolean;
   canManageUsers: boolean;
   canViewExpenseCategories: boolean;
   canCreateOrder: boolean;
@@ -70,6 +71,7 @@ export function DashboardShell({
   initialBranchId,
   initialBranchName,
   canSelectAllBranches,
+  canViewBranches,
   canManageUsers,
   canViewExpenseCategories,
   canCreateOrder,
@@ -232,6 +234,7 @@ export function DashboardShell({
                   collapsed={false}
                   mobile
                   onCloseMobile={closeMobileSidebar}
+                  canViewBranches={canViewBranches}
                   canManageUsers={canManageUsers}
                   canViewExpenseCategories={canViewExpenseCategories}
                 />
@@ -257,6 +260,7 @@ export function DashboardShell({
                   return nextValue;
                 })
               }
+              canViewBranches={canViewBranches}
               canManageUsers={canManageUsers}
               canViewExpenseCategories={canViewExpenseCategories}
             />

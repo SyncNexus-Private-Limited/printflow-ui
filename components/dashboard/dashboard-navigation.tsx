@@ -4,7 +4,7 @@ import {
   buildDashboardNavigationHref,
 } from "@/lib/dashboard/page-filters";
 import type { LucideIcon } from "lucide-react";
-import { Boxes, Home, Receipt, ShoppingBag, Truck, Users } from "lucide-react";
+import { Boxes, Building2, Home, Receipt, ShoppingBag, Truck, Users } from "lucide-react";
 
 export type DashboardNavLinkItem = {
   label: string;
@@ -71,6 +71,12 @@ export const dashboardNavigation: DashboardNavItem[] = [
     icon: Truck,
   },
   {
+    type: "link",
+    label: "Branches",
+    href: "/dashboard/branches",
+    icon: Building2,
+  },
+  {
     type: "group",
     label: "Expenses",
     icon: Receipt,
@@ -130,6 +136,7 @@ export function getDashboardBreadcrumbs(
   const inventoryHref = buildDashboardHref("/dashboard/inventory", filters);
   const offersHref = buildDashboardHref("/dashboard/offers", filters);
   const vendorsHref = buildDashboardHref("/dashboard/vendors", filters);
+  const branchesHref = buildDashboardHref("/dashboard/branches", filters);
   const usersHref = buildDashboardHref("/dashboard/users", filters);
   const customersHref = buildDashboardHref("/dashboard/customers", filters);
   const salesHref = ordersHref;
@@ -231,6 +238,18 @@ export function getDashboardBreadcrumbs(
 
   if (pathname === "/dashboard/vendors") {
     return [{ label: "Home", href: homeHref }, { label: "Vendors" }];
+  }
+
+  if (pathname === "/dashboard/branches/new") {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Branches", href: branchesHref },
+      { label: "Add Branch" },
+    ];
+  }
+
+  if (pathname === "/dashboard/branches") {
+    return [{ label: "Home", href: homeHref }, { label: "Branches" }];
   }
 
   if (pathname === "/dashboard/offers/new") {

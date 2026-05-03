@@ -27,6 +27,7 @@ type DashboardSidebarProps = {
   mobile: boolean;
   onToggleCollapsed?: () => void;
   onCloseMobile?: () => void;
+  canViewBranches: boolean;
   canManageUsers: boolean;
   canViewExpenseCategories: boolean;
 };
@@ -109,6 +110,7 @@ export function DashboardSidebar({
   mobile,
   onToggleCollapsed,
   onCloseMobile,
+  canViewBranches,
   canManageUsers,
   canViewExpenseCategories,
 }: DashboardSidebarProps) {
@@ -135,6 +137,9 @@ export function DashboardSidebar({
     if (item.type === "group" && item.label === "Users") {
       // Hide the entire Users group for roles without users:view.
       if (!canManageUsers) return [];
+    }
+    if (item.type === "link" && item.href === "/dashboard/branches") {
+      if (!canViewBranches) return [];
     }
     if (item.type === "group" && item.label === "Expenses") {
       let children = item.children;

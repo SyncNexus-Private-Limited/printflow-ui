@@ -13,6 +13,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   BadgePercent,
   Boxes,
+  Building2,
   ChevronDown,
   Plus,
   Receipt,
@@ -43,6 +44,7 @@ type CreateMenuProps = {
   canCreateCustomer: boolean;
   canCreateVendor: boolean;
   canCreateOffer: boolean;
+  canCreateBranch: boolean;
 };
 
 const STAFF_CREATE_USER_HREF =
@@ -76,8 +78,9 @@ function getCreateActions({
   canCreateCustomer,
   canCreateVendor,
   canCreateOffer,
+  canCreateBranch,
 }: CreateMenuProps): CreateAction[] {
-  return [
+  const actions: CreateAction[] = [
     {
       key: "order",
       label: "Add Order",
@@ -135,6 +138,17 @@ function getCreateActions({
       disabledReason: "Unavailable",
     },
   ];
+
+  if (canCreateBranch) {
+    actions.push({
+      key: "branch",
+      label: "Add Branch",
+      href: "/dashboard/branches/new",
+      icon: Building2,
+    });
+  }
+
+  return actions;
 }
 
 function getFocusableActionIndices(actions: CreateAction[]) {
@@ -170,6 +184,7 @@ export function CreateMenu({
   canCreateCustomer,
   canCreateVendor,
   canCreateOffer,
+  canCreateBranch,
 }: CreateMenuProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -194,6 +209,7 @@ export function CreateMenu({
         canCreateCustomer,
         canCreateVendor,
         canCreateOffer,
+        canCreateBranch,
       }),
     [
       canCreateExpense,
@@ -203,6 +219,7 @@ export function CreateMenu({
       canCreateCustomer,
       canCreateUser,
       canCreateVendor,
+      canCreateBranch,
     ],
   );
   const focusableActionIndices = useMemo(() => getFocusableActionIndices(actions), [actions]);

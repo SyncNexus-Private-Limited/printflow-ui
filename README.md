@@ -135,6 +135,10 @@ npm run db:reset:dev -- --confirm printflow_dev
 npm run db:reset:dev --confirm printflow_dev
 ```
 
+## Health check
+
+`GET /api/health` — unauthenticated. Returns `{ status: "ok" | "degraded", db: "ok" | "error", dbResponseTime: number, timestamp: string }` with HTTP 200 (healthy) or 503 (DB unreachable). Use for uptime monitoring and load-balancer probes.
+
 ## Permissions (RBAC)
 
 Role-based access is defined in `lib/auth/permissions.ts`. Every guarded action has a named `Permission` string; `ROLE_PERMISSIONS` maps each role to a `ReadonlySet<Permission>`.

@@ -47,6 +47,7 @@ app/
     auth/login/         # POST — authenticate_user(), create session
     auth/logout/        # POST — revoke session
     auth/heartbeat/     # POST — touch session last_seen_at
+    health/             # GET — unauthenticated health check; returns { status, db, dbResponseTime }
     expenses/           # POST — create branch/employee expense; [id]/ edit/delete
     expense-categories/ # POST create; [id]/ PATCH (edit/deactivate/restore)
     inventory/          # POST create; [id]/ GET item+vendors, PATCH (update/archive/restore/toggle-active/adjust-stock)
@@ -79,10 +80,11 @@ components/
 lib/
   auth/
     session.ts          # JWT sign/verify, cookie helpers (jose)
-    current-user.ts     # DB session lookup + touch (server-only)
-    permissions.ts      # Permission union, ROLE_PERMISSIONS map, hasPermission, assertPermission, PermissionError, canAccessBranch
+    current-user.ts     # DB session lookup + touch + idle-timeout check (server-only)
+    permissions.ts      # Permission union, ROLE_PERMISSIONS map, hasPermission, assertPermission, PermissionError, canAccessBranch, DashboardPermissions
   db/
     postgres.ts         # Singleton pg.Pool (server-only, globalThis cache)
+    with-transaction.ts # withTransaction<T>(fn) — acquires client, BEGIN/COMMIT/ROLLBACK, releases
   customers/
     schema.ts / types.ts / queries.ts / mutations.ts
   dashboard/
@@ -222,7 +224,7 @@ npm run db:reset:dev -- --confirm printflow_dev
 - On success: JWT signed with `jose` (HS256), stored as HTTP-only cookie
 - JWT payload (`SessionPayload`): `sessionId`, `userId`, `role`, `branchId`, `username`
 - Session token hash (SHA-256) stored in `app_sessions.session_token_hash`
-- `getCurrentUser()` in `lib/auth/current-user.ts` verifies JWT, looks up live session, optionally touches `last_seen_at`
+- `getCurrentUser()` in `lib/auth/current-user.ts` verifies JWT, looks up live session, enforces idle timeout (`ACTIVE_USER_WINDOW_MINUTES`), and optionally touches `last_seen_at`
 - `middleware.ts` protects `/dashboard/**` and redirects `/login` when session is valid — inspect before changing route protection
 - Auth/session code is server-only. Do not expose tokens, hashes, or secrets to client
 - `create_user_with_auth` is the DB function for user creation (admin only, enforced in DB)
@@ -236,6 +238,7 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 - `hasPermission(user, permission)` — boolean; use for conditional rendering and non-throwing checks
 - `assertPermission(user, permission)` — throws `PermissionError` (`.status === 403`); use in server mutations and API handlers before any DB mutation
 - `canAccessBranch(user, branchId)` — data-scope guard (orthogonal to permission grants); admins bypass, all others must match their own `branchId`
+- `DashboardPermissions` — pre-computed boolean flags built once in `app/dashboard/layout.tsx` and passed as a single `permissions` prop to `DashboardShell` → `TopNavbar` / `DashboardSidebar`. Do not spread back into individual booleans at the shell boundary.
 
 **Enforcement pattern:** `getCurrentUser()` → `assertPermission()` → DB call
 
@@ -268,7 +271,9 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 - Route Handlers under `app/api/*`. Set `export const runtime = "nodejs"` for DB access
 - Validate all payloads with Zod `safeParse`; return structured field errors on failure
 - Authorize before any DB mutation via `getCurrentUser()`
-- Return typed minimal JSON: `{ success: boolean, message: string, ... }`
+- Return typed minimal JSON: `{ success: boolean, message?: string, ... }`
+- POST (create) success → `{ success: true, data: <resource> }` with HTTP 201
+- PATCH (mutate) success → `{ success: true, data: { id: string } }` — all PATCH handlers return the resource ID
 - Catch DB errors; return generic 500 — never leak internal SQL errors to clients
 - Parameterized queries only. Never concatenate untrusted input into SQL
 - Branch-scope all queries: non-admin restricted to `branchId`; admins query `null` (all branches)

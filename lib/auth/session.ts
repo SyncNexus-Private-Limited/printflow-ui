@@ -40,13 +40,20 @@ function getSessionSecret() {
     throw new Error("APP_SECRET is not configured");
   }
 
+  // HS256 requires a key of at least 256 bits (32 bytes) to be cryptographically sound.
+  if (Buffer.byteLength(secret, "utf8") < 32) {
+    throw new Error(
+      "APP_SECRET must be at least 32 bytes. Generate one with: openssl rand -base64 32",
+    );
+  }
+
   return new TextEncoder().encode(secret);
 }
 
 function getCookieOptions() {
   return {
     httpOnly: true,
-    sameSite: "lax" as const,
+    sameSite: "strict" as const,
     secure: process.env.NODE_ENV === "production",
     path: "/",
     maxAge: getSessionMaxAge(),

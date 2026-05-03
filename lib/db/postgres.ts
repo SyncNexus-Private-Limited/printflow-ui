@@ -44,7 +44,7 @@ function createPool() {
     max,
     idleTimeoutMillis,
     connectionTimeoutMillis,
-    ssl: usesSupabaseHost || sslMode === "require" ? { rejectUnauthorized: false } : undefined,
+    ssl: usesSupabaseHost || sslMode === "require" ? { rejectUnauthorized: true } : undefined,
   });
 
   if (process.env.LOG_POSTGRES_POOL === "true") {

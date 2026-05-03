@@ -32,17 +32,16 @@ function getValidationErrorResponse(fieldErrors: Record<string, string>) {
 function getLoginErrorResponse(error: unknown) {
   const message = error instanceof Error ? error.message : "";
 
-  if (message.toLowerCase().includes("account locked")) {
+  // Treat account-level rejections the same as wrong credentials so that
+  // an attacker cannot enumerate whether an account exists, is locked, or
+  // is inactive by observing different status codes or messages.
+  if (
+    message.toLowerCase().includes("account locked") ||
+    message.toLowerCase().includes("user is inactive")
+  ) {
     return {
-      message: "Your account is locked. Please contact an administrator.",
-      status: 423,
-    };
-  }
-
-  if (message.toLowerCase().includes("user is inactive")) {
-    return {
-      message: "Your account is inactive. Please contact an administrator.",
-      status: 403,
+      message: "Invalid username or password.",
+      status: 401,
     };
   }
 
@@ -143,9 +142,9 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: "Your account is inactive. Please contact an administrator.",
+          message: "Invalid username or password.",
         },
-        { status: 403 },
+        { status: 401 },
       );
     }
 

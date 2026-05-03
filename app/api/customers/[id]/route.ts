@@ -59,12 +59,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     if (parsed.data.action === "deactivate") {
       await deactivateCustomer(currentUser, id);
-      return NextResponse.json({ success: true, message: "Customer deactivated." });
+      return NextResponse.json({ success: true, data: { id } });
     }
 
     if (parsed.data.action === "restore") {
       await restoreCustomer(currentUser, id);
-      return NextResponse.json({ success: true, message: "Customer restored." });
+      return NextResponse.json({ success: true, data: { id } });
     }
 
     const updateParsed = customerSchema.safeParse(body);
@@ -81,7 +81,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     await updateCustomer(currentUser, id, updateParsed.data);
-    return NextResponse.json({ success: true, message: "Customer updated." });
+    return NextResponse.json({ success: true, data: { id } });
   } catch (error) {
     if (error instanceof CustomerMutationError) {
       return NextResponse.json(

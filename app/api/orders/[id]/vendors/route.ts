@@ -28,7 +28,7 @@ export async function PATCH(request: Request, context: OrderVendorRouteContext) 
 
     const { id } = await context.params;
     await upsertOrderVendor(currentUser, id, parsed.data);
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, data: { id } });
   } catch (error) {
     if (error instanceof PermissionError) {
       return NextResponse.json({ success: false, message: "Forbidden." }, { status: 403 });

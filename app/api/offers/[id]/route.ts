@@ -63,12 +63,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     if (parsed.data.action === "deactivate") {
       await deactivateOffer(currentUser, id);
-      return NextResponse.json({ success: true, message: "Offer deactivated." });
+      return NextResponse.json({ success: true, data: { id } });
     }
 
     if (parsed.data.action === "restore") {
       await restoreOffer(currentUser, id);
-      return NextResponse.json({ success: true, message: "Offer restored." });
+      return NextResponse.json({ success: true, data: { id } });
     }
 
     const updateParsed = offerSchema.safeParse(body);
@@ -85,7 +85,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     await updateOffer(currentUser, id, updateParsed.data);
-    return NextResponse.json({ success: true, message: "Offer updated." });
+    return NextResponse.json({ success: true, data: { id } });
   } catch (error) {
     if (error instanceof OfferMutationError) {
       return NextResponse.json(

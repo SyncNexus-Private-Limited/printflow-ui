@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { SessionHeartbeat } from "@/components/dashboard/session-heartbeat";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import { hasPermission } from "@/lib/auth/permissions";
+import { hasPermission, type DashboardPermissions } from "@/lib/auth/permissions";
 
 type DashboardLayoutProps = {
   children: ReactNode;
@@ -38,20 +38,24 @@ async function DashboardShellWrapper({
     redirect("/api/auth/clear");
   }
 
+  const permissions: DashboardPermissions = {
+    canSelectAllBranches: hasPermission(currentUser, "branches:select_all"),
+    canManageUsers: hasPermission(currentUser, "users:view"),
+    canViewExpenseCategories: hasPermission(currentUser, "expense-categories:view"),
+    canCreateOrder: hasPermission(currentUser, "orders:create"),
+    canCreateInventory: hasPermission(currentUser, "inventory:create"),
+    canCreateExpense: hasPermission(currentUser, "expenses:create"),
+    canCreateUser: hasPermission(currentUser, "users:create"),
+    canCreateCustomer: hasPermission(currentUser, "customers:create"),
+    canCreateVendor: hasPermission(currentUser, "vendors:create"),
+    canCreateOffer: hasPermission(currentUser, "offers:create"),
+  };
+
   return (
     <DashboardShell
       initialBranchId={currentUser.branchId ?? null}
       initialBranchName={currentUser.branchName ?? null}
-      canSelectAllBranches={hasPermission(currentUser, "branches:select_all")}
-      canManageUsers={hasPermission(currentUser, "users:view")}
-      canViewExpenseCategories={hasPermission(currentUser, "expense-categories:view")}
-      canCreateOrder={hasPermission(currentUser, "orders:create")}
-      canCreateInventory={hasPermission(currentUser, "inventory:create")}
-      canCreateExpense={hasPermission(currentUser, "expenses:create")}
-      canCreateUser={hasPermission(currentUser, "users:create")}
-      canCreateCustomer={hasPermission(currentUser, "customers:create")}
-      canCreateVendor={hasPermission(currentUser, "vendors:create")}
-      canCreateOffer={hasPermission(currentUser, "offers:create")}
+      permissions={permissions}
     >
       {children}
     </DashboardShell>

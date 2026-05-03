@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { LowStockPanel } from "@/components/dashboard/low-stock-panel";
@@ -10,11 +11,7 @@ import { RecentExpenses } from "@/components/dashboard/recent-expenses";
 import { RecentOrders } from "@/components/dashboard/recent-orders";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { getCurrentUser } from "@/lib/auth/current-user";
-import {
-  buildBranchFilterOptions,
-  buildBranchHref,
-  hasDashboardData,
-} from "@/lib/dashboard/helpers";
+import { buildBranchFilterOptions, buildBranchHref } from "@/lib/dashboard/helpers";
 import {
   getDashboardContext,
   getDashboardSummary,
@@ -50,14 +47,17 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
   try {
     const context = await getDashboardContext(currentUser, resolvedSearchParams?.branchId);
     const summary = await getDashboardSummary(context.selectedBranchId);
-    const [recentOrders, lowStockItems, recentExpenses] = await Promise.all([
-      getRecentOrders(context.selectedBranchId),
-      getLowStockItems(context.selectedBranchId),
-      getRecentExpenses(context.selectedBranchId),
-    ]);
     const branchOptions = buildBranchFilterOptions(context);
     const branchHref = (path: string) => buildBranchHref(path, context.selectedBranchValue);
-    const showData = hasDashboardData(summary, recentOrders, lowStockItems, recentExpenses);
+
+    const showSections =
+      summary.orders.totalOrders > 0 ||
+      summary.customers.totalCustomers > 0 ||
+      summary.inventory.totalInventoryItems > 0 ||
+      summary.activeUsers.totalActiveStaffAccounts > 0 ||
+      summary.employeeExpenses.entryCountThisMonth > 0 ||
+      summary.businessExpenses.entryCountThisMonth > 0;
+
     const metricCards: DashboardMetricCardConfig[] = [
       {
         title: "Orders",
@@ -151,21 +151,17 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
             ))}
           </section>
 
-          {!showData ? (
+          {showSections ? (
+            <Suspense fallback={<DashboardActivitySkeleton />}>
+              <DashboardActivitySections branchId={context.selectedBranchId} />
+            </Suspense>
+          ) : (
             <SectionCard title="No data yet" description="No data available for this branch yet.">
               <p className="text-sm text-slate-600">
                 Once orders, customers, inventory, expenses, or active sessions exist, they will
                 appear here.
               </p>
             </SectionCard>
-          ) : (
-            <>
-              <section className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-                <RecentOrders orders={recentOrders} />
-                <LowStockPanel items={lowStockItems} />
-              </section>
-              <RecentExpenses expenses={recentExpenses} />
-            </>
           )}
         </div>
       </main>
@@ -193,4 +189,34 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       </main>
     );
   }
+}
+
+function DashboardActivitySkeleton() {
+  return (
+    <div className="animate-pulse space-y-6">
+      <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
+        <div className="h-64 rounded-2xl bg-[rgb(var(--muted)/0.5)]" />
+        <div className="h-64 rounded-2xl bg-[rgb(var(--muted)/0.5)]" />
+      </div>
+      <div className="h-48 rounded-2xl bg-[rgb(var(--muted)/0.5)]" />
+    </div>
+  );
+}
+
+async function DashboardActivitySections({ branchId }: { branchId: string | null }) {
+  const [recentOrders, lowStockItems, recentExpenses] = await Promise.all([
+    getRecentOrders(branchId),
+    getLowStockItems(branchId),
+    getRecentExpenses(branchId),
+  ]);
+
+  return (
+    <>
+      <section className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
+        <RecentOrders orders={recentOrders} />
+        <LowStockPanel items={lowStockItems} />
+      </section>
+      <RecentExpenses expenses={recentExpenses} />
+    </>
+  );
 }

@@ -53,12 +53,12 @@ export async function PATCH(request: Request, context: OrderRouteContext) {
         );
       }
       await updateOrderStatus(currentUser, id, parsed.data);
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, data: { id } });
     }
 
     if (action === "cancel") {
       await cancelOrder(currentUser, id);
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, data: { id } });
     }
 
     const parsed = updateOrderSchema.safeParse(body);
@@ -70,7 +70,7 @@ export async function PATCH(request: Request, context: OrderRouteContext) {
     }
 
     await updateOrder(currentUser, id, parsed.data);
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, data: { id } });
   } catch (error) {
     return getErrorResponse(error, "Unable to update order right now.");
   }

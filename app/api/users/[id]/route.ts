@@ -83,18 +83,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     if (data.action === "toggle-status") {
       await updateUserStatus(currentUser, targetUserId, data.isActive);
-      return NextResponse.json({
-        success: true,
-        message: data.isActive ? "Account activated." : "Account deactivated.",
-      });
+      return NextResponse.json({ success: true, data: { id: targetUserId } });
     }
 
     if (data.action === "toggle-lock") {
       await toggleUserLock(currentUser, targetUserId, data.isLocked);
-      return NextResponse.json({
-        success: true,
-        message: data.isLocked ? "Account locked." : "Account unlocked.",
-      });
+      return NextResponse.json({ success: true, data: { id: targetUserId } });
     }
 
     if (data.action === "update-profile") {
@@ -109,7 +103,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
 
       await updateUser(currentUser, targetUserId, parsed.data);
-      return NextResponse.json({ success: true, message: "Account updated." });
+      return NextResponse.json({ success: true, data: { id: targetUserId } });
     }
 
     return NextResponse.json({ success: false, message: "Unknown action." }, { status: 400 });

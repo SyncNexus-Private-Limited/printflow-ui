@@ -267,6 +267,23 @@ export class PermissionError extends Error {
 }
 
 /**
+ * Pre-computed permission flags passed from the dashboard layout server component
+ * into client shell components. Evaluated once at render time via hasPermission.
+ */
+export type DashboardPermissions = {
+  canSelectAllBranches: boolean;
+  canManageUsers: boolean;
+  canViewExpenseCategories: boolean;
+  canCreateOrder: boolean;
+  canCreateInventory: boolean;
+  canCreateExpense: boolean;
+  canCreateUser: boolean;
+  canCreateCustomer: boolean;
+  canCreateVendor: boolean;
+  canCreateOffer: boolean;
+};
+
+/**
  * Returns true if the user may access records belonging to the given branch.
  *
  * This is a data-scope check, not a permission check. A user may have

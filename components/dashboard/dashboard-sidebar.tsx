@@ -17,6 +17,7 @@ import {
   getDashboardNavigationFilterState,
   isDashboardFilterAwarePath,
 } from "@/lib/dashboard/page-filters";
+import { type DashboardPermissions } from "@/lib/auth/permissions";
 import { cn } from "@/lib/utils/cn";
 
 type DashboardSidebarProps = {
@@ -27,8 +28,7 @@ type DashboardSidebarProps = {
   mobile: boolean;
   onToggleCollapsed?: () => void;
   onCloseMobile?: () => void;
-  canManageUsers: boolean;
-  canViewExpenseCategories: boolean;
+  permissions: DashboardPermissions;
 };
 
 type SidebarLinkProps = {
@@ -109,8 +109,7 @@ export function DashboardSidebar({
   mobile,
   onToggleCollapsed,
   onCloseMobile,
-  canManageUsers,
-  canViewExpenseCategories,
+  permissions,
 }: DashboardSidebarProps) {
   const searchParams = useSearchParams();
   const isDesktopCollapsed = collapsed && !mobile;
@@ -134,11 +133,11 @@ export function DashboardSidebar({
   const visibleNavigation = dashboardNavigation.flatMap((item) => {
     if (item.type === "group" && item.label === "Users") {
       // Hide the entire Users group for roles without users:view.
-      if (!canManageUsers) return [];
+      if (!permissions.canManageUsers) return [];
     }
     if (item.type === "group" && item.label === "Expenses") {
       let children = item.children;
-      if (!canViewExpenseCategories) {
+      if (!permissions.canViewExpenseCategories) {
         children = children.filter((child) => child.href !== "/dashboard/expenses/categories");
       }
       return [{ ...item, children }];

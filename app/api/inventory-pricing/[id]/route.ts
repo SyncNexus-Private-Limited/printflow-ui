@@ -43,7 +43,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     if (parsed.data.action === "close") {
       await closeInventoryPricing(currentUser, id);
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, data: { id } });
     }
 
     const updateParsed = inventoryPricingSchema.safeParse(body);
@@ -60,7 +60,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     await updateInventoryPricing(currentUser, id, updateParsed.data);
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, data: { id } });
   } catch (error) {
     if (error instanceof InventoryPricingMutationError) {
       return NextResponse.json(

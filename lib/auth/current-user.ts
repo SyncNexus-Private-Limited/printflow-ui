@@ -2,6 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { getPool } from "@/lib/db/postgres";
 import {
+  getActiveUserWindowMinutes,
   getSessionTouchIntervalSeconds,
   SESSION_COOKIE_NAME,
   hashSessionToken,
@@ -44,6 +45,7 @@ async function loadCurrentUser(
   const db = getPool();
   const tokenHash = await hashSessionToken(sessionToken);
   const sessionTouchIntervalSeconds = getSessionTouchIntervalSeconds();
+  const activeUserWindowMinutes = getActiveUserWindowMinutes();
   const { rows } = await db.query<CurrentUserRow>(
     `
       WITH matching_session AS (
@@ -57,6 +59,7 @@ async function loadCurrentUser(
           AND s.session_token_hash = $3
           AND s.is_revoked = false
           AND s.expires_at > now()
+          AND s.last_seen_at > now() - make_interval(mins => $7::int)
         LIMIT 1
       ),
       touched_session AS (
@@ -92,6 +95,7 @@ async function loadCurrentUser(
       touchSession,
       sessionTouchIntervalSeconds,
       session.username,
+      activeUserWindowMinutes,
     ],
   );
 

@@ -9,6 +9,7 @@ import { CreateMenu } from "@/components/dashboard/create-menu";
 import { ThemeToggleButton } from "@/components/dashboard/theme-toggle-button";
 import { Button } from "@/components/ui/button";
 import { useDashboardChrome } from "@/components/dashboard/dashboard-chrome-context";
+import { type DashboardPermissions } from "@/lib/auth/permissions";
 import { cn } from "@/lib/utils/cn";
 
 type TopNavbarProps = {
@@ -18,14 +19,7 @@ type TopNavbarProps = {
   isMobileMenuOpen: boolean;
   initialBranchId: string | null;
   initialBranchName: string | null;
-  canSelectAllBranches: boolean;
-  canCreateOrder: boolean;
-  canCreateInventory: boolean;
-  canCreateExpense: boolean;
-  canCreateUser: boolean;
-  canCreateCustomer: boolean;
-  canCreateVendor: boolean;
-  canCreateOffer: boolean;
+  permissions: DashboardPermissions;
 };
 
 function getFallbackBranchControl({
@@ -130,14 +124,7 @@ export function TopNavbar({
   isMobileMenuOpen,
   initialBranchId,
   initialBranchName,
-  canSelectAllBranches,
-  canCreateOrder,
-  canCreateInventory,
-  canCreateExpense,
-  canCreateUser,
-  canCreateCustomer,
-  canCreateVendor,
-  canCreateOffer,
+  permissions,
 }: TopNavbarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -149,7 +136,7 @@ export function TopNavbar({
       branchIdFromSearchParams,
       initialBranchId,
       initialBranchName,
-      canSelectAllBranches,
+      canSelectAllBranches: permissions.canSelectAllBranches,
     });
 
   const handleHomeClick = () => {
@@ -221,13 +208,13 @@ export function TopNavbar({
          */}
         <div className="order-2 ml-auto flex shrink-0 items-center gap-2 md:order-3 md:ml-0">
           <CreateMenu
-            canCreateOrder={canCreateOrder}
-            canCreateInventory={canCreateInventory}
-            canCreateExpense={canCreateExpense}
-            canCreateUser={canCreateUser}
-            canCreateCustomer={canCreateCustomer}
-            canCreateVendor={canCreateVendor}
-            canCreateOffer={canCreateOffer}
+            canCreateOrder={permissions.canCreateOrder}
+            canCreateInventory={permissions.canCreateInventory}
+            canCreateExpense={permissions.canCreateExpense}
+            canCreateUser={permissions.canCreateUser}
+            canCreateCustomer={permissions.canCreateCustomer}
+            canCreateVendor={permissions.canCreateVendor}
+            canCreateOffer={permissions.canCreateOffer}
           />
           {/* Theme + Logout: visible directly on md+ (tablet/desktop) */}
           <div className="hidden md:flex md:items-center md:gap-2">

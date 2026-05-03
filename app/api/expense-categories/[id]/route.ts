@@ -65,12 +65,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     if (parsed.data.action === "deactivate") {
       await deactivateExpenseCategory(currentUser, id);
-      return NextResponse.json({ success: true, message: "Category deactivated." });
+      return NextResponse.json({ success: true, data: { id } });
     }
 
     if (parsed.data.action === "restore") {
       await restoreExpenseCategory(currentUser, id);
-      return NextResponse.json({ success: true, message: "Category restored." });
+      return NextResponse.json({ success: true, data: { id } });
     }
 
     const updateParsed = expenseCategorySchema.safeParse(body);
@@ -87,7 +87,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     await updateExpenseCategory(currentUser, id, updateParsed.data);
-    return NextResponse.json({ success: true, message: "Category updated." });
+    return NextResponse.json({ success: true, data: { id } });
   } catch (error) {
     if (error instanceof ExpenseCategoryMutationError) {
       return NextResponse.json(

@@ -8,6 +8,7 @@ import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
 import { ForbiddenToast } from "@/components/dashboard/forbidden-toast";
 import { TopNavbar } from "@/components/dashboard/top-navbar";
 import { getDashboardNavigationFilterState } from "@/lib/dashboard/page-filters";
+import { type DashboardPermissions } from "@/lib/auth/permissions";
 import { cn } from "@/lib/utils/cn";
 import { DESKTOP_SIDEBAR_STORAGE_KEY } from "@/lib/ui/client-preferences";
 
@@ -17,16 +18,7 @@ type DashboardShellProps = {
   children: ReactNode;
   initialBranchId: string | null;
   initialBranchName: string | null;
-  canSelectAllBranches: boolean;
-  canManageUsers: boolean;
-  canViewExpenseCategories: boolean;
-  canCreateOrder: boolean;
-  canCreateInventory: boolean;
-  canCreateExpense: boolean;
-  canCreateUser: boolean;
-  canCreateCustomer: boolean;
-  canCreateVendor: boolean;
-  canCreateOffer: boolean;
+  permissions: DashboardPermissions;
 };
 
 function readDesktopSidebarPreference() {
@@ -69,16 +61,7 @@ export function DashboardShell({
   children,
   initialBranchId,
   initialBranchName,
-  canSelectAllBranches,
-  canManageUsers,
-  canViewExpenseCategories,
-  canCreateOrder,
-  canCreateInventory,
-  canCreateExpense,
-  canCreateUser,
-  canCreateCustomer,
-  canCreateVendor,
-  canCreateOffer,
+  permissions,
 }: DashboardShellProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -183,14 +166,7 @@ export function DashboardShell({
           isMobileMenuOpen={isMobileSidebarOpen}
           initialBranchId={initialBranchId}
           initialBranchName={initialBranchName}
-          canSelectAllBranches={canSelectAllBranches}
-          canCreateOrder={canCreateOrder}
-          canCreateInventory={canCreateInventory}
-          canCreateExpense={canCreateExpense}
-          canCreateUser={canCreateUser}
-          canCreateCustomer={canCreateCustomer}
-          canCreateVendor={canCreateVendor}
-          canCreateOffer={canCreateOffer}
+          permissions={permissions}
         />
 
         {isMobileSidebarMounted ? (
@@ -232,8 +208,7 @@ export function DashboardShell({
                   collapsed={false}
                   mobile
                   onCloseMobile={closeMobileSidebar}
-                  canManageUsers={canManageUsers}
-                  canViewExpenseCategories={canViewExpenseCategories}
+                  permissions={permissions}
                 />
               </div>
             </div>
@@ -257,8 +232,7 @@ export function DashboardShell({
                   return nextValue;
                 })
               }
-              canManageUsers={canManageUsers}
-              canViewExpenseCategories={canViewExpenseCategories}
+              permissions={permissions}
             />
           </div>
           <div className="min-w-0 flex-1">{children}</div>

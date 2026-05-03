@@ -109,22 +109,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
 
       await updateInventory(currentUser, inventoryId, updateParsed.data);
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, data: { id: inventoryId } });
     }
 
     if (data.action === "archive") {
       await archiveInventory(currentUser, inventoryId);
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, data: { id: inventoryId } });
     }
 
     if (data.action === "restore") {
       await restoreInventory(currentUser, inventoryId);
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, data: { id: inventoryId } });
     }
 
     if (data.action === "toggle-active") {
       await toggleInventoryActive(currentUser, inventoryId, data.isActive);
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, data: { id: inventoryId } });
     }
 
     if (data.action === "adjust-stock") {
@@ -142,7 +142,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       }
 
       await adjustInventoryStock(currentUser, inventoryId, adjustParsed.data);
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, data: { id: inventoryId } });
     }
 
     return NextResponse.json({ success: false, message: "Unknown action." }, { status: 400 });

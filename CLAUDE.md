@@ -47,18 +47,32 @@ app/
     auth/login/         # POST — authenticate_user(), create session
     auth/logout/        # POST — revoke session
     auth/heartbeat/     # POST — touch session last_seen_at
-    expenses/           # POST — create branch/employee expense
-    inventory/          # POST create; [id]/ GET item+vendors, PATCH (update/archive/restore/toggle-active)
+    expenses/           # POST — create branch/employee expense; [id]/ edit/delete
+    expense-categories/ # POST create; [id]/ PATCH (edit/deactivate/restore)
+    inventory/          # POST create; [id]/ GET item+vendors, PATCH (update/archive/restore/toggle-active/adjust-stock)
+    inventory-pricing/  # POST create; [id]/ GET detail, PATCH (update/close)
+    customers/          # POST create; [id]/ GET detail, PATCH (update/deactivate/restore)
+    users/              # POST create; [id]/ PATCH (edit/deactivate/lock/reset-password)
   dashboard/            # Protected dashboard pages (Server Components)
+    customers/          # Customer list page
+    customers/new/      # Add Customer page
+    inventory/          # Inventory list page
     inventory/new/      # Add Item page
-    inventory/[id]/edit/ # Edit Item page (also reachable via in-list dialog)
+    inventory/[id]/edit/ # Edit Item page
+    inventory/pricing/  # Inventory Pricing list page
+    inventory/pricing/new/ # Add Pricing page
+    expenses/categories/ # Expense Categories list page
+    expenses/categories/new/ # Add Expense Category page
   globals.css           # Tailwind 4 import + CSS variable tokens (light + dark)
 
 components/
   auth/                 # LoginForm, LogoutButton
+  customers/            # customer-form.tsx, customer-edit-dialog.tsx
   dashboard/            # Shell, header, sidebar, data tables, list controls
-  expenses/             # Expense form fields
-  inventory/            # Edit dialog (InventoryRowPatch optimistic patch), create/edit forms, table wrapper
+  expense-categories/   # expense-category-form.tsx, expense-category-edit-dialog.tsx
+  expenses/             # Expense form fields, edit/delete dialogs
+  inventory/            # inventory-form.tsx, edit-inventory-form.tsx, edit-inventory-dialog.tsx, adjust-stock-dialog.tsx, inventory-table-with-actions.tsx
+  inventory-pricing/    # inventory-pricing-form.tsx, inventory-pricing-dialog.tsx, inventory-pricing-data-table.tsx, inventory-pricing-table-with-actions.tsx
   providers/            # GlobalUiProvider
   ui/                   # Button, Input, Select, Textarea, Spinner, GlobalLoader, Toast (ToastItem, ToastContainer)
 
@@ -69,6 +83,8 @@ lib/
     permissions.ts      # Permission union, ROLE_PERMISSIONS map, hasPermission, assertPermission, PermissionError, canAccessBranch
   db/
     postgres.ts         # Singleton pg.Pool (server-only, globalThis cache)
+  customers/
+    schema.ts / types.ts / queries.ts / mutations.ts
   dashboard/
     queries.ts          # All dashboard DB queries (server-only, parameterized SQL)
     types.ts            # Shared row types
@@ -78,16 +94,20 @@ lib/
     list-page-classes.ts        # TABLE_HEADER_CELL_CLASS, TABLE_BODY_CELL_CLASS, FILTER_FIELD_LABEL_CLASS
     sortable-header-utils.ts    # getSortDirection, getNextSortValue, HeaderSortConfig<T>
     sticky-column-utils.ts      # ColumnStickyDef, StickySpec, computeStickySpecs, sticky cell helpers
-  users/
-    role-rules.ts       # requiresBranch(role) — single source of truth for branch requirement
-    mutations.ts        # createUser, updateUser, updateUserStatus, toggleUserLock, resetUserPassword — all transactional with audit logging; self-protection guards in updateUser; FOR UPDATE OF u (not bare FOR UPDATE) in snapshot fetch
-    queries.ts / schema.ts / types.ts
+  expense-categories/
+    schema.ts / types.ts / queries.ts / mutations.ts
   expenses/
     schema.ts           # Zod discriminated union for expense creation
     types.ts / queries.ts / mutations.ts
   inventory/
-    schema.ts           # Zod schemas for inventory create / update
+    schema.ts           # Zod schemas for inventory create / update / adjust-stock
     types.ts / queries.ts / mutations.ts
+  inventory-pricing/
+    schema.ts / types.ts / mutations.ts
+  users/
+    role-rules.ts       # requiresBranch(role) — single source of truth for branch requirement
+    mutations.ts        # createUser, updateUser, updateUserStatus, toggleUserLock, resetUserPassword
+    queries.ts / schema.ts / types.ts
   validations/
     auth.ts             # loginSchema
     dashboard.ts        # branchFilterSchema
@@ -96,7 +116,10 @@ lib/
   utils/                # cn(), format()
 
 db/
-  migrations/           # SQL migration files (20260410_000001_baseline.sql, 20260414_131102_expense_schema_hardening.sql, 20260429_113844_user_audit_log.sql, 20260430_000001_inventory_v1.sql — adds audit/soft-delete columns, inventory_audit_logs, inventory_stock_movements)
+  migrations/           # SQL migration files — baseline, expense schema hardening, expense/user audit logs,
+                        # inventory_v1 (soft-delete, audit logs, stock movements),
+                        # expense_categories_management, expense_category_audit_logs,
+                        # inventory_pricing_audit_logs, customer_management
   seeds/dev_seed.sql
   reset/dev_reset.sql
 
@@ -168,7 +191,7 @@ npm run db:reset:dev -- --confirm printflow_dev
 
 ## DB Schema
 
-**Core tables:** `branches`, `users`, `user_auth`, `app_sessions`, `customers`, `vendors`, `inventory`, `inventory_pricing`, `inventory_audit_logs`, `inventory_stock_movements`, `orders`, `order_items`, `payments`, `order_vendors`, `offer_items`, `order_offer_items`, `branch_expenses`, `employee_expenses`, `expense_categories`, `expense_attachments`, `order_sequences`
+**Core tables:** `branches`, `users`, `user_auth`, `app_sessions`, `customers`, `vendors`, `inventory`, `inventory_pricing`, `inventory_audit_logs`, `inventory_pricing_audit_logs`, `inventory_stock_movements`, `orders`, `order_items`, `payments`, `order_vendors`, `offer_items`, `order_offer_items`, `branch_expenses`, `employee_expenses`, `expense_categories`, `expense_category_audit_logs`, `expense_attachments`, `order_sequences`
 
 **Enums:** `user_role` (admin/manager/operator/staff), `order_status`, `payment_mode`, `payment_status`, `inventory_unit`, `customer_type`
 
@@ -228,9 +251,15 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 | `expenses:view` | ✓ | ✓ | ✓ | ✓ |
 | `expenses:create / edit` | ✓ | ✓ | ✓ | ✓ |
 | `expenses:delete` | ✓ | ✓ | ✓ | — |
+| `expense-categories:view` | ✓ | ✓ | ✓ | ✓ |
+| `expense-categories:create / edit` | ✓ | ✓ | — | — |
+| `expense-categories:deactivate / restore` | ✓ | ✓ | — | — |
 | `inventory:view` | ✓ | ✓ | ✓ | ✓ |
 | `inventory:create / edit` | ✓ | ✓ | ✓ | — |
 | `inventory:archive / restore` | ✓ | ✓ | — | — |
+| `customers:view` | ✓ | ✓ | ✓ | ✓ |
+| `customers:create / edit` | ✓ | ✓ | ✓ | — |
+| `customers:deactivate / restore` | ✓ | ✓ | — | — |
 
 **To add a permission:** (1) add to `Permission` union in `permissions.ts`, (2) grant to appropriate roles in `ROLE_PERMISSIONS`, (3) enforce in the relevant server mutation / API handler / page.
 
@@ -247,9 +276,35 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 
 ## Inventory Rules
 
-- Use `lib/inventory/schema.ts` for create/update validation and `lib/inventory/mutations.ts` for all inventory writes.
+- Use `lib/inventory/schema.ts` for create/update/adjust-stock validation and `lib/inventory/mutations.ts` for all inventory writes.
 - Create/update/archive/restore/status changes must enforce RBAC, branch access, and write `inventory_audit_logs`.
 - Quantity changes must also write `inventory_stock_movements`; archived items are soft-deleted with `deleted_at`.
+- `adjustInventoryStock` in mutations handles the `adjust-stock` PATCH action (logs both audit + stock movement).
+- After creating an **active** item, `createInventory` redirects to `/dashboard/inventory/pricing/new?branchId=…&inventoryId=…`; inactive items redirect to `/dashboard/inventory`.
+- `canCreatePricing` on the inventory page is derived from `canCreate` (`inventory:create`) — do not call `hasPermission` twice.
+- `hasPricing` is a correlated EXISTS subquery in `getInventoryPageData` — true when an active pricing window covers today.
+- Stock state uses `COALESCE(i.reorder_level, threshold)` so per-item reorder levels override the global threshold.
+
+## Inventory Pricing Rules
+
+- Use `lib/inventory-pricing/schema.ts` for validation and `lib/inventory-pricing/mutations.ts` for all writes.
+- Enforce `assertPermission(user, "inventory:create")` for create, `"inventory:edit"` for update/close — pricing reuses inventory permissions.
+- `trg_validate_inventory_pricing` in the DB prevents date range overlaps per branch/item/customer_type — do not check for overlaps in application code.
+- `isExpiringSoon` is true when `effective_to` is between today and today + `PRICE_EXPIRING_SOON_DAYS` (7 days). Defined in `lib/dashboard/inventory-pricing-page-filters.ts`.
+- The pricing new page reads `inventoryId` from searchParams and passes it as `initialInventoryId` to the form. The form validates the ID against active inventory options before using it as a default.
+- All writes must record rows in `inventory_pricing_audit_logs`.
+
+## Customer Management Rules
+
+- Use `lib/customers/schema.ts` for validation and `lib/customers/mutations.ts` for all writes.
+- Enforce `assertPermission` + `canAccessBranch` for all customer mutations.
+- Deactivate is soft — sets `is_active = false`; restore re-activates. Do not hard-delete customers.
+
+## Order Management Rules
+
+- Add Order lives at `/dashboard/orders/new` and uses `components/orders/order-form.tsx`.
+- Order detail at `/dashboard/orders/[id]` separates customer payments (`payments`) from vendor payments (`branch_expenses` linked to `order_vendor_id`).
+- Order breadcrumbs follow `Home > Sales > Orders`, including Add/Edit/Detail routes.
 
 ## UI Rules
 
@@ -274,7 +329,7 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 
 ### Dashboard list page conventions
 
-All six list pages share a common structure:
+All list pages (orders, customers, inventory, inventory-pricing, employee-expenses, business-expenses, expense-categories, active-users, users) share a common structure:
 
 **Filter controls (`*-list-controls.tsx`)**
 
@@ -323,9 +378,19 @@ All six list pages share a common structure:
 
 - Inventory pricing now has dashboard list/create pages, API routes, `lib/inventory-pricing` schemas/mutations/types, overlap-safe DB enforcement, close/update flows, and `inventory_pricing_audit_logs`.
 - Expense categories now have dashboard list/create pages, API routes, `lib/expense-categories` logic, active/inactive/restore handling, RBAC permissions, and `expense_category_audit_logs`.
+- Vendors now have dashboard list/create pages, API routes, `lib/vendors` logic, edit modal, soft deactivate/restore, RBAC permissions, `vendor_audit_logs`.
+- Orders now have Add Order, detail/edit, status, customer payment, vendor assignment/payment, and audit history flows.
 - New migrations dated 20260430 cover inventory v1, inventory pricing audit logs, expense category management, and expense category audit logs.
 - Shared dashboard list/table/filter primitives also support the newer inventory pricing and expense category pages.
 - Keep using `assertPermission` plus `canAccessBranch` for these flows; inventory pricing reuses inventory create/edit permissions.
+
+### Sidebar navigation (`components/dashboard/dashboard-navigation.tsx`)
+
+- Inventory is a `type: "group"` with two children: Inventory (`/dashboard/inventory`) and Inventory Pricing (`/dashboard/inventory/pricing`).
+- Sales is a `type: "group"` with listing children only: Orders, Customers, and Offers.
+- Vendors is a listing link only.
+- No add-action links in the sidebar — creation is always via the top-nav Create menu or page-level Add buttons.
+- `getDashboardBreadcrumbs` has explicit entries for all `/new` routes and nested pages; add a new entry when adding a new creation page.
 
 ## Development Rules
 

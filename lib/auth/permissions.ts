@@ -19,6 +19,14 @@ export type Permission =
   | "users:deactivate"
   | "users:lock"
   | "users:reset_password"
+  | "orders:create"
+  | "orders:view"
+  | "orders:edit"
+  | "orders:add_payment"
+  | "orders:update_status"
+  | "orders:cancel"
+  | "orders:edit_vendor"
+  | "orders:add_vendor_payment"
   | "expenses:view"
   | "expenses:create"
   | "expenses:edit"
@@ -28,11 +36,26 @@ export type Permission =
   | "expense-categories:edit"
   | "expense-categories:deactivate"
   | "expense-categories:restore"
+  | "vendors:view"
+  | "vendors:create"
+  | "vendors:edit"
+  | "vendors:deactivate"
+  | "vendors:restore"
+  | "offers:view"
+  | "offers:create"
+  | "offers:edit"
+  | "offers:deactivate"
+  | "offers:restore"
   | "inventory:view"
   | "inventory:create"
   | "inventory:edit"
   | "inventory:archive"
-  | "inventory:restore";
+  | "inventory:restore"
+  | "customers:view"
+  | "customers:create"
+  | "customers:edit"
+  | "customers:deactivate"
+  | "customers:restore";
 
 // ---------------------------------------------------------------------------
 // Minimal user shapes accepted by the helpers
@@ -71,6 +94,14 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
     "users:deactivate",
     "users:lock",
     "users:reset_password",
+    "orders:create",
+    "orders:view",
+    "orders:edit",
+    "orders:add_payment",
+    "orders:update_status",
+    "orders:cancel",
+    "orders:edit_vendor",
+    "orders:add_vendor_payment",
     "expenses:view",
     "expenses:create",
     "expenses:edit",
@@ -80,17 +111,40 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
     "expense-categories:edit",
     "expense-categories:deactivate",
     "expense-categories:restore",
+    "vendors:view",
+    "vendors:create",
+    "vendors:edit",
+    "vendors:deactivate",
+    "vendors:restore",
+    "offers:view",
+    "offers:create",
+    "offers:edit",
+    "offers:deactivate",
+    "offers:restore",
     "inventory:view",
     "inventory:create",
     "inventory:edit",
     "inventory:archive",
     "inventory:restore",
+    "customers:view",
+    "customers:create",
+    "customers:edit",
+    "customers:deactivate",
+    "customers:restore",
   ]),
 
   // Branch-level management: full expense access + can view (not administer) users.
   manager: new Set<Permission>([
     "dashboard:view",
     "users:view",
+    "orders:create",
+    "orders:view",
+    "orders:edit",
+    "orders:add_payment",
+    "orders:update_status",
+    "orders:cancel",
+    "orders:edit_vendor",
+    "orders:add_vendor_payment",
     "expenses:view",
     "expenses:create",
     "expenses:edit",
@@ -100,34 +154,68 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
     "expense-categories:edit",
     "expense-categories:deactivate",
     "expense-categories:restore",
+    "vendors:view",
+    "vendors:create",
+    "vendors:edit",
+    "vendors:deactivate",
+    "vendors:restore",
+    "offers:view",
+    "offers:create",
+    "offers:edit",
+    "offers:deactivate",
+    "offers:restore",
     "inventory:view",
     "inventory:create",
     "inventory:edit",
     "inventory:archive",
     "inventory:restore",
+    "customers:view",
+    "customers:create",
+    "customers:edit",
+    "customers:deactivate",
+    "customers:restore",
   ]),
 
   // Day-to-day operations: full expense CRUD, no user management.
   operator: new Set<Permission>([
     "dashboard:view",
+    "orders:create",
+    "orders:view",
+    "orders:edit",
+    "orders:add_payment",
+    "orders:update_status",
+    "orders:cancel",
+    "orders:edit_vendor",
+    "orders:add_vendor_payment",
     "expenses:view",
     "expenses:create",
     "expenses:edit",
     "expenses:delete",
     "expense-categories:view",
+    "vendors:view",
+    "offers:view",
     "inventory:view",
     "inventory:create",
     "inventory:edit",
+    "customers:view",
+    "customers:create",
+    "customers:edit",
   ]),
 
   // Limited access: can record and edit expenses, but cannot delete them.
   staff: new Set<Permission>([
     "dashboard:view",
+    "orders:create",
+    "orders:view",
+    "orders:add_payment",
     "expenses:view",
     "expenses:create",
     "expenses:edit",
     "expense-categories:view",
+    "vendors:view",
+    "offers:view",
     "inventory:view",
+    "customers:view",
   ]),
 };
 

@@ -11,6 +11,7 @@ import {
 import { createPortal } from "react-dom";
 import type { LucideIcon } from "lucide-react";
 import {
+  BadgePercent,
   Boxes,
   ChevronDown,
   Plus,
@@ -35,9 +36,13 @@ type CreateAction = {
 };
 
 type CreateMenuProps = {
+  canCreateOrder: boolean;
   canCreateInventory: boolean;
   canCreateExpense: boolean;
   canCreateUser: boolean;
+  canCreateCustomer: boolean;
+  canCreateVendor: boolean;
+  canCreateOffer: boolean;
 };
 
 const STAFF_CREATE_USER_HREF =
@@ -64,9 +69,13 @@ function isSameHref(leftHref: string, rightHref: string) {
 }
 
 function getCreateActions({
+  canCreateOrder,
   canCreateInventory,
   canCreateExpense,
   canCreateUser,
+  canCreateCustomer,
+  canCreateVendor,
+  canCreateOffer,
 }: CreateMenuProps): CreateAction[] {
   return [
     {
@@ -74,16 +83,16 @@ function getCreateActions({
       label: "Add Order",
       href: "/dashboard/orders/new",
       icon: ShoppingBag,
-      disabled: true,
-      disabledReason: "Coming soon",
+      disabled: !canCreateOrder,
+      disabledReason: "Unavailable",
     },
     {
       key: "customer",
       label: "Add Customer",
       href: "/dashboard/customers/new",
       icon: UserRound,
-      disabled: true,
-      disabledReason: "Coming soon",
+      disabled: !canCreateCustomer,
+      disabledReason: "Unavailable",
     },
     {
       key: "inventory",
@@ -110,12 +119,20 @@ function getCreateActions({
       disabledReason: "Unavailable",
     },
     {
+      key: "offer",
+      label: "Add Offer",
+      href: "/dashboard/offers/new",
+      icon: BadgePercent,
+      disabled: !canCreateOffer,
+      disabledReason: "Unavailable",
+    },
+    {
       key: "vendor",
       label: "Add Vendor",
       href: "/dashboard/vendors/new",
       icon: Truck,
-      disabled: true,
-      disabledReason: "Coming soon",
+      disabled: !canCreateVendor,
+      disabledReason: "Unavailable",
     },
   ];
 }
@@ -146,9 +163,13 @@ function useIsDesktopViewport() {
 }
 
 export function CreateMenu({
+  canCreateOrder,
   canCreateInventory,
   canCreateExpense,
   canCreateUser,
+  canCreateCustomer,
+  canCreateVendor,
+  canCreateOffer,
 }: CreateMenuProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -164,8 +185,25 @@ export function CreateMenu({
   const focusTargetIndexRef = useRef<number | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const actions = useMemo(
-    () => getCreateActions({ canCreateInventory, canCreateExpense, canCreateUser }),
-    [canCreateExpense, canCreateInventory, canCreateUser],
+    () =>
+      getCreateActions({
+        canCreateInventory,
+        canCreateOrder,
+        canCreateExpense,
+        canCreateUser,
+        canCreateCustomer,
+        canCreateVendor,
+        canCreateOffer,
+      }),
+    [
+      canCreateExpense,
+      canCreateInventory,
+      canCreateOffer,
+      canCreateOrder,
+      canCreateCustomer,
+      canCreateUser,
+      canCreateVendor,
+    ],
   );
   const focusableActionIndices = useMemo(() => getFocusableActionIndices(actions), [actions]);
   const currentHref = useMemo(

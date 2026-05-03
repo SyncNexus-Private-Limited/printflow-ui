@@ -4,7 +4,7 @@ import {
   buildDashboardNavigationHref,
 } from "@/lib/dashboard/page-filters";
 import type { LucideIcon } from "lucide-react";
-import { Boxes, Home, Receipt, ShoppingBag, Users } from "lucide-react";
+import { Boxes, Home, Receipt, ShoppingBag, Truck, Users } from "lucide-react";
 
 export type DashboardNavLinkItem = {
   label: string;
@@ -52,6 +52,7 @@ export const dashboardNavigation: DashboardNavItem[] = [
     children: [
       { label: "Orders", href: "/dashboard/orders" },
       { label: "Customers", href: "/dashboard/customers" },
+      { label: "Offers", href: "/dashboard/offers" },
     ],
   },
   {
@@ -62,6 +63,12 @@ export const dashboardNavigation: DashboardNavItem[] = [
       { label: "Inventory", href: "/dashboard/inventory" },
       { label: "Inventory Pricing", href: "/dashboard/inventory/pricing" },
     ],
+  },
+  {
+    type: "link",
+    label: "Vendors",
+    href: "/dashboard/vendors",
+    icon: Truck,
   },
   {
     type: "group",
@@ -119,8 +126,13 @@ export function getDashboardBreadcrumbs(
   searchParams?: Pick<URLSearchParams, "get">,
 ): DashboardBreadcrumb[] {
   const homeHref = buildDashboardHref("/dashboard", filters);
+  const ordersHref = buildDashboardHref("/dashboard/orders", filters);
   const inventoryHref = buildDashboardHref("/dashboard/inventory", filters);
+  const offersHref = buildDashboardHref("/dashboard/offers", filters);
+  const vendorsHref = buildDashboardHref("/dashboard/vendors", filters);
   const usersHref = buildDashboardHref("/dashboard/users", filters);
+  const customersHref = buildDashboardHref("/dashboard/customers", filters);
+  const salesHref = ordersHref;
   const employeeExpensesHref = buildDashboardHref("/dashboard/employee-expenses", filters);
   const businessExpensesHref = buildDashboardHref("/dashboard/business-expenses", filters);
   const expenseCategoriesHref = buildDashboardHref("/dashboard/expenses/categories", filters);
@@ -135,6 +147,59 @@ export function getDashboardBreadcrumbs(
       { label: "Home", href: homeHref },
       { label: "Users", href: usersHref },
       { label: "Add User" },
+    ];
+  }
+
+  if (pathname === "/dashboard/orders/new") {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Sales", href: salesHref },
+      { label: "Orders", href: ordersHref },
+      { label: "Add Order" },
+    ];
+  }
+
+  if (pathname === "/dashboard/orders") {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Sales", href: salesHref },
+      { label: "Orders" },
+    ];
+  }
+
+  if (pathname.startsWith("/dashboard/orders/") && pathname.endsWith("/edit")) {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Sales", href: salesHref },
+      { label: "Orders", href: ordersHref },
+      { label: "Order Details", href: pathname.replace(/\/edit$/, "") },
+      { label: "Edit Order" },
+    ];
+  }
+
+  if (pathname.startsWith("/dashboard/orders/")) {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Sales", href: salesHref },
+      { label: "Orders", href: ordersHref },
+      { label: "Order Details" },
+    ];
+  }
+
+  if (pathname === "/dashboard/customers/new") {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Sales", href: salesHref },
+      { label: "Customers", href: customersHref },
+      { label: "Add Customer" },
+    ];
+  }
+
+  if (pathname === "/dashboard/customers") {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Sales", href: salesHref },
+      { label: "Customers" },
     ];
   }
 
@@ -154,6 +219,30 @@ export function getDashboardBreadcrumbs(
       { label: "Inventory Pricing", href: inventoryPricingHref },
       { label: "Add Pricing" },
     ];
+  }
+
+  if (pathname === "/dashboard/vendors/new") {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Vendors", href: vendorsHref },
+      { label: "Add Vendor" },
+    ];
+  }
+
+  if (pathname === "/dashboard/vendors") {
+    return [{ label: "Home", href: homeHref }, { label: "Vendors" }];
+  }
+
+  if (pathname === "/dashboard/offers/new") {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Offers", href: offersHref },
+      { label: "Add Offer" },
+    ];
+  }
+
+  if (pathname === "/dashboard/offers") {
+    return [{ label: "Home", href: homeHref }, { label: "Offers" }];
   }
 
   if (pathname === "/dashboard/expenses/categories/new") {

@@ -1,0 +1,43 @@
+export const customerFieldNames = [
+  "type",
+  "name",
+  "phone",
+  "alternatePhone",
+  "address",
+  "studioName",
+  "customerCode",
+] as const;
+
+export type CustomerFieldName = (typeof customerFieldNames)[number];
+
+export type CustomerFormValues = {
+  type: string;
+  name: string;
+  phone: string;
+  alternatePhone: string;
+  address: string;
+  studioName: string;
+  customerCode: string;
+};
+
+export type EditCustomerRow = {
+  id: string;
+  customerNumericId: number | null;
+  customerCode: string | null;
+  type: string;
+  name: string;
+  phone: string;
+  alternatePhone: string | null;
+  address: string | null;
+  studioName: string | null;
+  avatar: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  createdByName: string | null;
+  updatedByName: string | null;
+};
+
+export type CustomerMutationResponse =
+  | { success: true; data?: { id?: string; redirectTo?: string } }
+  | { success: false; message: string; fieldErrors?: Partial<Record<CustomerFieldName, string>> };

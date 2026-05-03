@@ -39,6 +39,11 @@ import {
   type OrderPageFilterState,
 } from "@/lib/dashboard/order-page-filters";
 import {
+  buildOffersPageHref,
+  buildOffersPaginationHref,
+  type OffersPageFilterState,
+} from "@/lib/dashboard/offers-page-filters";
+import {
   DASHBOARD_PAGE_SIZE_OPTIONS,
   buildDashboardPageHref,
   buildDashboardPaginationHref,
@@ -53,6 +58,11 @@ import {
   buildUsersPaginationHref,
   type UserManagementPageFilterState,
 } from "@/lib/dashboard/users-page-filters";
+import {
+  buildVendorsPageHref,
+  buildVendorsPaginationHref,
+  type VendorsPageFilterState,
+} from "@/lib/dashboard/vendors-page-filters";
 import { cn, suggestCanonicalClasses } from "@/lib/utils/cn";
 import { ChevronLeft, ChevronRight, ChevronsUpDown } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -72,8 +82,10 @@ type DashboardPaginationProps<
     | "inventory"
     | "inventory-pricing"
     | "order"
+    | "offers"
     | "active-users"
-    | "users";
+    | "users"
+    | "vendors";
 };
 
 function getVisiblePageNumbers(page: number, totalPages: number) {
@@ -107,8 +119,10 @@ export function DashboardPagination<
   const isInventoryVariant = variant === "inventory";
   const isInventoryPricingVariant = variant === "inventory-pricing";
   const isOrderVariant = variant === "order";
+  const isOffersVariant = variant === "offers";
   const isActiveUsersVariant = variant === "active-users";
   const isUsersVariant = variant === "users";
+  const isVendorsVariant = variant === "vendors";
   const isInlineVariant =
     isExpenseVariant ||
     isExpenseCategoriesVariant ||
@@ -116,8 +130,10 @@ export function DashboardPagination<
     isInventoryVariant ||
     isInventoryPricingVariant ||
     isOrderVariant ||
+    isOffersVariant ||
     isActiveUsersVariant ||
-    isUsersVariant;
+    isUsersVariant ||
+    isVendorsVariant;
   const resolvePageHref = useCallback(
     (path: string, filters: TFilters) => {
       if (isExpenseVariant)
@@ -138,10 +154,14 @@ export function DashboardPagination<
         );
       if (isOrderVariant)
         return buildOrderPageHref(path, filters as unknown as OrderPageFilterState);
+      if (isOffersVariant)
+        return buildOffersPageHref(path, filters as unknown as OffersPageFilterState);
       if (isActiveUsersVariant)
         return buildActiveUsersPageHref(path, filters as unknown as ActiveUserPageFilterState);
       if (isUsersVariant)
         return buildUsersPageHref(path, filters as unknown as UserManagementPageFilterState);
+      if (isVendorsVariant)
+        return buildVendorsPageHref(path, filters as unknown as VendorsPageFilterState);
       return buildDashboardPageHref(path, filters as unknown as DashboardPageFilterState);
     },
     [
@@ -152,7 +172,9 @@ export function DashboardPagination<
       isInventoryVariant,
       isInventoryPricingVariant,
       isOrderVariant,
+      isOffersVariant,
       isUsersVariant,
+      isVendorsVariant,
     ],
   );
   const resolvePaginationHref = (
@@ -199,6 +221,12 @@ export function DashboardPagination<
         filters as unknown as OrderPageFilterState,
         nextPagination,
       );
+    if (isOffersVariant)
+      return buildOffersPaginationHref(
+        path,
+        filters as unknown as OffersPageFilterState,
+        nextPagination,
+      );
     if (isActiveUsersVariant)
       return buildActiveUsersPaginationHref(
         path,
@@ -209,6 +237,12 @@ export function DashboardPagination<
       return buildUsersPaginationHref(
         path,
         filters as unknown as UserManagementPageFilterState,
+        nextPagination,
+      );
+    if (isVendorsVariant)
+      return buildVendorsPaginationHref(
+        path,
+        filters as unknown as VendorsPageFilterState,
         nextPagination,
       );
     return buildDashboardPaginationHref(

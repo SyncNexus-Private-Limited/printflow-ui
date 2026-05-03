@@ -1109,6 +1109,12 @@ function buildCustomerQueryParts(
       ) = $${values.length}`);
   }
 
+  if (filters.status === "active") {
+    whereParts.push(`c.is_active = true`);
+  } else if (filters.status === "inactive") {
+    whereParts.push(`c.is_active = false`);
+  }
+
   return {
     whereClause: whereParts.join("\n        AND "),
     values,
@@ -1126,16 +1132,13 @@ export async function getCustomersPageData(
   const { rows: summaryRows } = await db.query<CustomersPageSummary>(
     `
       SELECT
-        COUNT(*)::int AS "totalCustomersInRange",
-        COUNT(*) FILTER (WHERE LOWER(c.type::text) = 'studio')::int AS "studioCustomersInRange",
-        COUNT(*) FILTER (WHERE ord_agg.order_count > 0)::int AS "customersWithOrders",
-        COALESCE(SUM(ord_agg.total_payable), 0)::double precision AS "totalPayable",
-        COALESCE(SUM(ord_agg.total_outstanding), 0)::double precision AS "totalOutstanding"
+        COUNT(*) FILTER (WHERE c.is_active = true)::int AS "activeCustomers",
+        COUNT(*)::int AS "newCustomersInRange",
+        COUNT(*) FILTER (WHERE LOWER(c.type::text) = 'studio')::int AS "studioCustomers",
+        COUNT(*) FILTER (WHERE ord_agg.total_outstanding > 0)::int AS "outstandingCustomers"
       FROM customers c
       LEFT JOIN LATERAL (
         SELECT
-          COUNT(*) AS order_count,
-          COALESCE(SUM(o.payable_amount), 0) AS total_payable,
           COALESCE(SUM(o.payable_amount - o.paid_amount), 0) AS total_outstanding
         FROM orders o
         WHERE o.customer_id = c.id
@@ -1146,7 +1149,7 @@ export async function getCustomersPageData(
     queryParts.values,
   );
   const summary = summaryRows[0];
-  const pagination = buildPaginationState(summary.totalCustomersInRange, filters);
+  const pagination = buildPaginationState(summary.newCustomersInRange, filters);
   const listQueryParams = [
     ...queryParts.values,
     pagination.pageSize,
@@ -1168,6 +1171,7 @@ export async function getCustomersPageData(
         c.phone,
         c.alternate_phone AS "alternatePhone",
         c.address,
+        c.is_active AS "isActive",
         c.created_at::text AS "createdAt",
         c.updated_at::text AS "updatedAt",
         ord_agg.order_count::int AS "orderCount",
@@ -1474,6 +1478,7 @@ export async function getCustomerDetails(branchId: string | null) {
         c.phone,
         c.alternate_phone AS "alternatePhone",
         c.address,
+        c.is_active AS "isActive",
         c.created_at::text AS "createdAt",
         c.updated_at::text AS "updatedAt",
         ord_agg.order_count::int AS "orderCount",

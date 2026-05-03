@@ -1,6 +1,7 @@
 "use client";
 
 import { DashboardPagination } from "@/components/dashboard/dashboard-pagination";
+import { RowActionMenu } from "@/components/dashboard/row-action-menu";
 import {
   DataPill,
   getOrderPaymentStatusLabel,
@@ -12,6 +13,9 @@ import { DataTableContainer } from "@/components/dashboard/data-table-container"
 import { SortableHeaderCell } from "@/components/dashboard/sortable-header-cell";
 import { TableEmptyState } from "@/components/dashboard/table-empty-state";
 import { TableScrollArea } from "@/components/dashboard/table-scroll-area";
+import { AddPaymentDialog } from "@/components/orders/add-payment-dialog";
+import { OrderStatusDialog } from "@/components/orders/order-status-dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { TABLE_BODY_CELL_CLASS, TABLE_HEADER_CELL_CLASS } from "@/lib/dashboard/list-page-classes";
 import {
   buildOrderPageHref,
@@ -29,9 +33,12 @@ import {
   type ColumnStickyDef,
 } from "@/lib/dashboard/sticky-column-utils";
 import type { DashboardPaginationState, OrderDetailRow } from "@/lib/dashboard/types";
+import type { OrderStatusValue } from "@/lib/orders/types";
 import { cn } from "@/lib/utils/cn";
 import { formatCurrency, formatDate } from "@/lib/utils/format";
+import { CreditCard, Eye, Pencil, RotateCcw, XCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 type OrderDataTableProps = {
   items: OrderDetailRow[];
@@ -40,6 +47,11 @@ type OrderDataTableProps = {
   currentFilters: OrderPageFilterState;
   pagination: DashboardPaginationState;
   showBranch?: boolean;
+  canView?: boolean;
+  canEdit?: boolean;
+  canAddPayment?: boolean;
+  canUpdateStatus?: boolean;
+  canCancel?: boolean;
 };
 
 type HeaderConfig = {
@@ -110,6 +122,13 @@ const baseHeaderConfigs: HeaderConfig[] = [
     key: "created-by",
     label: "Created by",
   },
+  {
+    key: "actions",
+    label: "",
+    align: "right",
+    sticky: "right",
+    width: 64,
+  },
 ];
 
 function getHeaderConfigs(showBranch: boolean): HeaderConfig[] {
@@ -123,9 +142,18 @@ export function OrderDataTable({
   currentFilters,
   pagination,
   showBranch = false,
+  canView = false,
+  canEdit = false,
+  canAddPayment = false,
+  canUpdateStatus = false,
+  canCancel = false,
 }: OrderDataTableProps) {
   const router = useRouter();
   const headerConfigs = getHeaderConfigs(showBranch);
+  const [paymentOrder, setPaymentOrder] = useState<OrderDetailRow | null>(null);
+  const [statusOrder, setStatusOrder] = useState<OrderDetailRow | null>(null);
+  const [cancelOrder, setCancelOrder] = useState<OrderDetailRow | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   if (items.length === 0) {
     return <TableEmptyState message={emptyMessage} />;
@@ -142,6 +170,24 @@ export function OrderDataTable({
 
     router.replace(nextHref, { scroll: false });
   };
+
+  async function handleCancelOrder() {
+    if (!cancelOrder) return;
+    setIsCancelling(true);
+    try {
+      const response = await fetch(`/api/orders/${cancelOrder.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel" }),
+      });
+      if (response.ok) {
+        setCancelOrder(null);
+        router.refresh();
+      }
+    } finally {
+      setIsCancelling(false);
+    }
+  }
 
   return (
     <DataTableContainer>
@@ -168,6 +214,7 @@ export function OrderDataTable({
             <col className="w-36" />
             {showBranch && <col className="w-40" />}
             <col className="w-40" />
+            <col className="w-16" />
           </colgroup>
 
           <thead>
@@ -278,6 +325,59 @@ export function OrderDataTable({
                     {order.createdByName ?? "—"}
                   </p>
                 </td>
+                <td
+                  className={cn(
+                    TABLE_BODY_CELL_CLASS,
+                    "text-right",
+                    getStickyBodyCellClass(stickySpecs[stickySpecs.length - 1]),
+                  )}
+                  style={getStickyBodyCellStyle(stickySpecs[stickySpecs.length - 1])}
+                >
+                  <RowActionMenu
+                    label={`Actions for ${order.orderCode}`}
+                    actions={[
+                      {
+                        key: "view",
+                        label: "View",
+                        icon: <Eye className="h-4 w-4" />,
+                        disabled: !canView,
+                        onClick: () => router.push(`/dashboard/orders/${order.id}`),
+                      },
+                      {
+                        key: "edit",
+                        label: "Edit Order",
+                        icon: <Pencil className="h-4 w-4" />,
+                        disabled: !canEdit || order.status === "cancelled",
+                        onClick: () => router.push(`/dashboard/orders/${order.id}/edit`),
+                      },
+                      {
+                        key: "payment",
+                        label: "Add Customer Payment",
+                        icon: <CreditCard className="h-4 w-4" />,
+                        disabled:
+                          !canAddPayment ||
+                          order.status === "cancelled" ||
+                          order.outstandingAmount <= 0,
+                        onClick: () => setPaymentOrder(order),
+                      },
+                      {
+                        key: "status",
+                        label: "Update Status",
+                        icon: <RotateCcw className="h-4 w-4" />,
+                        disabled: !canUpdateStatus || order.status === "cancelled",
+                        onClick: () => setStatusOrder(order),
+                      },
+                      {
+                        key: "cancel",
+                        label: "Cancel Order",
+                        icon: <XCircle className="h-4 w-4" />,
+                        destructive: true,
+                        disabled: !canCancel || order.status === "cancelled",
+                        onClick: () => setCancelOrder(order),
+                      },
+                    ]}
+                  />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -289,6 +389,29 @@ export function OrderDataTable({
         currentFilters={currentFilters}
         pagination={pagination}
         variant="order"
+      />
+      <AddPaymentDialog
+        isOpen={paymentOrder !== null}
+        orderId={paymentOrder?.id ?? null}
+        orderLabel={paymentOrder?.orderCode}
+        outstandingAmount={paymentOrder?.outstandingAmount}
+        onClose={() => setPaymentOrder(null)}
+      />
+      <OrderStatusDialog
+        isOpen={statusOrder !== null}
+        orderId={statusOrder?.id ?? null}
+        currentStatus={statusOrder?.status as OrderStatusValue | undefined}
+        onClose={() => setStatusOrder(null)}
+      />
+      <ConfirmDialog
+        isOpen={cancelOrder !== null}
+        onClose={() => setCancelOrder(null)}
+        onConfirm={handleCancelOrder}
+        title="Cancel order?"
+        description="This marks the order as cancelled and lets the database restore item stock."
+        confirmKeyword="cancel"
+        confirmLabel="Cancel order"
+        isPending={isCancelling}
       />
     </DataTableContainer>
   );

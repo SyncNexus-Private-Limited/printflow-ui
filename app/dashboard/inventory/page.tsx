@@ -32,7 +32,7 @@ export default async function InventoryPage({ searchParams }: InventoryPageProps
   const canEdit = hasPermission(currentUser, "inventory:edit");
   const canArchive = hasPermission(currentUser, "inventory:archive");
   const canRestore = hasPermission(currentUser, "inventory:restore");
-  const canCreatePricing = hasPermission(currentUser, "inventory:create");
+  const canCreatePricing = canCreate;
 
   try {
     const filters = parseInventoryPageFilters(resolvedSearchParams);

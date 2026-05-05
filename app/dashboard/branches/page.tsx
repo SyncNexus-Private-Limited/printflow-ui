@@ -38,7 +38,10 @@ export default async function BranchesPage({ searchParams }: BranchesPageProps) 
           <DashboardHeader
             title="Branches"
             branchOptions={[
-              { label: currentUser.branchName ?? "All branches", value: currentUser.branchId ?? "all" },
+              {
+                label: currentUser.branchName ?? "All branches",
+                value: currentUser.branchId ?? "all",
+              },
             ]}
             selectedBranchValue={currentUser.branchId ?? "all"}
             branchFilterDisabled

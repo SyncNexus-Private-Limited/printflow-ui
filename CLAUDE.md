@@ -160,6 +160,7 @@ npm run db:reset:dev -- --confirm printflow_dev
 - Run `db:target` before any DB operation. Prefer dry runs before applying
 - Production: runs only `db:migrate`. Rollback blocked unless `ALLOW_PRODUCTION_ROLLBACK=true`
 - `db/migrations/` is in `.prettierignore` — never reformat applied migration files.
+- `db/migrations_dev/` contains the 18 original dev migrations for reference only — do not run them against any schema.
 
 ### Destructive commands — all 3 gates required:
 
@@ -380,7 +381,7 @@ All list pages (orders, customers, inventory, inventory-pricing, employee-expens
 - Expense categories now have dashboard list/create pages, API routes, `lib/expense-categories` logic, active/inactive/restore handling, RBAC permissions, and `expense_category_audit_logs`.
 - Vendors now have dashboard list/create pages, API routes, `lib/vendors` logic, edit modal, soft deactivate/restore, RBAC permissions, `vendor_audit_logs`.
 - Orders now have Add Order, detail/edit, status, customer payment, vendor assignment/payment, and audit history flows.
-- New migrations dated 20260430 cover inventory v1, inventory pricing audit logs, expense category management, and expense category audit logs.
+- Migrations were consolidated from 18 dev migrations into 7 production migrations (`20260410_000001` – `20260410_000007`). Old files are archived in `db/migrations_dev/` — do not run them.
 - Shared dashboard list/table/filter primitives also support the newer inventory pricing and expense category pages.
 - Keep using `assertPermission` plus `canAccessBranch` for these flows; inventory pricing reuses inventory create/edit permissions.
 

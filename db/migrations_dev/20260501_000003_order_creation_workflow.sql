@@ -1,35 +1,38 @@
 -- migrate:up
-
 ALTER TABLE order_vendors
-  ADD COLUMN vendor_charge_amount numeric(14, 2) NOT NULL DEFAULT 0 CHECK (vendor_charge_amount >= 0),
-  ADD COLUMN vendor_balance_amount numeric(14, 2) NOT NULL DEFAULT 0 CHECK (vendor_balance_amount >= 0),
-  ADD COLUMN status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'partial', 'paid')),
-  ADD COLUMN expected_delivery_date date,
-  ADD COLUMN notes text,
-  ADD COLUMN updated_at timestamptz NOT NULL DEFAULT now(),
-  ADD COLUMN updated_by uuid REFERENCES users(id) ON DELETE SET NULL;
+ADD COLUMN vendor_charge_amount numeric(14, 2) NOT NULL DEFAULT 0 CHECK (vendor_charge_amount >= 0),
+ADD COLUMN vendor_balance_amount numeric(14, 2) NOT NULL DEFAULT 0 CHECK (vendor_balance_amount >= 0),
+ADD COLUMN status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'partial', 'paid')),
+ADD COLUMN expected_delivery_date date,
+ADD COLUMN notes text,
+ADD COLUMN updated_at timestamptz NOT NULL DEFAULT now(),
+ADD COLUMN updated_by uuid REFERENCES users (id) ON DELETE SET NULL;
 
 UPDATE order_vendors
 SET
   vendor_charge_amount = vendor_paid_amount,
   vendor_balance_amount = 0,
-  status = CASE WHEN vendor_paid_amount > 0 THEN 'paid' ELSE 'pending' END;
+  status = CASE
+    WHEN vendor_paid_amount > 0 THEN 'paid'
+    ELSE 'pending'
+  END;
 
 ALTER TABLE order_vendors
-  ADD CONSTRAINT order_vendors_paid_not_above_charge
-    CHECK (vendor_paid_amount <= vendor_charge_amount);
+ADD CONSTRAINT order_vendors_paid_not_above_charge CHECK (vendor_paid_amount <= vendor_charge_amount);
 
-CREATE TRIGGER trg_order_vendors_updated_at
-BEFORE UPDATE ON order_vendors
-FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER trg_order_vendors_updated_at BEFORE
+UPDATE ON order_vendors FOR EACH ROW
+EXECUTE FUNCTION set_updated_at ();
 
 CREATE TABLE order_applied_offers (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id uuid NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-  offer_id uuid REFERENCES offers(id) ON DELETE SET NULL,
+  order_id uuid NOT NULL REFERENCES orders (id) ON DELETE CASCADE,
+  offer_id uuid REFERENCES offers (id) ON DELETE SET NULL,
   code text NOT NULL CHECK (btrim(code) <> ''),
   name text NOT NULL CHECK (btrim(name) <> ''),
-  offer_type text NOT NULL CHECK (offer_type IN ('percentage', 'flat', 'buy_x_get_y')),
+  offer_type text NOT NULL CHECK (
+    offer_type IN ('percentage', 'flat', 'buy_x_get_y')
+  ),
   discount_amount numeric(14, 2) NOT NULL DEFAULT 0 CHECK (discount_amount >= 0),
   snapshot jsonb NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now()
@@ -37,27 +40,33 @@ CREATE TABLE order_applied_offers (
 
 CREATE TABLE order_audit_logs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id uuid REFERENCES orders(id) ON DELETE SET NULL,
-  action text NOT NULL CHECK (action IN ('create', 'update', 'cancel', 'restore')),
+  order_id uuid REFERENCES orders (id) ON DELETE SET NULL,
+  action text NOT NULL CHECK (
+    action IN ('create', 'update', 'cancel', 'restore')
+  ),
   snapshot jsonb NOT NULL,
   changed_fields jsonb,
-  changed_by uuid REFERENCES users(id) ON DELETE SET NULL,
+  changed_by uuid REFERENCES users (id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_order_vendors_status ON order_vendors(status);
-CREATE INDEX idx_order_vendors_expected_delivery_date ON order_vendors(expected_delivery_date);
-CREATE INDEX idx_order_applied_offers_order_id ON order_applied_offers(order_id);
-CREATE INDEX idx_order_applied_offers_offer_id ON order_applied_offers(offer_id);
-CREATE INDEX idx_order_audit_logs_order_id ON order_audit_logs(order_id);
-CREATE INDEX idx_order_audit_logs_action ON order_audit_logs(action);
-CREATE INDEX idx_order_audit_logs_changed_by ON order_audit_logs(changed_by);
-CREATE INDEX idx_order_audit_logs_created_at ON order_audit_logs(created_at DESC);
+CREATE INDEX idx_order_vendors_status ON order_vendors (status);
 
-CREATE OR REPLACE FUNCTION trg_validate_order_header()
-RETURNS trigger
-LANGUAGE plpgsql
-AS $$
+CREATE INDEX idx_order_vendors_expected_delivery_date ON order_vendors (expected_delivery_date);
+
+CREATE INDEX idx_order_applied_offers_order_id ON order_applied_offers (order_id);
+
+CREATE INDEX idx_order_applied_offers_offer_id ON order_applied_offers (offer_id);
+
+CREATE INDEX idx_order_audit_logs_order_id ON order_audit_logs (order_id);
+
+CREATE INDEX idx_order_audit_logs_action ON order_audit_logs (action);
+
+CREATE INDEX idx_order_audit_logs_changed_by ON order_audit_logs (changed_by);
+
+CREATE INDEX idx_order_audit_logs_created_at ON order_audit_logs (created_at DESC);
+
+CREATE OR REPLACE FUNCTION trg_validate_order_header () RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE
   v_user_branch uuid;
   v_user_active boolean;
@@ -115,10 +124,7 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION trg_validate_payment()
-RETURNS trigger
-LANGUAGE plpgsql
-AS $$
+CREATE OR REPLACE FUNCTION trg_validate_payment () RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE
   v_order_branch uuid;
   v_order_status order_status;
@@ -169,27 +175,34 @@ END;
 $$;
 
 -- migrate:down
-
 DROP INDEX IF EXISTS idx_order_audit_logs_created_at;
+
 DROP INDEX IF EXISTS idx_order_audit_logs_changed_by;
+
 DROP INDEX IF EXISTS idx_order_audit_logs_action;
+
 DROP INDEX IF EXISTS idx_order_audit_logs_order_id;
+
 DROP INDEX IF EXISTS idx_order_applied_offers_offer_id;
+
 DROP INDEX IF EXISTS idx_order_applied_offers_order_id;
+
 DROP INDEX IF EXISTS idx_order_vendors_expected_delivery_date;
+
 DROP INDEX IF EXISTS idx_order_vendors_status;
 
 DROP TABLE IF EXISTS order_audit_logs;
+
 DROP TABLE IF EXISTS order_applied_offers;
 
 DROP TRIGGER IF EXISTS trg_order_vendors_updated_at ON order_vendors;
 
 ALTER TABLE order_vendors
-  DROP CONSTRAINT IF EXISTS order_vendors_paid_not_above_charge,
-  DROP COLUMN IF EXISTS updated_by,
-  DROP COLUMN IF EXISTS updated_at,
-  DROP COLUMN IF EXISTS notes,
-  DROP COLUMN IF EXISTS expected_delivery_date,
-  DROP COLUMN IF EXISTS status,
-  DROP COLUMN IF EXISTS vendor_balance_amount,
-  DROP COLUMN IF EXISTS vendor_charge_amount;
+DROP CONSTRAINT IF EXISTS order_vendors_paid_not_above_charge,
+DROP COLUMN IF EXISTS updated_by,
+DROP COLUMN IF EXISTS updated_at,
+DROP COLUMN IF EXISTS notes,
+DROP COLUMN IF EXISTS expected_delivery_date,
+DROP COLUMN IF EXISTS status,
+DROP COLUMN IF EXISTS vendor_balance_amount,
+DROP COLUMN IF EXISTS vendor_charge_amount;

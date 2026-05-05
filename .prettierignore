@@ -1,6 +1,4 @@
-db/migrations
-db/seeds
-db/reset
+db
 node_modules
 .next
 out

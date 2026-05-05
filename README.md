@@ -38,9 +38,9 @@ Prettier handles formatting, Tailwind class sorting, and PostgreSQL SQL formatti
 - This project uses SQL-first migrations in `db/migrations`.
 - Migration files use `-- migrate:up` and `-- migrate:down`.
 - Applied migrations are tracked in the `schema_migrations` table.
-- A baseline migration already exists in the repo.
+- 7 consolidated production migrations exist (`20260410_000001` – `20260410_000007`). See `db/MIGRATIONS.md` for the full structure.
 - Migration checksums are validated before apply and rollback.
-- Inventory v1 adds soft archive, audit logs, stock movements, and reorder levels.
+- Original dev migrations are archived in `db/migrations_dev/` — do not run them.
 
 ## Environment variables
 
@@ -153,7 +153,7 @@ Role-based access is defined in `lib/auth/permissions.ts`. Every guarded action 
 - Added inventory pricing management: list/create pages, API routes, Zod validation, mutations, overlap-safe DB rules, and audit logs.
 - Added expense category management: list/create UI, API routes, active/inactive handling, RBAC permissions, and audit logs.
 - Added vendors management: list/create UI, edit modal, soft deactivate/restore, RBAC permissions, audit logs.
-- Added new migrations for inventory v1, inventory pricing audit logs, expense category management, and expense category audit logs.
+- Inventory v1 features (soft archive, audit logs, stock movements, reorder levels) are part of the consolidated migrations.
 - Shared dashboard table/filter primitives are now used by the newer inventory pricing and expense category screens too.
 
 - `/dashboard/inventory` lists items with stock state, pricing status, and per-item reorder levels.

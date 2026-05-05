@@ -26,6 +26,7 @@ type TopNavbarProps = {
   canCreateCustomer: boolean;
   canCreateVendor: boolean;
   canCreateOffer: boolean;
+  canCreateBranch: boolean;
 };
 
 function getFallbackBranchControl({
@@ -138,6 +139,7 @@ export function TopNavbar({
   canCreateCustomer,
   canCreateVendor,
   canCreateOffer,
+  canCreateBranch,
 }: TopNavbarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -228,6 +230,7 @@ export function TopNavbar({
             canCreateCustomer={canCreateCustomer}
             canCreateVendor={canCreateVendor}
             canCreateOffer={canCreateOffer}
+            canCreateBranch={canCreateBranch}
           />
           {/* Theme + Logout: visible directly on md+ (tablet/desktop) */}
           <div className="hidden md:flex md:items-center md:gap-2">

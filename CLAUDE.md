@@ -49,6 +49,7 @@ app/
     auth/heartbeat/     # POST — touch session last_seen_at
     expenses/           # POST — create branch/employee expense; [id]/ edit/delete
     expense-categories/ # POST create; [id]/ PATCH (edit/deactivate/restore)
+    branches/           # POST create; [id]/ GET detail, PATCH (edit/deactivate/restore)
     inventory/          # POST create; [id]/ GET item+vendors, PATCH (update/archive/restore/toggle-active/adjust-stock)
     inventory-pricing/  # POST create; [id]/ GET detail, PATCH (update/close)
     customers/          # POST create; [id]/ GET detail, PATCH (update/deactivate/restore)
@@ -56,6 +57,8 @@ app/
   dashboard/            # Protected dashboard pages (Server Components)
     customers/          # Customer list page
     customers/new/      # Add Customer page
+    branches/           # Branch list page
+    branches/new/       # Add Branch page
     inventory/          # Inventory list page
     inventory/new/      # Add Item page
     inventory/[id]/edit/ # Edit Item page
@@ -67,6 +70,7 @@ app/
 
 components/
   auth/                 # LoginForm, LogoutButton
+  branches/             # branch-form.tsx, branch-edit-dialog.tsx
   customers/            # customer-form.tsx, customer-edit-dialog.tsx
   dashboard/            # Shell, header, sidebar, data tables, list controls
   expense-categories/   # expense-category-form.tsx, expense-category-edit-dialog.tsx
@@ -84,6 +88,8 @@ lib/
   db/
     postgres.ts         # Singleton pg.Pool (server-only, globalThis cache)
   customers/
+    schema.ts / types.ts / queries.ts / mutations.ts
+  branches/
     schema.ts / types.ts / queries.ts / mutations.ts
   dashboard/
     queries.ts          # All dashboard DB queries (server-only, parameterized SQL)
@@ -119,7 +125,7 @@ db/
   migrations/           # SQL migration files — baseline, expense schema hardening, expense/user audit logs,
                         # inventory_v1 (soft-delete, audit logs, stock movements),
                         # expense_categories_management, expense_category_audit_logs,
-                        # inventory_pricing_audit_logs, customer_management
+                        # inventory_pricing_audit_logs, customer_management, branches_management
   seeds/dev_seed.sql
   reset/dev_reset.sql
 
@@ -192,7 +198,7 @@ npm run db:reset:dev -- --confirm printflow_dev
 
 ## DB Schema
 
-**Core tables:** `branches`, `users`, `user_auth`, `app_sessions`, `customers`, `vendors`, `inventory`, `inventory_pricing`, `inventory_audit_logs`, `inventory_pricing_audit_logs`, `inventory_stock_movements`, `orders`, `order_items`, `payments`, `order_vendors`, `offer_items`, `order_offer_items`, `branch_expenses`, `employee_expenses`, `expense_categories`, `expense_category_audit_logs`, `expense_attachments`, `order_sequences`
+**Core tables:** `branches`, `branch_audit_logs`, `users`, `user_auth`, `app_sessions`, `customers`, `vendors`, `inventory`, `inventory_pricing`, `inventory_audit_logs`, `inventory_pricing_audit_logs`, `inventory_stock_movements`, `orders`, `order_items`, `payments`, `order_vendors`, `offer_items`, `order_offer_items`, `branch_expenses`, `employee_expenses`, `expense_categories`, `expense_category_audit_logs`, `expense_attachments`, `order_sequences`
 
 **Enums:** `user_role` (admin/manager/operator/staff), `order_status`, `payment_mode`, `payment_status`, `inventory_unit`, `customer_type`
 
@@ -245,6 +251,7 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 **Role matrix:**
 | Permission | admin | manager | operator | staff |
 |---|---|---|---|---|
+| `branches:view / create / edit / deactivate / restore` | admin only | - | - | - |
 | `branches:select_all` | ✓ | — | — | — |
 | `users:view` | ✓ | ✓ | — | — |
 | `users:create` | ✓ | — | — | — |
@@ -301,6 +308,13 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 - Enforce `assertPermission` + `canAccessBranch` for all customer mutations.
 - Deactivate is soft — sets `is_active = false`; restore re-activates. Do not hard-delete customers.
 
+## Branch Management Rules
+
+- Branch management is admin-only: `/dashboard/branches`, `/dashboard/branches/new`, and `/api/branches/**`.
+- Use `lib/branches/schema.ts` for validation and `lib/branches/mutations.ts` for all writes.
+- Deactivate is soft (`is_active = false`); preserve existing users/orders/inventory/expenses references.
+- Navbar Create includes `Add Branch` only when `branches:create` is granted.
+
 ## Order Management Rules
 
 - Add Order lives at `/dashboard/orders/new` and uses `components/orders/order-form.tsx`.
@@ -330,7 +344,7 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 
 ### Dashboard list page conventions
 
-All list pages (orders, customers, inventory, inventory-pricing, employee-expenses, business-expenses, expense-categories, active-users, users) share a common structure:
+All list pages (orders, customers, inventory, inventory-pricing, employee-expenses, business-expenses, expense-categories, active-users, users, branches) share a common structure:
 
 **Filter controls (`*-list-controls.tsx`)**
 
@@ -380,6 +394,7 @@ All list pages (orders, customers, inventory, inventory-pricing, employee-expens
 - Inventory pricing now has dashboard list/create pages, API routes, `lib/inventory-pricing` schemas/mutations/types, overlap-safe DB enforcement, close/update flows, and `inventory_pricing_audit_logs`.
 - Expense categories now have dashboard list/create pages, API routes, `lib/expense-categories` logic, active/inactive/restore handling, RBAC permissions, and `expense_category_audit_logs`.
 - Vendors now have dashboard list/create pages, API routes, `lib/vendors` logic, edit modal, soft deactivate/restore, RBAC permissions, `vendor_audit_logs`.
+- Branches now have admin-only dashboard list/create pages, API routes, `lib/branches` logic, edit modal, soft deactivate/restore, RBAC permissions, `branch_audit_logs`.
 - Orders now have Add Order, detail/edit, status, customer payment, vendor assignment/payment, and audit history flows.
 - Migrations were consolidated from 18 dev migrations into 7 production migrations (`20260410_000001` – `20260410_000007`). Old files are archived in `db/migrations_dev/` — do not run them.
 - Shared dashboard list/table/filter primitives also support the newer inventory pricing and expense category pages.
@@ -390,6 +405,7 @@ All list pages (orders, customers, inventory, inventory-pricing, employee-expens
 - Inventory is a `type: "group"` with two children: Inventory (`/dashboard/inventory`) and Inventory Pricing (`/dashboard/inventory/pricing`).
 - Sales is a `type: "group"` with listing children only: Orders, Customers, and Offers.
 - Vendors is a listing link only.
+- Branches is an admin-only listing link only.
 - No add-action links in the sidebar — creation is always via the top-nav Create menu or page-level Add buttons.
 - `getDashboardBreadcrumbs` has explicit entries for all `/new` routes and nested pages; add a new entry when adding a new creation page.
 

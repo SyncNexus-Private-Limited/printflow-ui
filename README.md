@@ -41,6 +41,7 @@ Prettier handles formatting, Tailwind class sorting, and PostgreSQL SQL formatti
 - 7 consolidated production migrations exist (`20260410_000001` – `20260410_000007`). See `db/MIGRATIONS.md` for the full structure.
 - Migration checksums are validated before apply and rollback.
 - Original dev migrations are archived in `db/migrations_dev/` — do not run them.
+- Branch management adds branch audit logs plus created/updated user tracking.
 
 ## Environment variables
 
@@ -153,6 +154,7 @@ Role-based access is defined in `lib/auth/permissions.ts`. Every guarded action 
 - Added inventory pricing management: list/create pages, API routes, Zod validation, mutations, overlap-safe DB rules, and audit logs.
 - Added expense category management: list/create UI, API routes, active/inactive handling, RBAC permissions, and audit logs.
 - Added vendors management: list/create UI, edit modal, soft deactivate/restore, RBAC permissions, audit logs.
+- Added branches management: admin-only list/create UI, edit modal, soft deactivate/restore, RBAC permissions, audit logs.
 - Inventory v1 features (soft archive, audit logs, stock movements, reorder levels) are part of the consolidated migrations.
 - Shared dashboard table/filter primitives are now used by the newer inventory pricing and expense category screens too.
 
@@ -184,6 +186,12 @@ Role-based access is defined in `lib/auth/permissions.ts`. Every guarded action 
 - `/dashboard/vendors` lists vendors with create, edit, deactivate, and restore actions.
 - Mutations in `lib/vendors/mutations.ts` enforce RBAC and audit every change.
 
+## Branch management
+
+- `/dashboard/branches` is admin-only and lists branches with create, edit, deactivate, and restore actions.
+- Mutations in `lib/branches/mutations.ts` enforce RBAC and audit every change.
+- Navbar Create includes `Add Branch` only for users with `branches:create`.
+
 ## Order management
 
 - `/dashboard/orders/new` creates orders with customer, items, offers, payment, vendor, and summary sections.
@@ -197,7 +205,7 @@ A minimal `ToastProvider` / `useToast()` lives in `lib/ui/toast-context.tsx`, mi
 
 ## Dashboard frontend architecture
 
-All list pages (orders, customers, inventory, inventory-pricing, employee-expenses, business-expenses, expense-categories, active-users, users) share a common set of primitives:
+All list pages (orders, customers, inventory, inventory-pricing, employee-expenses, business-expenses, expense-categories, active-users, users, branches) share a common set of primitives:
 
 **`lib/dashboard/`**
 

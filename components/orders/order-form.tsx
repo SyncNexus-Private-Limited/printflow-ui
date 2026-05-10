@@ -1,6 +1,14 @@
 "use client";
 
-import { Fragment, useEffect, useLayoutEffect, useMemo, useState, useTransition } from "react";
+import {
+  Fragment,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -252,6 +260,9 @@ export function OrderForm(props: AddOrderPageData) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [vendorOpen, setVendorOpenState] = useState(false);
 
+  // Track previous customer type so we can detect changes after items are added
+  const prevCustomerTypeRef = useRef<string | null>(null);
+
   // Register branch control in top navbar
   useLayoutEffect(() => {
     setBranchControl({
@@ -294,6 +305,25 @@ export function OrderForm(props: AddOrderPageData) {
     values.customerMode === "existing"
       ? (selectedCustomer?.type ?? null)
       : values.customerType || null;
+
+  // Refresh unit prices for all existing line items when customer type changes
+  useEffect(() => {
+    const prevType = prevCustomerTypeRef.current;
+    prevCustomerTypeRef.current = resolvedCustomerType;
+
+    // Nothing to do when type is absent or unchanged
+    if (!resolvedCustomerType || prevType === resolvedCustomerType) return;
+
+    setValues((current) => ({
+      ...current,
+      items: current.items.map((item) => {
+        if (!item.inventoryId) return item;
+        const inventory = inventoryItems.find((opt) => opt.id === item.inventoryId);
+        const price = inventory?.prices[resolvedCustomerType as OfferCustomerType];
+        return { ...item, unitPrice: price === undefined ? "" : String(price) };
+      }),
+    }));
+  }, [resolvedCustomerType, inventoryItems]);
 
   const filteredCustomers = useMemo(() => {
     const query = customerSearch.trim().toLowerCase();
@@ -368,6 +398,9 @@ export function OrderForm(props: AddOrderPageData) {
     }
     return "";
   }
+
+  // True when the customer type changed and left some items without a matching price
+  const hasMissingPrices = values.items.some((item) => item.inventoryId && !item.unitPrice);
 
   // Live field count for summary
   const liveFieldCount = [
@@ -891,6 +924,12 @@ export function OrderForm(props: AddOrderPageData) {
               </div>
             </div>
             <FieldError message={fieldErrors.items} />
+            {hasMissingPrices ? (
+              <p className="mt-1.5 text-xs text-[rgb(var(--danger))]">
+                Some items have no pricing for the selected customer type — review rates before
+                submitting.
+              </p>
+            ) : null}
           </OrderSection>
 
           {/* 03 — Offers */}

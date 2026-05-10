@@ -80,6 +80,7 @@ export const createOrderSchema = z
           .refine((value) => uuidPattern.test(value)),
       )
       .default([]),
+    manualDiscount: optionalAmount("Manual discount"),
     initialPaymentAmount: optionalAmount("Initial payment"),
     paymentMode: z.enum(paymentModeValues).or(z.literal("")).optional().default(""),
     txnReference: optionalText(120),
@@ -235,6 +236,7 @@ export const updateOrderSchema = z.object({
         .refine((value) => uuidPattern.test(value)),
     )
     .default([]),
+  manualDiscount: optionalAmount("Manual discount"),
 });
 
 export type AddOrderPaymentInput = z.infer<typeof addOrderPaymentSchema>;

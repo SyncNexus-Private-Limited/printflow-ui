@@ -2,6 +2,9 @@ import type { BranchOption } from "@/lib/dashboard/types";
 import type { PaymentMode } from "@/lib/expenses/types";
 import type { OfferCustomerType, OfferType } from "@/lib/offers/types";
 
+// Percentage of subtotal above which orders:apply_high_discount is required.
+export const ORDER_HIGH_DISCOUNT_PERCENT = 10;
+
 export type OrderCustomerOption = {
   id: string;
   customerNumericId: number | null;
@@ -46,6 +49,8 @@ export type AddOrderPageData = {
   selectedBranchId: string;
   selectedBranchName: string;
   canSelectBranch: boolean;
+  canApplyDiscount: boolean;
+  canApplyHighDiscount: boolean;
   customers: OrderCustomerOption[];
   inventoryItems: OrderInventoryOption[];
   offers: OrderOfferOption[];
@@ -70,6 +75,7 @@ export type CreateOrderFormValues = {
     unitPrice: string;
   }>;
   offerIds: string[];
+  manualDiscount: string;
   initialPaymentAmount: string;
   paymentMode: PaymentMode | "";
   txnReference: string;
@@ -94,6 +100,7 @@ export const createOrderFieldNames = [
   "customerAddress",
   "items",
   "offerIds",
+  "manualDiscount",
   "initialPaymentAmount",
   "paymentMode",
   "txnReference",
@@ -147,6 +154,8 @@ export type OrderDetailData = {
     status: OrderStatusValue;
     totalAmount: number;
     discountAmount: number;
+    offerDiscountAmount: number;
+    manualDiscountAmount: number;
     payableAmount: number;
     paidAmount: number;
     paymentStatus: string;
@@ -167,6 +176,7 @@ export type OrderDetailData = {
   }>;
   offers: Array<{
     id: string;
+    offerId: string;
     code: string;
     name: string;
     offerType: OfferType;

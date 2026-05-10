@@ -27,6 +27,8 @@ export type Permission =
   | "orders:create"
   | "orders:view"
   | "orders:edit"
+  | "orders:apply_discount"
+  | "orders:apply_high_discount"
   | "orders:add_payment"
   | "orders:update_status"
   | "orders:cancel"
@@ -107,6 +109,8 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
     "orders:create",
     "orders:view",
     "orders:edit",
+    "orders:apply_discount",
+    "orders:apply_high_discount",
     "orders:add_payment",
     "orders:update_status",
     "orders:cancel",
@@ -150,6 +154,8 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
     "orders:create",
     "orders:view",
     "orders:edit",
+    "orders:apply_discount",
+    "orders:apply_high_discount",
     "orders:add_payment",
     "orders:update_status",
     "orders:cancel",
@@ -192,6 +198,7 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
     "orders:create",
     "orders:view",
     "orders:edit",
+    "orders:apply_discount",
     "orders:add_payment",
     "orders:update_status",
     "orders:cancel",

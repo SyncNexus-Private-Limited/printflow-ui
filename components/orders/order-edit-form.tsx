@@ -6,9 +6,22 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { customerTypeLabels, type OfferCustomerType } from "@/lib/offers/types";
+import { validateOrderItems } from "@/lib/orders/form-validation";
 import type { EditOrderPageData, OrderOfferOption } from "@/lib/orders/types";
+import { ORDER_HIGH_DISCOUNT_PERCENT } from "@/lib/orders/types";
 import { formatCurrency } from "@/lib/utils/format";
-import { ArrowRight, Check, ChevronRight, Info, Lock, Plus, Trash2 } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowRight,
+  Check,
+  ChevronRight,
+  IndianRupee,
+  Info,
+  Lock,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Fragment, useEffect, useLayoutEffect, useMemo, useState } from "react";
@@ -111,6 +124,8 @@ export function OrderEditForm({
   offers,
   branchOptions,
   selectedBranchId,
+  canApplyDiscount,
+  canApplyHighDiscount,
 }: EditOrderPageData) {
   const router = useRouter();
   const { setBranchControl } = useDashboardChrome();
@@ -122,8 +137,17 @@ export function OrderEditForm({
       unitPrice: String(item.unitPrice),
     })),
   );
-  const [offerIds, setOfferIds] = useState(detail.offers.map((offer) => offer.id));
+  const [offerIds, setOfferIds] = useState(
+    // Use master offer IDs (offer_id FK), not order_applied_offers row IDs.
+    // Filter out any previously-applied offers that are no longer active/available.
+    detail.offers.map((o) => o.offerId).filter((id) => offers.some((o) => o.id === id)),
+  );
+  const [manualDiscount, setManualDiscount] = useState(
+    detail.order.manualDiscountAmount > 0 ? String(detail.order.manualDiscountAmount) : "",
+  );
   const [error, setError] = useState<string | null>(null);
+  const [offersError, setOffersError] = useState<string | null>(null);
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Register branch control — disabled on edit (branch is immutable)
@@ -170,12 +194,19 @@ export function OrderEditForm({
   });
   const selectedOffers = eligibleOffers.filter((offer) => offerIds.includes(offer.id));
 
-  let discount = 0;
+  // Offers that are checked by the user but have become ineligible (due to item or customer changes).
+  const invalidSelectedOffers = offers.filter(
+    (offer) => offerIds.includes(offer.id) && !eligibleOffers.some((e) => e.id === offer.id),
+  );
+
+  let offerDiscount = 0;
   for (const offer of selectedOffers) {
-    discount += calculateOfferDiscount(offer, Math.max(0, subtotal - discount));
+    offerDiscount += calculateOfferDiscount(offer, Math.max(0, subtotal - offerDiscount));
   }
-  discount = Math.min(discount, subtotal);
-  const payable = Math.max(0, subtotal - discount);
+  offerDiscount = Math.min(offerDiscount, subtotal);
+  const manualDiscountAmount = parseNumber(manualDiscount);
+  const totalDiscount = Math.min(offerDiscount + manualDiscountAmount, subtotal);
+  const payable = Math.max(0, subtotal - totalDiscount);
 
   const perOfferDiscount = useMemo(() => {
     const map = new Map<string, number>();
@@ -192,6 +223,22 @@ export function OrderEditForm({
   const paidAmount = detail.order.paidAmount;
   const estimatedBalance = Math.max(0, payable - paidAmount);
 
+  let manualDiscountError: string | null = null;
+  if (manualDiscountAmount > 0 && !canApplyDiscount) {
+    manualDiscountError = "You don't have permission to apply manual discounts.";
+  } else if (manualDiscountAmount > 0 && canApplyDiscount) {
+    const threshold = Math.round(((subtotal * ORDER_HIGH_DISCOUNT_PERCENT) / 100) * 100) / 100;
+    if (manualDiscountAmount > threshold && !canApplyHighDiscount) {
+      manualDiscountError = `Exceeds limit — max ${formatCurrency(threshold)} for this subtotal.`;
+    } else if (totalDiscount > subtotal) {
+      manualDiscountError = "Total discount cannot exceed the subtotal.";
+    }
+  } else if (totalDiscount > subtotal) {
+    manualDiscountError = "Total discount cannot exceed the subtotal.";
+  }
+
+  const itemErrors = hasAttemptedSubmit ? validateOrderItems(items) : [];
+
   const summaryName = selectedCustomer?.name ?? detail.order.customerName;
   const summaryPhone = selectedCustomer?.phone ?? detail.order.customerPhone;
   const summaryCode = selectedCustomer?.customerCode ?? detail.order.customerCode ?? "";
@@ -207,6 +254,18 @@ export function OrderEditForm({
       reasons.push(`min ${formatCurrency(offer.minimumOrderValue)}`);
     }
     return reasons.length > 0 ? reasons.join(" · ") + " · n/a" : null;
+  }
+
+  // Cleaner reason string shown on invalid-selected chips (no trailing "· n/a").
+  function getInvalidReason(offer: OrderOfferOption): string {
+    const reasons: string[] = [];
+    if (offer.customerType && offer.customerType !== resolvedCustomerType) {
+      reasons.push(`${customerTypeLabels[offer.customerType]} only`);
+    }
+    if (offer.minimumOrderValue !== null && subtotal < offer.minimumOrderValue) {
+      reasons.push(`min ${formatCurrency(offer.minimumOrderValue)}`);
+    }
+    return reasons.join(" · ");
   }
 
   function getOfferMeta(
@@ -244,20 +303,34 @@ export function OrderEditForm({
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setHasAttemptedSubmit(true);
+    const currentItemErrors = validateOrderItems(items);
+    if (invalidSelectedOffers.length > 0 || currentItemErrors.length > 0) return;
     setError(null);
+    setOffersError(null);
     setIsSubmitting(true);
     try {
       const response = await fetch(`/api/orders/${detail.order.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customerId: detail.order.customerId, items, offerIds }),
+        body: JSON.stringify({
+          customerId: detail.order.customerId,
+          items,
+          offerIds,
+          manualDiscount,
+        }),
       });
       const data = (await response.json().catch(() => null)) as
         | { success: true }
         | { success: false; message: string }
         | null;
       if (!response.ok || !data?.success) {
-        setError(data && !data.success ? data.message : "Unable to update order.");
+        const message = data && !data.success ? data.message : "Unable to update order.";
+        if (message.toLowerCase().includes("offer")) {
+          setOffersError(message);
+        } else {
+          setError(message);
+        }
         return;
       }
       router.push(`/dashboard/orders/${detail.order.id}`);
@@ -390,6 +463,12 @@ export function OrderEditForm({
                   <tbody>
                     {items.map((item, index) => {
                       const li = lineItems[index];
+                      const inventoryError = itemErrors.find(
+                        (e) => e.rowIndex === index && e.field === "inventoryId",
+                      );
+                      const quantityError = itemErrors.find(
+                        (e) => e.rowIndex === index && e.field === "quantity",
+                      );
                       return (
                         <Fragment key={index}>
                           <tr>
@@ -397,7 +476,7 @@ export function OrderEditForm({
                               <Select
                                 value={item.inventoryId}
                                 onChange={(e) => selectInventory(index, e.target.value)}
-                                className="text-sm"
+                                className={`text-sm${inventoryError ? "border-[rgb(var(--danger))]" : ""}`}
                               >
                                 <option value="">Select item</option>
                                 {inventoryItems.map((opt) => (
@@ -418,7 +497,7 @@ export function OrderEditForm({
                                   )
                                 }
                                 inputMode="decimal"
-                                className="text-right font-mono text-[13px]"
+                                className={`text-right font-mono text-[13px]${quantityError ? "border-[rgb(var(--danger))]" : ""}`}
                               />
                             </td>
                             <td className="px-2.5 pt-3 pb-2 align-middle">
@@ -454,11 +533,18 @@ export function OrderEditForm({
                                 colSpan={5}
                                 className="border-b border-dashed border-[rgb(var(--foreground)/0.25)] px-3 pt-0.5 pb-2"
                               >
-                                <div className="flex items-center gap-2 font-mono text-[11.5px] text-[rgb(var(--muted-foreground))]">
-                                  <Check className="h-2.75 w-2.75 shrink-0" strokeWidth={2.5} />
-                                  Available: {li.inventory.quantity} {li.inventory.unit} ·
-                                  auto-priced for {customerTypeLabels[resolvedCustomerType]}
-                                </div>
+                                {quantityError ? (
+                                  <div className="flex items-center gap-1.5 font-mono text-[11.5px] text-[rgb(var(--danger))]">
+                                    <AlertCircle className="h-2.75 w-2.75 shrink-0" />
+                                    {quantityError.message}
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-2 font-mono text-[11.5px] text-[rgb(var(--muted-foreground))]">
+                                    <Check className="h-2.75 w-2.75 shrink-0" strokeWidth={2.5} />
+                                    Available: {li.inventory.quantity} {li.inventory.unit} ·
+                                    auto-priced for {customerTypeLabels[resolvedCustomerType]}
+                                  </div>
+                                )}
                               </td>
                             </tr>
                           ) : (
@@ -467,9 +553,16 @@ export function OrderEditForm({
                                 colSpan={5}
                                 className="border-b border-dashed border-[rgb(var(--foreground)/0.25)] px-3 pt-0.5 pb-2"
                               >
-                                <div className="font-mono text-[11.5px] text-[rgb(var(--muted-foreground))]">
-                                  Select an inventory item to see availability and pricing.
-                                </div>
+                                {inventoryError ? (
+                                  <div className="flex items-center gap-1.5 font-mono text-[11.5px] text-[rgb(var(--danger))]">
+                                    <AlertCircle className="h-2.75 w-2.75 shrink-0" />
+                                    {inventoryError.message}
+                                  </div>
+                                ) : (
+                                  <div className="font-mono text-[11.5px] text-[rgb(var(--muted-foreground))]">
+                                    Select an inventory item to see availability and pricing.
+                                  </div>
+                                )}
                               </td>
                             </tr>
                           )}
@@ -511,11 +604,37 @@ export function OrderEditForm({
             title="Offers"
             description="Eligible offers based on customer type and subtotal."
             right={
-              <span className="font-mono text-[11px] font-medium tracking-[0.06em] text-[rgb(var(--muted-foreground))] uppercase">
-                {selectedOffers.length} OF {eligibleOffers.length} APPLIED
-              </span>
+              <div className="flex items-center gap-3">
+                {invalidSelectedOffers.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOfferIds((ids) =>
+                        ids.filter((id) => !invalidSelectedOffers.some((o) => o.id === id)),
+                      )
+                    }
+                    className="text-[12px] font-semibold text-[rgb(var(--danger))] hover:underline"
+                  >
+                    Remove invalid
+                  </button>
+                ) : null}
+                <span className="font-mono text-[11px] font-medium tracking-[0.06em] text-[rgb(var(--muted-foreground))] uppercase">
+                  {selectedOffers.length} OF {eligibleOffers.length} APPLIED
+                </span>
+              </div>
             }
           >
+            {invalidSelectedOffers.length > 0 || offersError ? (
+              <div className="mb-3 flex items-start gap-2 rounded-xl border border-[rgb(var(--danger)/0.3)] bg-[rgb(var(--danger)/0.07)] px-3.5 py-3 text-[13px] text-[rgb(var(--danger))]">
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>
+                  {offersError ??
+                    (invalidSelectedOffers.length === 1
+                      ? `"${invalidSelectedOffers[0]!.name}" is no longer eligible. Remove it before updating.`
+                      : `${invalidSelectedOffers.length} selected offers are no longer eligible. Remove them before updating.`)}
+                </span>
+              </div>
+            ) : null}
             {offers.length === 0 ? (
               <p className="text-[13px] text-[rgb(var(--muted-foreground))]">
                 No offers available for this branch.
@@ -526,26 +645,30 @@ export function OrderEditForm({
                   const reason = getIneligibilityReason(offer);
                   const isIneligible = reason !== null;
                   const checked = offerIds.includes(offer.id);
+                  // Selected but no longer eligible — must be removed before submit.
+                  const isInvalidSelected = isIneligible && checked;
                   const meta = getOfferMeta(offer, checked, reason);
 
                   return (
                     <label
                       key={offer.id}
                       className={`inline-flex items-center gap-2 rounded-[10px] border px-3 py-2 text-[13px] font-semibold transition-all duration-120 select-none ${
-                        isIneligible
-                          ? "cursor-not-allowed border-[rgb(var(--border))] bg-[rgb(var(--muted)/0.5)] text-[rgb(var(--muted-foreground))] opacity-55"
-                          : checked
-                            ? "cursor-pointer border-[rgb(var(--metric-emerald)/0.5)] bg-[rgb(var(--metric-emerald-soft))] text-[rgb(var(--metric-emerald-ink))]"
-                            : "cursor-pointer border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--foreground))] hover:border-[rgb(var(--primary)/0.5)]"
+                        isInvalidSelected
+                          ? "cursor-pointer border-[rgb(var(--danger)/0.45)] bg-[rgb(var(--danger)/0.07)] text-[rgb(var(--danger))]"
+                          : isIneligible
+                            ? "cursor-not-allowed border-[rgb(var(--border))] bg-[rgb(var(--muted)/0.5)] text-[rgb(var(--muted-foreground))] opacity-55"
+                            : checked
+                              ? "cursor-pointer border-[rgb(var(--metric-emerald)/0.5)] bg-[rgb(var(--metric-emerald-soft))] text-[rgb(var(--metric-emerald-ink))]"
+                              : "cursor-pointer border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--foreground))] hover:border-[rgb(var(--primary)/0.5)]"
                       }`}
                     >
                       <input
                         type="checkbox"
                         className="sr-only"
                         checked={checked}
-                        disabled={isIneligible}
+                        disabled={isIneligible && !isInvalidSelected}
                         onChange={(e) => {
-                          if (isIneligible) return;
+                          if (isIneligible && !isInvalidSelected) return;
                           setOfferIds((current) =>
                             e.target.checked
                               ? [...current, offer.id]
@@ -556,25 +679,34 @@ export function OrderEditForm({
                       {/* Checkbox tile */}
                       <span
                         className={`inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-[5px] border transition-all duration-120 ${
-                          checked
-                            ? "border-[rgb(var(--metric-emerald))] bg-[rgb(var(--metric-emerald))]"
-                            : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"
+                          isInvalidSelected
+                            ? "border-[rgb(var(--danger)/0.5)] bg-[rgb(var(--danger)/0.12)]"
+                            : checked
+                              ? "border-[rgb(var(--metric-emerald))] bg-[rgb(var(--metric-emerald))]"
+                              : "border-[rgb(var(--border))] bg-[rgb(var(--card))]"
                         }`}
                       >
-                        {checked ? (
+                        {isInvalidSelected ? (
+                          <X
+                            className="h-2.75 w-2.75 text-[rgb(var(--danger))]"
+                            strokeWidth={3.4}
+                          />
+                        ) : checked ? (
                           <Check className="h-2.75 w-2.75 stroke-white" strokeWidth={3.4} />
                         ) : null}
                       </span>
                       <span>{offer.name}</span>
-                      {meta ? (
+                      {isInvalidSelected || meta ? (
                         <span
                           className={`font-mono text-[11px] font-medium ${
-                            checked
-                              ? "text-[rgb(var(--metric-emerald-ink)/0.8)]"
-                              : "text-[rgb(var(--muted-foreground))]"
+                            isInvalidSelected
+                              ? "text-[rgb(var(--danger)/0.85)]"
+                              : checked
+                                ? "text-[rgb(var(--metric-emerald-ink)/0.8)]"
+                                : "text-[rgb(var(--muted-foreground))]"
                           }`}
                         >
-                          {meta}
+                          {isInvalidSelected ? getInvalidReason(offer) : meta}
                         </span>
                       ) : null}
                     </label>
@@ -634,10 +766,10 @@ export function OrderEditForm({
                   </span>
                 </div>
 
-                {discount > 0 ? (
+                {offerDiscount > 0 ? (
                   <div className="flex items-baseline justify-between py-1.75 text-[13.5px] text-[rgb(var(--muted-foreground))]">
                     <span className="flex flex-wrap items-center gap-1.5">
-                      Discount
+                      Offer discount
                       {selectedOffers.length > 0 ? (
                         <span className="rounded-[5px] bg-[rgb(var(--metric-emerald-soft))] px-1.5 py-0.5 font-mono text-[11px] text-[rgb(var(--metric-emerald-ink))]">
                           {selectedOffers.map((o) => o.name).join(", ")}
@@ -645,7 +777,43 @@ export function OrderEditForm({
                       ) : null}
                     </span>
                     <span className="font-mono font-semibold text-[rgb(var(--metric-emerald-ink))]">
-                      −{formatCurrency(discount)}
+                      −{formatCurrency(offerDiscount)}
+                    </span>
+                  </div>
+                ) : null}
+
+                {canApplyDiscount ? (
+                  <div className="py-1.75 text-[13.5px] text-[rgb(var(--muted-foreground))]">
+                    <div className="flex items-center justify-between gap-2">
+                      <span>Manual discount</span>
+                      <div className="relative w-28 shrink-0">
+                        <IndianRupee className="pointer-events-none absolute top-1/2 left-2.5 h-3 w-3 -translate-y-1/2 text-[rgb(var(--muted-foreground))]" />
+                        <Input
+                          value={manualDiscount}
+                          onChange={(e) => setManualDiscount(e.target.value)}
+                          inputMode="decimal"
+                          placeholder="0"
+                          className={`pl-7 text-right font-mono text-[13px] ${manualDiscountError ? "border-[rgb(var(--danger))]" : ""}`}
+                        />
+                      </div>
+                    </div>
+                    {manualDiscountError ? (
+                      <p className="mt-1 text-right text-[11.5px] text-[rgb(var(--danger))]">
+                        {manualDiscountError}
+                      </p>
+                    ) : manualDiscountAmount > 0 ? (
+                      <p className="mt-1 text-right font-mono text-[11.5px] text-[rgb(var(--metric-emerald-ink))]">
+                        −{formatCurrency(manualDiscountAmount)}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {offerDiscount > 0 && manualDiscountAmount > 0 ? (
+                  <div className="flex items-baseline justify-between border-t border-dashed border-[rgb(var(--border))] py-1.75 text-[13.5px] text-[rgb(var(--muted-foreground))]">
+                    <span>Total discount</span>
+                    <span className="font-mono font-semibold text-[rgb(var(--metric-emerald-ink))]">
+                      −{formatCurrency(totalDiscount)}
                     </span>
                   </div>
                 ) : null}
@@ -713,7 +881,11 @@ export function OrderEditForm({
               <Button
                 type="submit"
                 form="edit-order-form"
-                disabled={isSubmitting}
+                disabled={
+                  isSubmitting ||
+                  invalidSelectedOffers.length > 0 ||
+                  (hasAttemptedSubmit && itemErrors.length > 0)
+                }
                 className="gap-2 shadow-[0_1px_0_rgb(255_255_255/0.18)_inset,0_6px_16px_-8px_rgb(var(--primary)/0.6)]"
               >
                 {isSubmitting ? (

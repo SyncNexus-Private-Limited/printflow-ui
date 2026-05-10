@@ -1,7 +1,7 @@
 import "server-only";
 import type { PoolClient } from "pg";
 import type { AuthenticatedUser } from "@/lib/auth/current-user";
-import { assertPermission, canAccessBranch } from "@/lib/auth/permissions";
+import { assertPermission, canAccessBranch, hasPermission } from "@/lib/auth/permissions";
 import { getPool } from "@/lib/db/postgres";
 import {
   type AddOrderPaymentInput,
@@ -21,6 +21,7 @@ import {
   canEditOrderVendor,
   canUpdateOrderStatus,
 } from "@/lib/orders/guards";
+import { ORDER_HIGH_DISCOUNT_PERCENT } from "@/lib/orders/types";
 
 type MutationFieldErrors = Partial<Record<string, string>>;
 
@@ -67,6 +68,8 @@ type MutableOrderRow = {
   customer_id: string;
   status: string;
   discount_amount: number;
+  offer_discount_amount: number;
+  manual_discount_amount: number;
   payable_amount: number;
   paid_amount: number;
 };
@@ -296,6 +299,8 @@ async function fetchMutableOrder(client: PoolClient, orderId: string): Promise<M
         customer_id::text AS customer_id,
         status::text AS status,
         discount_amount::double precision AS discount_amount,
+        offer_discount_amount::double precision AS offer_discount_amount,
+        manual_discount_amount::double precision AS manual_discount_amount,
         payable_amount::double precision AS payable_amount,
         paid_amount::double precision AS paid_amount
       FROM orders
@@ -380,14 +385,21 @@ async function insertOrderAudit(
   orderId: string,
   action: OrderAuditAction,
   changedBy: string,
+  changedFields?: Record<string, unknown>,
 ) {
   const snapshot = await fetchOrderSnapshot(client, orderId);
   await client.query(
     `
-      INSERT INTO order_audit_logs (order_id, action, snapshot, changed_by)
-      VALUES ($1::uuid, $2, $3::jsonb, $4::uuid)
+      INSERT INTO order_audit_logs (order_id, action, snapshot, changed_by, changed_fields)
+      VALUES ($1::uuid, $2, $3::jsonb, $4::uuid, $5::jsonb)
     `,
-    [orderId, action, JSON.stringify(snapshot), changedBy],
+    [
+      orderId,
+      action,
+      JSON.stringify(snapshot),
+      changedBy,
+      changedFields !== undefined ? JSON.stringify(changedFields) : null,
+    ],
   );
 }
 
@@ -449,12 +461,48 @@ export async function createOrder(
       customer.type,
       subtotal,
     );
-    let discountAmount = 0;
+    let offerDiscountAmount = 0;
     for (const offer of offers) {
-      const remaining = Math.max(0, subtotal - discountAmount);
-      discountAmount = roundMoney(discountAmount + calculateOfferDiscount(offer, remaining));
+      const remaining = Math.max(0, subtotal - offerDiscountAmount);
+      offerDiscountAmount = roundMoney(
+        offerDiscountAmount + calculateOfferDiscount(offer, remaining),
+      );
     }
-    discountAmount = Math.min(discountAmount, subtotal);
+    offerDiscountAmount = Math.min(offerDiscountAmount, subtotal);
+
+    const manualDiscountAmount = parseAmount(input.manualDiscount);
+    if (manualDiscountAmount > 0) {
+      if (!hasPermission(currentUser, "orders:apply_discount")) {
+        throw new OrderMutationError("You don't have permission to apply manual discounts.", {
+          status: 403,
+          fieldErrors: { manualDiscount: "Discount not permitted for your role." },
+        });
+      }
+      const threshold = roundMoney((subtotal * ORDER_HIGH_DISCOUNT_PERCENT) / 100);
+      if (
+        manualDiscountAmount > threshold &&
+        !hasPermission(currentUser, "orders:apply_high_discount")
+      ) {
+        throw new OrderMutationError(
+          `Manual discount exceeds your allowed limit of ₹${threshold}.`,
+          {
+            status: 403,
+            fieldErrors: {
+              manualDiscount: `Discount cannot exceed ₹${threshold} for this order.`,
+            },
+          },
+        );
+      }
+    }
+
+    const discountAmount = roundMoney(offerDiscountAmount + manualDiscountAmount);
+    if (discountAmount > subtotal) {
+      throw new OrderMutationError("Total discount cannot exceed order total.", {
+        status: 400,
+        fieldErrors: { manualDiscount: "Discount would exceed the order total." },
+      });
+    }
+
     const payableAmount = roundMoney(subtotal - discountAmount);
     const initialPayment = parseAmount(input.initialPaymentAmount);
 
@@ -489,10 +537,12 @@ export async function createOrder(
       await client.query(
         `
           UPDATE orders
-          SET discount_amount = $2::numeric(14,2)
+          SET discount_amount = $2::numeric(14,2),
+              offer_discount_amount = $3::numeric(14,2),
+              manual_discount_amount = $4::numeric(14,2)
           WHERE id = $1::uuid
         `,
-        [order.id, discountAmount],
+        [order.id, discountAmount, offerDiscountAmount, manualDiscountAmount],
       );
     }
 
@@ -1059,15 +1109,10 @@ export async function updateOrder(
     });
 
     if (canChangeItems) {
-      await client.query(
-        `
-          UPDATE orders
-          SET discount_amount = 0,
-              updated_at = now()
-          WHERE id = $1::uuid
-        `,
-        [order.id],
-      );
+      // Enter replace mode so trg_recalculate_order_after_items skips intermediate
+      // recalculations. Without this, deleting all items sets total=0 while paid>0,
+      // violating the CHECK constraint even though the final state will be valid.
+      await client.query("SELECT set_config('app.order_item_replace', 'true', true)");
       await client.query("DELETE FROM order_items WHERE order_id = $1::uuid", [order.id]);
     }
 
@@ -1100,13 +1145,47 @@ export async function updateOrder(
       customer.type,
       subtotal,
     );
-    let discountAmount = 0;
+    let offerDiscountAmount = 0;
     for (const offer of offers) {
-      discountAmount = roundMoney(
-        discountAmount + calculateOfferDiscount(offer, Math.max(0, subtotal - discountAmount)),
+      offerDiscountAmount = roundMoney(
+        offerDiscountAmount +
+          calculateOfferDiscount(offer, Math.max(0, subtotal - offerDiscountAmount)),
       );
     }
-    discountAmount = Math.min(discountAmount, subtotal);
+    offerDiscountAmount = Math.min(offerDiscountAmount, subtotal);
+
+    const manualDiscountAmount = parseAmount(input.manualDiscount);
+    if (manualDiscountAmount > 0) {
+      if (!hasPermission(currentUser, "orders:apply_discount")) {
+        throw new OrderMutationError("You don't have permission to apply manual discounts.", {
+          status: 403,
+          fieldErrors: { manualDiscount: "Discount not permitted for your role." },
+        });
+      }
+      const threshold = roundMoney((subtotal * ORDER_HIGH_DISCOUNT_PERCENT) / 100);
+      if (
+        manualDiscountAmount > threshold &&
+        !hasPermission(currentUser, "orders:apply_high_discount")
+      ) {
+        throw new OrderMutationError(
+          `Manual discount exceeds your allowed limit of ₹${threshold}.`,
+          {
+            status: 403,
+            fieldErrors: {
+              manualDiscount: `Discount cannot exceed ₹${threshold} for this order.`,
+            },
+          },
+        );
+      }
+    }
+
+    const discountAmount = roundMoney(offerDiscountAmount + manualDiscountAmount);
+    if (discountAmount > subtotal) {
+      throw new OrderMutationError("Total discount cannot exceed order total.", {
+        status: 400,
+        fieldErrors: { manualDiscount: "Discount would exceed the order total." },
+      });
+    }
 
     if (canChangeItems) {
       for (const item of pricedItems) {
@@ -1118,6 +1197,9 @@ export async function updateOrder(
           [order.id, item.inventoryId, item.quantity, item.unitPrice, item.lineTotal],
         );
       }
+      // Exit replace mode before applied-offers and audit (those don't touch order_items)
+      await client.query("SELECT set_config('app.order_item_replace', 'false', true)");
+
       await client.query("DELETE FROM order_applied_offers WHERE order_id = $1::uuid", [order.id]);
       let appliedDiscount = 0;
       for (const offer of offers) {
@@ -1146,19 +1228,38 @@ export async function updateOrder(
       await insertOrderAudit(client, order.id, "items_updated", currentUser.userId);
     }
 
+    const nextDiscountAmount = canChangeDiscount ? discountAmount : order.discount_amount;
+    const nextOfferDiscount = canChangeDiscount ? offerDiscountAmount : order.offer_discount_amount;
+    const nextManualDiscount = canChangeDiscount
+      ? manualDiscountAmount
+      : order.manual_discount_amount;
+
     await client.query(
       `
         UPDATE orders
         SET customer_id = $2::uuid,
             discount_amount = $3::numeric(14,2),
+            offer_discount_amount = $4::numeric(14,2),
+            manual_discount_amount = $5::numeric(14,2),
             updated_at = now()
         WHERE id = $1::uuid
       `,
-      [order.id, customer.id, canChangeDiscount ? discountAmount : order.discount_amount],
+      [order.id, customer.id, nextDiscountAmount, nextOfferDiscount, nextManualDiscount],
     );
 
     if (canChangeDiscount && order.discount_amount !== discountAmount) {
-      await insertOrderAudit(client, order.id, "discount_updated", currentUser.userId);
+      await insertOrderAudit(client, order.id, "discount_updated", currentUser.userId, {
+        old_offer_discount_amount: order.offer_discount_amount,
+        new_offer_discount_amount: offerDiscountAmount,
+        old_manual_discount_amount: order.manual_discount_amount,
+        new_manual_discount_amount: manualDiscountAmount,
+      });
+    }
+
+    // When items were replaced, the after-items trigger was skipped. The discount
+    // trigger may not fire if discount_amount didn't change, so force a recalculation.
+    if (canChangeItems) {
+      await client.query("SELECT recalculate_order_financials($1::uuid)", [order.id]);
     }
 
     await insertOrderAudit(client, order.id, "order_updated", currentUser.userId);

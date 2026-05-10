@@ -11,7 +11,7 @@ import type {
   OrderOfferOption,
   OrderVendorOption,
 } from "@/lib/orders/types";
-import { assertPermission, canAccessBranch } from "@/lib/auth/permissions";
+import { assertPermission, canAccessBranch, hasPermission } from "@/lib/auth/permissions";
 
 export async function getAddOrderPageData(
   currentUser: AuthenticatedUser,
@@ -22,12 +22,17 @@ export async function getAddOrderPageData(
   const selectedBranchName =
     context.branches.find((branch) => branch.id === branchId)?.name ?? context.selectedBranchName;
 
+  const canApplyDiscount = hasPermission(currentUser, "orders:apply_discount");
+  const canApplyHighDiscount = hasPermission(currentUser, "orders:apply_high_discount");
+
   if (!branchId) {
     return {
       branchOptions: context.branches,
       selectedBranchId: "",
       selectedBranchName,
       canSelectBranch: context.canSelectAll,
+      canApplyDiscount,
+      canApplyHighDiscount,
       customers: [],
       inventoryItems: [],
       offers: [],
@@ -129,6 +134,8 @@ export async function getAddOrderPageData(
     selectedBranchId: branchId,
     selectedBranchName,
     canSelectBranch: context.canSelectAll,
+    canApplyDiscount,
+    canApplyHighDiscount,
     customers: customersResult.rows,
     inventoryItems: inventoryResult.rows.map((item) => ({
       ...item,
@@ -161,6 +168,8 @@ export async function getOrderDetail(
         o.status::text AS status,
         o.total_amount::double precision AS "totalAmount",
         o.discount_amount::double precision AS "discountAmount",
+        o.offer_discount_amount::double precision AS "offerDiscountAmount",
+        o.manual_discount_amount::double precision AS "manualDiscountAmount",
         o.payable_amount::double precision AS "payableAmount",
         o.paid_amount::double precision AS "paidAmount",
         o.payment_status::text AS "paymentStatus",
@@ -212,6 +221,7 @@ export async function getOrderDetail(
       `
           SELECT
             oao.id::text AS id,
+            oao.offer_id::text AS "offerId",
             oao.code,
             oao.name,
             oao.offer_type AS "offerType",

@@ -323,18 +323,34 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
           </div>
 
           {/* Financial summary — full-bleed cells with gap-line dividers */}
-          <div className="grid grid-cols-2 gap-px bg-[rgb(var(--border)/0.5)] sm:grid-cols-5">
-            <FinancialCell label="Total amount" value={order.totalAmount} />
-            <FinancialCell label="Discount" value={order.discountAmount} />
-            <FinancialCell label="Payable" value={order.payableAmount} tone="primary" />
-            <FinancialCell label="Paid" value={order.paidAmount} />
-            <FinancialCell
-              label="Outstanding"
-              value={outstandingAmount}
-              tone={outstandingAmount === 0 ? "emerald" : "amber"}
-              colSpanMobile
-            />
-          </div>
+          {order.manualDiscountAmount > 0 ? (
+            <div className="grid grid-cols-2 gap-px bg-[rgb(var(--border)/0.5)] sm:grid-cols-6">
+              <FinancialCell label="Total amount" value={order.totalAmount} />
+              <FinancialCell label="Offer discount" value={order.offerDiscountAmount} />
+              <FinancialCell label="Manual discount" value={order.manualDiscountAmount} />
+              <FinancialCell label="Payable" value={order.payableAmount} tone="primary" />
+              <FinancialCell label="Paid" value={order.paidAmount} />
+              <FinancialCell
+                label="Outstanding"
+                value={outstandingAmount}
+                tone={outstandingAmount === 0 ? "emerald" : "amber"}
+                colSpanMobile
+              />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-px bg-[rgb(var(--border)/0.5)] sm:grid-cols-5">
+              <FinancialCell label="Total amount" value={order.totalAmount} />
+              <FinancialCell label="Discount" value={order.discountAmount} />
+              <FinancialCell label="Payable" value={order.payableAmount} tone="primary" />
+              <FinancialCell label="Paid" value={order.paidAmount} />
+              <FinancialCell
+                label="Outstanding"
+                value={outstandingAmount}
+                tone={outstandingAmount === 0 ? "emerald" : "amber"}
+                colSpanMobile
+              />
+            </div>
+          )}
         </div>
 
         {/* ── 2. Order Items ───────────────────────────────────────────────── */}
@@ -579,7 +595,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
           title="Offers / Discounts"
           description={
             detail.offers.length > 0
-              ? `${detail.offers.length} applied · ${formatCurrency(order.discountAmount)} off`
+              ? `${detail.offers.length} applied · ${formatCurrency(order.offerDiscountAmount)} off`
               : undefined
           }
         >

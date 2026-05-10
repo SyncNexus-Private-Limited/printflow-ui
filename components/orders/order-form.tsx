@@ -38,6 +38,7 @@ import type {
   OrderCustomerOption,
   OrderOfferOption,
 } from "@/lib/orders/types";
+import { ORDER_HIGH_DISCOUNT_PERCENT } from "@/lib/orders/types";
 import { formatCurrency } from "@/lib/utils/format";
 
 type BalanceCardProps = {
@@ -103,6 +104,7 @@ function buildInitialValues(branchId: string): CreateOrderFormValues {
     customerAddress: "",
     items: [{ inventoryId: "", quantity: "1", unitPrice: "" }],
     offerIds: [],
+    manualDiscount: "",
     initialPaymentAmount: "",
     paymentMode: "",
     txnReference: "",
@@ -239,6 +241,8 @@ export function OrderForm(props: AddOrderPageData) {
     branchOptions,
     selectedBranchId,
     canSelectBranch,
+    canApplyDiscount,
+    canApplyHighDiscount,
     customers,
     inventoryItems,
     offers,
@@ -345,12 +349,14 @@ export function OrderForm(props: AddOrderPageData) {
     return true;
   });
   const selectedOffers = eligibleOffers.filter((offer) => values.offerIds.includes(offer.id));
-  let discount = 0;
+  let offerDiscount = 0;
   for (const offer of selectedOffers) {
-    discount += calculateOfferDiscount(offer, Math.max(0, subtotal - discount));
+    offerDiscount += calculateOfferDiscount(offer, Math.max(0, subtotal - offerDiscount));
   }
-  discount = Math.min(discount, subtotal);
-  const payable = Math.max(0, subtotal - discount);
+  offerDiscount = Math.min(offerDiscount, subtotal);
+  const manualDiscountAmount = parseNumber(values.manualDiscount);
+  const totalDiscount = Math.min(offerDiscount + manualDiscountAmount, subtotal);
+  const payable = Math.max(0, subtotal - totalDiscount);
   const initialPayment = parseNumber(values.initialPaymentAmount);
   const customerBalance = Math.max(0, payable - initialPayment);
   const vendorCharge = parseNumber(values.vendorChargeAmount);
@@ -402,10 +408,26 @@ export function OrderForm(props: AddOrderPageData) {
   // True when the customer type changed and left some items without a matching price
   const hasMissingPrices = values.items.some((item) => item.inventoryId && !item.unitPrice);
 
+  // Client-side validation for manual discount
+  let manualDiscountError: string | null = fieldErrors.manualDiscount ?? null;
+  if (!manualDiscountError && manualDiscountAmount > 0 && !canApplyDiscount) {
+    manualDiscountError = "You don't have permission to apply manual discounts.";
+  } else if (!manualDiscountError && manualDiscountAmount > 0 && canApplyDiscount) {
+    const threshold = Math.round(((subtotal * ORDER_HIGH_DISCOUNT_PERCENT) / 100) * 100) / 100;
+    if (manualDiscountAmount > threshold && !canApplyHighDiscount) {
+      manualDiscountError = `Exceeds limit — max ${formatCurrency(threshold)} for this subtotal.`;
+    } else if (totalDiscount > subtotal) {
+      manualDiscountError = "Total discount cannot exceed the subtotal.";
+    }
+  } else if (!manualDiscountError && totalDiscount > subtotal) {
+    manualDiscountError = "Total discount cannot exceed the subtotal.";
+  }
+
   // Live field count for summary
   const liveFieldCount = [
     values.customerMode === "existing" ? values.customerId : values.customerName,
     ...lineItems.filter((i) => i.inventory).map(() => "item" as const),
+    values.manualDiscount || null,
     values.initialPaymentAmount || null,
     values.paymentMode || null,
     vendorOpen && values.vendorId ? values.vendorId : null,
@@ -1242,10 +1264,10 @@ export function OrderForm(props: AddOrderPageData) {
                   </span>
                 </div>
 
-                {discount > 0 ? (
+                {offerDiscount > 0 ? (
                   <div className="flex items-baseline justify-between py-1.75 text-[13.5px] text-[rgb(var(--muted-foreground))]">
                     <span className="flex flex-wrap items-center gap-1.5">
-                      Discount
+                      Offer discount
                       {selectedOffers.length > 0 ? (
                         <span className="rounded-[5px] bg-[rgb(var(--metric-emerald-soft))] px-1.5 py-0.5 font-mono text-[11px] text-[rgb(var(--metric-emerald-ink))]">
                           {selectedOffers.map((o) => o.name).join(", ")}
@@ -1253,7 +1275,47 @@ export function OrderForm(props: AddOrderPageData) {
                       ) : null}
                     </span>
                     <span className="font-mono font-semibold text-[rgb(var(--metric-emerald-ink))]">
-                      −{formatCurrency(discount)}
+                      −{formatCurrency(offerDiscount)}
+                    </span>
+                  </div>
+                ) : null}
+
+                {/* Manual discount input */}
+                {canApplyDiscount ? (
+                  <div className="py-1.75">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="shrink-0 text-[13.5px] text-[rgb(var(--muted-foreground))]">
+                        Manual discount
+                      </span>
+                      <div className="relative w-28 shrink-0">
+                        <IndianRupee className="pointer-events-none absolute top-1/2 left-2 h-3 w-3 -translate-y-1/2 text-[rgb(var(--muted-foreground))]" />
+                        <Input
+                          value={values.manualDiscount}
+                          onChange={(e) => updateValue("manualDiscount", e.target.value)}
+                          inputMode="decimal"
+                          placeholder="0.00"
+                          className={`h-8 pr-2 pl-5 text-right font-mono text-[13px] ${manualDiscountError ? "border-[rgb(var(--danger))]" : ""}`}
+                        />
+                      </div>
+                    </div>
+                    {manualDiscountError ? (
+                      <p className="mt-1 text-right text-[11.5px] text-[rgb(var(--danger))]">
+                        {manualDiscountError}
+                      </p>
+                    ) : manualDiscountAmount > 0 ? (
+                      <p className="mt-1 text-right font-mono text-[13px] font-semibold text-[rgb(var(--metric-emerald-ink))]">
+                        −{formatCurrency(manualDiscountAmount)}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {/* Total discount separator — only shown when both types exist */}
+                {offerDiscount > 0 && manualDiscountAmount > 0 ? (
+                  <div className="flex items-baseline justify-between border-t border-dashed border-[rgb(var(--border))] py-1.75 text-[13px] text-[rgb(var(--muted-foreground))]">
+                    <span>Total discount</span>
+                    <span className="font-mono font-semibold text-[rgb(var(--metric-emerald-ink))]">
+                      −{formatCurrency(totalDiscount)}
                     </span>
                   </div>
                 ) : null}

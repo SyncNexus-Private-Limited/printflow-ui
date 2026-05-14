@@ -161,7 +161,11 @@ function buildUpdateChangedFields(
 function handleDbError(error: unknown): never {
   const message = error instanceof Error ? error.message : "";
 
-  if (message.includes("vendors_vendor_code_key") || message.includes("idx_vendors_vendor_code")) {
+  if (
+    message.includes("vendors_vendor_code_key") ||
+    message.includes("idx_vendors_vendor_code") ||
+    message.includes("uq_vendors_code_lower")
+  ) {
     throw new VendorMutationError("A vendor with this code already exists.", {
       status: 409,
       fieldErrors: { vendorCode: "This code is already in use." },

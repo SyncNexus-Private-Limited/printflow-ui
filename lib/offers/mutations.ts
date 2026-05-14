@@ -228,7 +228,7 @@ function buildUpdateChangedFields(snapshot: OfferAuditSnapshot, input: OfferInpu
 function handleDbError(error: unknown): never {
   const message = error instanceof Error ? error.message : "";
 
-  if (message.includes("offers_code_key") || message.includes("duplicate key value")) {
+  if (message.includes("offers_code_key") || message.includes("uq_offers_code_lower")) {
     throw new OfferMutationError("An offer with this code already exists.", {
       status: 409,
       fieldErrors: { code: "This code is already in use." },

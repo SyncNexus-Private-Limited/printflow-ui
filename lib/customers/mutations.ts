@@ -215,6 +215,7 @@ function handleDbError(error: unknown): never {
 
   if (
     message.includes("customers_customer_code_key") ||
+    message.includes("uq_customers_code_lower") ||
     (message.includes("duplicate key value") && message.includes("customer_code"))
   ) {
     throw new CustomerMutationError("A customer with this code already exists.", {
@@ -278,11 +279,11 @@ export async function createCustomer(
         input.phone,
         input.alternatePhone ?? null,
         input.address ?? null,
-        input.studioName ?? null,
+        input.type === "studio" ? (input.studioName ?? null) : null,
         input.customerCode ?? null,
         input.aadhaarNumber ?? null,
-        input.studioAssociationName ?? null,
-        input.studioAssociationIdNumber ?? null,
+        input.type === "studio" ? (input.studioAssociationName ?? null) : null,
+        input.type === "studio" ? (input.studioAssociationIdNumber ?? null) : null,
         input.avatar ?? null,
         input.avatarSource ?? "external",
         currentUser.userId,
@@ -361,11 +362,11 @@ export async function updateCustomer(
         input.phone,
         input.alternatePhone ?? null,
         input.address ?? null,
-        input.studioName ?? null,
+        input.type === "studio" ? (input.studioName ?? null) : null,
         input.customerCode ?? null,
         input.aadhaarNumber ?? null,
-        input.studioAssociationName ?? null,
-        input.studioAssociationIdNumber ?? null,
+        input.type === "studio" ? (input.studioAssociationName ?? null) : null,
+        input.type === "studio" ? (input.studioAssociationIdNumber ?? null) : null,
         input.avatar ?? null,
         input.avatarSource ?? "external",
         currentUser.userId,

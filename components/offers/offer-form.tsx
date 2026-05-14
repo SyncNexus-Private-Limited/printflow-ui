@@ -170,7 +170,15 @@ export function OfferForm({ branchOptions, selectedBranchId, canSelectBranch }: 
         </div>
         <div className="space-y-1.5">
           <FieldLabel htmlFor="offer-code">Code</FieldLabel>
-          <Input id="offer-code" disabled={isSubmitting} {...register("code")} />
+          <Input
+            id="offer-code"
+            disabled={isSubmitting}
+            {...register("code")}
+            onChange={(e) => setValue("code", e.target.value.toUpperCase(), { shouldDirty: true })}
+          />
+          <p className="text-xs text-[rgb(var(--muted-foreground))]">
+            4–25 characters. Uppercase letters, numbers, and hyphens only.
+          </p>
           <FieldError message={getFieldError("code")} />
         </div>
         <div className="space-y-1.5">

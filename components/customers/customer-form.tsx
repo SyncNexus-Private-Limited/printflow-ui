@@ -159,10 +159,14 @@ export function CustomerForm({ redirectTo }: CustomerFormProps) {
           <FieldLabel htmlFor="customer-phone">Phone</FieldLabel>
           <Input
             id="customer-phone"
+            inputMode="tel"
             placeholder="Phone number"
             disabled={isSubmitting}
             {...register("phone")}
           />
+          <p className="text-xs text-[rgb(var(--muted-foreground))]">
+            10-digit Indian mobile number (starts with 6–9).
+          </p>
           <FieldError message={getFieldError("phone")} />
         </div>
 
@@ -172,10 +176,14 @@ export function CustomerForm({ redirectTo }: CustomerFormProps) {
           </FieldLabel>
           <Input
             id="customer-alt-phone"
+            inputMode="tel"
             placeholder="Alternate phone"
             disabled={isSubmitting}
             {...register("alternatePhone")}
           />
+          <p className="text-xs text-[rgb(var(--muted-foreground))]">
+            10-digit Indian mobile number (starts with 6–9).
+          </p>
           <FieldError message={getFieldError("alternatePhone")} />
         </div>
 
@@ -185,10 +193,16 @@ export function CustomerForm({ redirectTo }: CustomerFormProps) {
           </FieldLabel>
           <Input
             id="customer-code"
-            placeholder="e.g. C-001"
+            placeholder="e.g. CUST-001"
             disabled={isSubmitting}
             {...register("customerCode")}
+            onChange={(e) =>
+              setValue("customerCode", e.target.value.toUpperCase(), { shouldDirty: true })
+            }
           />
+          <p className="text-xs text-[rgb(var(--muted-foreground))]">
+            4–25 characters. Uppercase letters, numbers, and hyphens only.
+          </p>
           <FieldError message={getFieldError("customerCode")} />
         </div>
 

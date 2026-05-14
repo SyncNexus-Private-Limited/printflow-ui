@@ -271,7 +271,15 @@ export function CustomerEditDialog({ customerId, onClose, onSuccess }: CustomerE
 
               <div className="space-y-1.5">
                 <FieldLabel htmlFor="edit-customer-phone">Phone</FieldLabel>
-                <Input id="edit-customer-phone" disabled={isSubmitting} {...register("phone")} />
+                <Input
+                  id="edit-customer-phone"
+                  inputMode="tel"
+                  disabled={isSubmitting}
+                  {...register("phone")}
+                />
+                <p className="text-xs text-[rgb(var(--muted-foreground))]">
+                  10-digit Indian mobile number (starts with 6–9).
+                </p>
                 <FieldError message={getFieldError("phone")} />
               </div>
 
@@ -281,9 +289,13 @@ export function CustomerEditDialog({ customerId, onClose, onSuccess }: CustomerE
                 </FieldLabel>
                 <Input
                   id="edit-customer-alt-phone"
+                  inputMode="tel"
                   disabled={isSubmitting}
                   {...register("alternatePhone")}
                 />
+                <p className="text-xs text-[rgb(var(--muted-foreground))]">
+                  10-digit Indian mobile number (starts with 6–9).
+                </p>
                 <FieldError message={getFieldError("alternatePhone")} />
               </div>
 
@@ -295,7 +307,13 @@ export function CustomerEditDialog({ customerId, onClose, onSuccess }: CustomerE
                   id="edit-customer-code"
                   disabled={isSubmitting}
                   {...register("customerCode")}
+                  onChange={(e) =>
+                    setValue("customerCode", e.target.value.toUpperCase(), { shouldDirty: true })
+                  }
                 />
+                <p className="text-xs text-[rgb(var(--muted-foreground))]">
+                  4–25 characters. Uppercase letters, numbers, and hyphens only.
+                </p>
                 <FieldError message={getFieldError("customerCode")} />
               </div>
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizePhone } from "@/lib/validations/common-validators";
 import { paymentModeValues } from "@/lib/expenses/types";
 import { customerTypeValues } from "@/lib/offers/types";
 import {
@@ -9,7 +10,8 @@ import {
 } from "@/lib/orders/types";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const codePattern = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
+const ENTITY_CODE_RE = /^[A-Z0-9-]{4,25}$/;
+const INDIAN_PHONE_RE = /^[6-9]\d{9}$/;
 
 function optionalText(max: number) {
   return z
@@ -43,9 +45,9 @@ export const createOrderSchema = z
     customerType: z.enum(customerTypeValues).or(z.literal("")).optional().default(""),
     customerName: z.string().trim().optional().default(""),
     customerPhone: z.string().trim().optional().default(""),
-    customerCode: optionalText(80).refine(
-      (value) => value === undefined || codePattern.test(value),
-      "Use letters, numbers, underscores, or hyphens",
+    customerCode: optionalText(25).refine(
+      (value) => value === undefined || ENTITY_CODE_RE.test(value.toUpperCase()),
+      "Code must be 4–25 uppercase letters, numbers, or hyphens",
     ),
     customerNumericId: z
       .string()
@@ -53,9 +55,9 @@ export const createOrderSchema = z
       .optional()
       .transform((value) => (value && value.length > 0 ? value : undefined))
       .refine((value) => value === undefined || /^\d+$/.test(value), "Numeric ID must be a number"),
-    studioName: optionalText(160),
+    studioName: optionalText(120),
     alternatePhone: optionalText(40),
-    customerAddress: optionalText(400),
+    customerAddress: optionalText(250),
     items: z
       .array(
         z.object({
@@ -96,7 +98,7 @@ export const createOrderSchema = z
         (value) => value === undefined || /^\d{4}-\d{2}-\d{2}$/.test(value),
         "Expected delivery must be a valid date",
       ),
-    vendorNotes: optionalText(400),
+    vendorNotes: optionalText(250),
   })
   .superRefine((value, ctx) => {
     if (value.customerMode === "existing") {
@@ -104,18 +106,65 @@ export const createOrderSchema = z
         ctx.addIssue({ code: "custom", path: ["customerId"], message: "Select a customer" });
       }
     } else {
-      if (!value.customerName.trim()) {
+      const trimmedName = value.customerName.trim();
+      if (!trimmedName) {
         ctx.addIssue({ code: "custom", path: ["customerName"], message: "Name is required" });
+      } else if (trimmedName.length < 2) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["customerName"],
+          message: "Name must be at least 2 characters",
+        });
+      } else if (trimmedName.length > 120) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["customerName"],
+          message: "Name must be 120 characters or less",
+        });
       }
-      if (!value.customerPhone.trim()) {
+
+      const normalizedPhone = normalizePhone(value.customerPhone);
+      if (typeof normalizedPhone !== "string" || !normalizedPhone) {
         ctx.addIssue({ code: "custom", path: ["customerPhone"], message: "Phone is required" });
+      } else if (!INDIAN_PHONE_RE.test(normalizedPhone)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["customerPhone"],
+          message: "Enter a valid 10-digit Indian mobile number (must start with 6, 7, 8, or 9)",
+        });
       }
+
       if (!value.customerType) {
         ctx.addIssue({
           code: "custom",
           path: ["customerType"],
           message: "Customer type is required",
         });
+      }
+
+      if (value.alternatePhone) {
+        const normalizedAlt = normalizePhone(value.alternatePhone);
+        if (typeof normalizedAlt === "string" && normalizedAlt.length > 0) {
+          if (!INDIAN_PHONE_RE.test(normalizedAlt)) {
+            ctx.addIssue({
+              code: "custom",
+              path: ["alternatePhone"],
+              message:
+                "Enter a valid 10-digit Indian mobile number (must start with 6, 7, 8, or 9)",
+            });
+          } else if (
+            normalizedAlt ===
+            (typeof normalizePhone(value.customerPhone) === "string"
+              ? normalizePhone(value.customerPhone)
+              : "")
+          ) {
+            ctx.addIssue({
+              code: "custom",
+              path: ["alternatePhone"],
+              message: "Alternate phone must be different from the primary phone",
+            });
+          }
+        }
       }
     }
 
@@ -188,7 +237,7 @@ export const upsertOrderVendorSchema = z.object({
       (value) => value === undefined || /^\d{4}-\d{2}-\d{2}$/.test(value),
       "Expected delivery must be a valid date",
     ),
-  notes: optionalText(400),
+  notes: optionalText(250),
 });
 
 export const recordOrderVendorPaymentSchema = z.object({

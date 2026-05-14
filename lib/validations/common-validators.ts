@@ -23,6 +23,28 @@ export const entityCodeSchema = z
     "Code may only contain uppercase letters, numbers, and hyphens",
   );
 
+/**
+ * Optional entity code — same format as {@link entityCodeSchema} but the field
+ * may be left blank.  Blank strings are treated as absent (undefined → null).
+ * When a value is present it is trimmed, uppercased, and validated.
+ */
+export const optionalEntityCodeSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? undefined : trimmed.toUpperCase();
+  },
+  z
+    .string()
+    .min(4, "Code must be at least 4 characters")
+    .max(25, "Code must be 25 characters or less")
+    .refine(
+      (v) => ENTITY_CODE_RE.test(v),
+      "Code may only contain uppercase letters, numbers, and hyphens",
+    )
+    .optional(),
+);
+
 // ---------------------------------------------------------------------------
 // Generic entity name
 // ---------------------------------------------------------------------------

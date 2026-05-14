@@ -50,6 +50,50 @@ export const customerSchema = z
         path: ["alternatePhone"],
       });
     }
+
+    if (data.type === "studio") {
+      if (data.studioName === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Studio name is required",
+          path: ["studioName"],
+        });
+      } else if (data.studioName.length < 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Studio name must be at least 2 characters",
+          path: ["studioName"],
+        });
+      }
+
+      if (data.studioAssociationName === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Studio association name is required",
+          path: ["studioAssociationName"],
+        });
+      } else if (data.studioAssociationName.length < 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Studio association name must be at least 2 characters",
+          path: ["studioAssociationName"],
+        });
+      }
+
+      if (data.studioAssociationIdNumber === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Studio association ID is required",
+          path: ["studioAssociationIdNumber"],
+        });
+      } else if (data.studioAssociationIdNumber.length < 2) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Studio association ID must be at least 2 characters",
+          path: ["studioAssociationIdNumber"],
+        });
+      }
+    }
   });
 
 export type CustomerInput = z.infer<typeof customerSchema>;

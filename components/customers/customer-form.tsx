@@ -133,7 +133,13 @@ export function CustomerForm({ redirectTo }: CustomerFormProps) {
             id="customer-type"
             value={type}
             disabled={isSubmitting}
-            onChange={(event) => setValue("type", event.target.value, { shouldValidate: true })}
+            onChange={(event) => {
+              const next = event.target.value;
+              setValue("type", next, { shouldValidate: true });
+              if (next !== "studio") {
+                clearErrors(["studioName", "studioAssociationName", "studioAssociationIdNumber"]);
+              }
+            }}
           >
             <option value="">Select type</option>
             <option value="studio">Studio</option>
@@ -206,19 +212,6 @@ export function CustomerForm({ redirectTo }: CustomerFormProps) {
           <FieldError message={getFieldError("customerCode")} />
         </div>
 
-        <div className="space-y-1.5">
-          <FieldLabel htmlFor="customer-studio-name" optional>
-            Studio name
-          </FieldLabel>
-          <Input
-            id="customer-studio-name"
-            placeholder="Studio name"
-            disabled={isSubmitting}
-            {...register("studioName")}
-          />
-          <FieldError message={getFieldError("studioName")} />
-        </div>
-
         <div className="space-y-1.5 sm:col-span-2">
           <FieldLabel htmlFor="customer-address" optional>
             Address
@@ -248,9 +241,18 @@ export function CustomerForm({ redirectTo }: CustomerFormProps) {
         {type === "studio" ? (
           <>
             <div className="space-y-1.5">
-              <FieldLabel htmlFor="customer-assoc-name" optional>
-                Studio association name
-              </FieldLabel>
+              <FieldLabel htmlFor="customer-studio-name">Studio name</FieldLabel>
+              <Input
+                id="customer-studio-name"
+                placeholder="Studio name"
+                disabled={isSubmitting}
+                {...register("studioName")}
+              />
+              <FieldError message={getFieldError("studioName")} />
+            </div>
+
+            <div className="space-y-1.5">
+              <FieldLabel htmlFor="customer-assoc-name">Studio association name</FieldLabel>
               <Input
                 id="customer-assoc-name"
                 placeholder="e.g. Photography Association of India"
@@ -261,9 +263,7 @@ export function CustomerForm({ redirectTo }: CustomerFormProps) {
             </div>
 
             <div className="space-y-1.5">
-              <FieldLabel htmlFor="customer-assoc-id" optional>
-                Studio association ID
-              </FieldLabel>
+              <FieldLabel htmlFor="customer-assoc-id">Studio association ID</FieldLabel>
               <Input
                 id="customer-assoc-id"
                 placeholder="Association membership ID"

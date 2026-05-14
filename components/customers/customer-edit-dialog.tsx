@@ -250,9 +250,17 @@ export function CustomerEditDialog({ customerId, onClose, onSuccess }: CustomerE
                   id="edit-customer-type"
                   value={type}
                   disabled={isSubmitting}
-                  onChange={(event) =>
-                    setValue("type", event.target.value, { shouldValidate: true })
-                  }
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    setValue("type", next, { shouldValidate: true });
+                    if (next !== "studio") {
+                      clearErrors([
+                        "studioName",
+                        "studioAssociationName",
+                        "studioAssociationIdNumber",
+                      ]);
+                    }
+                  }}
                 >
                   <option value="">Select type</option>
                   <option value="studio">Studio</option>
@@ -317,18 +325,6 @@ export function CustomerEditDialog({ customerId, onClose, onSuccess }: CustomerE
                 <FieldError message={getFieldError("customerCode")} />
               </div>
 
-              <div className="space-y-1.5">
-                <FieldLabel htmlFor="edit-customer-studio-name" optional>
-                  Studio name
-                </FieldLabel>
-                <Input
-                  id="edit-customer-studio-name"
-                  disabled={isSubmitting}
-                  {...register("studioName")}
-                />
-                <FieldError message={getFieldError("studioName")} />
-              </div>
-
               <div className="space-y-1.5 sm:col-span-2">
                 <FieldLabel htmlFor="edit-customer-address" optional>
                   Address
@@ -361,7 +357,17 @@ export function CustomerEditDialog({ customerId, onClose, onSuccess }: CustomerE
               {type === "studio" ? (
                 <>
                   <div className="space-y-1.5">
-                    <FieldLabel htmlFor="edit-customer-assoc-name" optional>
+                    <FieldLabel htmlFor="edit-customer-studio-name">Studio name</FieldLabel>
+                    <Input
+                      id="edit-customer-studio-name"
+                      disabled={isSubmitting}
+                      {...register("studioName")}
+                    />
+                    <FieldError message={getFieldError("studioName")} />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <FieldLabel htmlFor="edit-customer-assoc-name">
                       Studio association name
                     </FieldLabel>
                     <Input
@@ -373,9 +379,7 @@ export function CustomerEditDialog({ customerId, onClose, onSuccess }: CustomerE
                   </div>
 
                   <div className="space-y-1.5">
-                    <FieldLabel htmlFor="edit-customer-assoc-id" optional>
-                      Studio association ID
-                    </FieldLabel>
+                    <FieldLabel htmlFor="edit-customer-assoc-id">Studio association ID</FieldLabel>
                     <Input
                       id="edit-customer-assoc-id"
                       disabled={isSubmitting}

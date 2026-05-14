@@ -213,7 +213,13 @@ export function ExpenseCategoryEditDialog({
                   id="edit-expense-category-code"
                   disabled={isSubmitting}
                   {...register("code")}
+                  onChange={(e) =>
+                    setValue("code", e.target.value.toUpperCase(), { shouldDirty: true })
+                  }
                 />
+                <p className="text-xs text-[rgb(var(--muted-foreground))]">
+                  4–25 characters. Uppercase letters, numbers, and hyphens only.
+                </p>
                 <FieldError message={getFieldError("code")} />
               </div>
               <div className="space-y-1.5">
@@ -270,6 +276,9 @@ export function ExpenseCategoryEditDialog({
                   disabled={isSubmitting}
                   {...register("sortOrder")}
                 />
+                <p className="text-xs text-[rgb(var(--muted-foreground))]">
+                  Whole number between 0 and 10,000.
+                </p>
                 <FieldError message={getFieldError("sortOrder")} />
               </div>
               <div className="space-y-1.5 sm:col-span-2">

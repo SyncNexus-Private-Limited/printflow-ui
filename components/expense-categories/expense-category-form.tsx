@@ -126,12 +126,13 @@ export function ExpenseCategoryForm({ redirectTo }: ExpenseCategoryFormProps) {
           <FieldLabel htmlFor="expense-category-code">Code</FieldLabel>
           <Input
             id="expense-category-code"
-            placeholder="travel"
+            placeholder="TRAVEL"
             disabled={isSubmitting}
             {...register("code")}
+            onChange={(e) => setValue("code", e.target.value.toUpperCase(), { shouldDirty: true })}
           />
           <p className="text-xs text-[rgb(var(--muted-foreground))]">
-            Lowercase-safe code used internally.
+            4–25 characters. Uppercase letters, numbers, and hyphens only.
           </p>
           <FieldError message={getFieldError("code")} />
         </div>
@@ -194,6 +195,9 @@ export function ExpenseCategoryForm({ redirectTo }: ExpenseCategoryFormProps) {
             disabled={isSubmitting}
             {...register("sortOrder")}
           />
+          <p className="text-xs text-[rgb(var(--muted-foreground))]">
+            Whole number between 0 and 10,000.
+          </p>
           <FieldError message={getFieldError("sortOrder")} />
         </div>
 

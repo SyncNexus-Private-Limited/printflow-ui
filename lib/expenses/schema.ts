@@ -64,7 +64,7 @@ const baseExpenseSchema = z.object({
   title: z
     .string()
     .trim()
-    .min(1, "Title is required")
+    .min(2, "Title must be at least 2 characters")
     .max(120, "Title must be 120 characters or less"),
   categoryId: requiredUuid("Category"),
   amount: z
@@ -86,7 +86,7 @@ const baseExpenseSchema = z.object({
       (value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)),
       "Enter a valid expense date",
     ),
-  remarks: optionalTrimmedString(500),
+  remarks: optionalTrimmedString(250),
 });
 
 const businessExpenseSchema = baseExpenseSchema.extend({
@@ -127,7 +127,7 @@ export const updateEmployeeExpenseSchema = z.object({
   title: z
     .string()
     .trim()
-    .min(1, "Title is required")
+    .min(2, "Title must be at least 2 characters")
     .max(120, "Title must be 120 characters or less"),
   categoryId: requiredUuid("Category"),
   amount: z
@@ -149,7 +149,7 @@ export const updateEmployeeExpenseSchema = z.object({
       (value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)),
       "Enter a valid expense date",
     ),
-  remarks: optionalTrimmedString(500),
+  remarks: optionalTrimmedString(250),
   employeeId: requiredUuid("Employee"),
   orderId: optionalUuid("Linked order"),
 });
@@ -177,7 +177,7 @@ export const updateBusinessExpenseSchema = z.object({
   title: z
     .string()
     .trim()
-    .min(1, "Title is required")
+    .min(2, "Title must be at least 2 characters")
     .max(120, "Title must be 120 characters or less"),
   categoryId: requiredUuid("Category"),
   amount: z
@@ -199,7 +199,7 @@ export const updateBusinessExpenseSchema = z.object({
       (value) => !Number.isNaN(Date.parse(`${value}T00:00:00Z`)),
       "Enter a valid expense date",
     ),
-  remarks: optionalTrimmedString(500),
+  remarks: optionalTrimmedString(250),
   vendorId: optionalUuid("Vendor"),
   orderVendorId: optionalUuid("Linked order vendor"),
 });

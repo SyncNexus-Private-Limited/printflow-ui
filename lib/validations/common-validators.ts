@@ -1,5 +1,86 @@
 import { z } from "zod";
 
+// ---------------------------------------------------------------------------
+// Entity code (branches, expense categories, etc.)
+// ---------------------------------------------------------------------------
+
+/** Accepted characters for entity codes: uppercase letters, digits, hyphens. */
+const ENTITY_CODE_RE = /^[A-Z0-9-]+$/;
+
+/**
+ * Entity code: 4–25 uppercase characters (uppercase letters, digits, hyphens).
+ * Input is trimmed and uppercased before validation.
+ * Examples: MAIN, HQ-01, NORTH25
+ */
+export const entityCodeSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .min(4, "Code must be at least 4 characters")
+  .max(25, "Code must be 25 characters or less")
+  .refine(
+    (v) => ENTITY_CODE_RE.test(v),
+    "Code may only contain uppercase letters, numbers, and hyphens",
+  );
+
+// ---------------------------------------------------------------------------
+// Generic entity name
+// ---------------------------------------------------------------------------
+
+/**
+ * Generic entity name: 2–120 characters, trimmed.
+ * Suitable for branch names, category names, and similar short labels.
+ */
+export const nameSchema = z
+  .string()
+  .trim()
+  .min(2, "Name must be at least 2 characters")
+  .max(120, "Name must be 120 characters or less");
+
+// ---------------------------------------------------------------------------
+// Optional URL (logo, banner, etc.)
+// ---------------------------------------------------------------------------
+
+/** Matches a trimmed http or https URL with a non-empty path component. */
+const HTTPS_URL_RE = /^https?:\/\/[^\s]{2,}$/;
+
+/**
+ * Optional http/https URL, max 500 characters.
+ * Blank strings are treated as absent (undefined → saved as null).
+ */
+export const optionalUrlSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? undefined : trimmed;
+  },
+  z
+    .string()
+    .max(500, "URL must be 500 characters or less")
+    .refine((v) => HTTPS_URL_RE.test(v), "Enter a valid http or https URL")
+    .optional(),
+);
+
+// ---------------------------------------------------------------------------
+// Optional text (description, remarks, notes, etc.)
+// ---------------------------------------------------------------------------
+
+/**
+ * Factory for optional trimmed text fields.
+ * Blank strings are treated as absent (undefined → saved as null).
+ * Use this for description, remarks, notes, and similar free-text fields.
+ */
+export function makeOptionalTextSchema(maxLength: number) {
+  return z.preprocess(
+    (value) => {
+      if (typeof value !== "string") return value;
+      const trimmed = value.trim();
+      return trimmed.length === 0 ? undefined : trimmed;
+    },
+    z.string().max(maxLength, `Must be ${maxLength} characters or less`).optional(),
+  );
+}
+
 /**
  * Strip all non-digit characters from a phone input and normalise leading
  * country-code / trunk prefixes so the result is a bare 10-digit string

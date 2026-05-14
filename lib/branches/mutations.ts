@@ -174,7 +174,11 @@ function buildUpdateChangedFields(
 function handleDbError(error: unknown): never {
   const message = error instanceof Error ? error.message : "";
 
-  if (message.includes("branches_code_key") || message.includes("idx_branches_code")) {
+  if (
+    message.includes("branches_code_key") ||
+    message.includes("idx_branches_code") ||
+    message.includes("uq_branches_code_lower")
+  ) {
     throw new BranchMutationError("A branch with this code already exists.", {
       status: 409,
       fieldErrors: { code: "This code is already in use." },

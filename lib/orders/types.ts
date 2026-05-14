@@ -14,6 +14,8 @@ export type OrderCustomerOption = {
   studioName: string | null;
   phone: string;
   alternatePhone: string | null;
+  avatar: string | null;
+  avatarSource: "external" | "uploaded";
 };
 
 export type OrderInventoryOption = {

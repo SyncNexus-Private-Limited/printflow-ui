@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { customerTypeValues } from "@/lib/dashboard/customer-page-filters";
-import { customerFieldNames, type CustomerFieldName } from "@/lib/customers/types";
+import {
+  customerFieldNames,
+  type AvatarSource,
+  type CustomerFieldName,
+} from "@/lib/customers/types";
 
 function trimString(value: unknown) {
   return typeof value === "string" ? value.trim() : value;
@@ -32,6 +36,36 @@ export const customerSchema = z.object({
   address: optionalTrimmedString(500),
   studioName: optionalTrimmedString(200),
   customerCode: optionalTrimmedString(80),
+  aadhaarNumber: z.preprocess(
+    (v) => {
+      // Normalise: strip spaces and dashes, then treat empty as undefined.
+      const raw = typeof v === "string" ? v.replace(/[\s-]/g, "").trim() : v;
+      return typeof raw === "string" && raw.length === 0 ? undefined : raw;
+    },
+    z
+      .string()
+      .refine((v) => /^\d{12}$/.test(v), "Aadhaar must be exactly 12 digits")
+      .optional(),
+  ),
+  studioAssociationName: optionalTrimmedString(200),
+  studioAssociationIdNumber: optionalTrimmedString(100),
+  avatar: z.preprocess(
+    (v) => {
+      const trimmed = trimString(v);
+      return typeof trimmed === "string" && trimmed.length === 0 ? undefined : trimmed;
+    },
+    z
+      .string()
+      .max(500, "Must be 500 characters or less")
+      .refine(
+        (v) => /^https?:\/\/.+/.test(v),
+        "Must be a valid URL starting with http:// or https://",
+      )
+      .optional(),
+  ),
+  avatarSource: z
+    .enum(["external", "uploaded"] as [AvatarSource, ...AvatarSource[]])
+    .default("external"),
 });
 
 export type CustomerInput = z.infer<typeof customerSchema>;

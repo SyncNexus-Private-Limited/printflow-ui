@@ -13,6 +13,10 @@ type EditCustomerDbRow = {
   address: string | null;
   studio_name: string | null;
   avatar: string | null;
+  avatar_source: "external" | "uploaded";
+  aadhaar_number: string | null;
+  studio_association_name: string | null;
+  studio_association_id_number: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -35,6 +39,10 @@ export async function getCustomerById(id: string): Promise<EditCustomerRow | nul
         c.address,
         c.studio_name,
         c.avatar,
+        c.avatar_source,
+        c.aadhaar_number,
+        c.studio_association_name,
+        c.studio_association_id_number,
         c.is_active,
         c.created_at::text AS created_at,
         c.updated_at::text AS updated_at,
@@ -63,6 +71,10 @@ export async function getCustomerById(id: string): Promise<EditCustomerRow | nul
     address: row.address,
     studioName: row.studio_name,
     avatar: row.avatar,
+    avatarSource: row.avatar_source,
+    aadhaarNumber: row.aadhaar_number,
+    studioAssociationName: row.studio_association_name,
+    studioAssociationIdNumber: row.studio_association_id_number,
     isActive: row.is_active,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

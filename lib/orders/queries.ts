@@ -53,7 +53,9 @@ export async function getAddOrderPageData(
             c.name,
             c.studio_name AS "studioName",
             c.phone,
-            c.alternate_phone AS "alternatePhone"
+            c.alternate_phone AS "alternatePhone",
+            c.avatar,
+            c.avatar_source AS "avatarSource"
           FROM customers c
           ORDER BY c.created_at DESC
           LIMIT 500

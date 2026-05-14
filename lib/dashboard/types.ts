@@ -158,6 +158,7 @@ export type CustomerDetailRow = {
   type: string;
   name: string;
   avatar: string | null;
+  avatarSource: "external" | "uploaded";
   studioName: string | null;
   phone: string;
   alternatePhone: string | null;

@@ -1,3 +1,5 @@
+export type AvatarSource = "external" | "uploaded";
+
 export const customerFieldNames = [
   "type",
   "name",
@@ -6,6 +8,10 @@ export const customerFieldNames = [
   "address",
   "studioName",
   "customerCode",
+  "aadhaarNumber",
+  "studioAssociationName",
+  "studioAssociationIdNumber",
+  "avatar",
 ] as const;
 
 export type CustomerFieldName = (typeof customerFieldNames)[number];
@@ -18,6 +24,11 @@ export type CustomerFormValues = {
   address: string;
   studioName: string;
   customerCode: string;
+  aadhaarNumber: string;
+  studioAssociationName: string;
+  studioAssociationIdNumber: string;
+  avatar: string;
+  avatarSource: AvatarSource;
 };
 
 export type EditCustomerRow = {
@@ -31,6 +42,10 @@ export type EditCustomerRow = {
   address: string | null;
   studioName: string | null;
   avatar: string | null;
+  avatarSource: AvatarSource;
+  aadhaarNumber: string | null;
+  studioAssociationName: string | null;
+  studioAssociationIdNumber: string | null;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

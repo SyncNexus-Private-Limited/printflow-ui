@@ -8,7 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { CustomerAvatar } from "@/components/customers/customer-avatar";
 import { customerSchema } from "@/lib/customers/schema";
+import { maskAadhaar } from "@/lib/utils/mask-aadhaar";
+import { resolveAvatarUrl } from "@/lib/utils/resolve-avatar-url";
 import {
   type CustomerFieldName,
   type CustomerFormValues,
@@ -68,6 +71,13 @@ function buildDefaultValues(customer: EditCustomerRow): CustomerFormValues {
     address: customer.address ?? "",
     studioName: customer.studioName ?? "",
     customerCode: customer.customerCode ?? "",
+    // Aadhaar is intentionally NOT pre-filled (sensitive; must be re-entered).
+    aadhaarNumber: "",
+    studioAssociationName: customer.studioAssociationName ?? "",
+    studioAssociationIdNumber: customer.studioAssociationIdNumber ?? "",
+    // Avatar URL is pre-filled so the user can see and edit the current value.
+    avatar: customer.avatar ?? "",
+    avatarSource: customer.avatarSource,
   };
 }
 
@@ -95,6 +105,11 @@ export function CustomerEditDialog({ customerId, onClose, onSuccess }: CustomerE
       address: "",
       studioName: "",
       customerCode: "",
+      aadhaarNumber: "",
+      studioAssociationName: "",
+      studioAssociationIdNumber: "",
+      avatar: "",
+      avatarSource: "external",
     },
   });
 
@@ -130,6 +145,7 @@ export function CustomerEditDialog({ customerId, onClose, onSuccess }: CustomerE
   }, [customerId, reset]);
 
   const type = watch("type");
+  const avatarValue = watch("avatar");
 
   function getFieldError(field: CustomerFieldName): string | undefined {
     const err = errors[field];
@@ -197,6 +213,33 @@ export function CustomerEditDialog({ customerId, onClose, onSuccess }: CustomerE
             {serverError ? (
               <div className="rounded-2xl border border-[rgb(var(--danger)/0.18)] bg-[rgb(var(--danger)/0.08)] px-4 py-3 text-sm text-[rgb(var(--danger))]">
                 {serverError}
+              </div>
+            ) : null}
+
+            {readyCustomer ? (
+              <div className="flex items-center gap-3 pb-1">
+                {/* Live preview — updates as user types a new avatar URL */}
+                <CustomerAvatar
+                  name={readyCustomer.name}
+                  avatarUrl={resolveAvatarUrl(
+                    avatarValue || readyCustomer.avatar,
+                    readyCustomer.avatarSource,
+                  )}
+                  sizeClass="h-10 w-10"
+                />
+                <div>
+                  <p className="text-sm font-semibold text-[rgb(var(--foreground))]">
+                    {readyCustomer.name}
+                  </p>
+                  {readyCustomer.aadhaarNumber ? (
+                    <p className="text-xs text-[rgb(var(--muted-foreground))]">
+                      Aadhaar on file:{" "}
+                      <span className="font-medium">
+                        {maskAadhaar(readyCustomer.aadhaarNumber)}
+                      </span>
+                    </p>
+                  ) : null}
+                </div>
               </div>
             ) : null}
 
@@ -279,6 +322,71 @@ export function CustomerEditDialog({ customerId, onClose, onSuccess }: CustomerE
                 />
                 <FieldError message={getFieldError("address")} />
               </div>
+
+              <div className="space-y-1.5">
+                <FieldLabel htmlFor="edit-customer-aadhaar" optional>
+                  Aadhaar number
+                </FieldLabel>
+                <Input
+                  id="edit-customer-aadhaar"
+                  placeholder={
+                    readyCustomer?.aadhaarNumber
+                      ? "Re-enter to update (leave blank to keep)"
+                      : "12-digit Aadhaar number"
+                  }
+                  disabled={isSubmitting}
+                  {...register("aadhaarNumber")}
+                />
+                <FieldError message={getFieldError("aadhaarNumber")} />
+              </div>
+
+              {type === "studio" ? (
+                <>
+                  <div className="space-y-1.5">
+                    <FieldLabel htmlFor="edit-customer-assoc-name" optional>
+                      Studio association name
+                    </FieldLabel>
+                    <Input
+                      id="edit-customer-assoc-name"
+                      disabled={isSubmitting}
+                      {...register("studioAssociationName")}
+                    />
+                    <FieldError message={getFieldError("studioAssociationName")} />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <FieldLabel htmlFor="edit-customer-assoc-id" optional>
+                      Studio association ID
+                    </FieldLabel>
+                    <Input
+                      id="edit-customer-assoc-id"
+                      disabled={isSubmitting}
+                      {...register("studioAssociationIdNumber")}
+                    />
+                    <FieldError message={getFieldError("studioAssociationIdNumber")} />
+                  </div>
+                </>
+              ) : null}
+
+              <div className="space-y-1.5 sm:col-span-2">
+                <FieldLabel htmlFor="edit-customer-avatar" optional>
+                  Avatar URL
+                </FieldLabel>
+                <Input
+                  id="edit-customer-avatar"
+                  type="url"
+                  placeholder="https://example.com/avatar.jpg"
+                  disabled={isSubmitting}
+                  {...register("avatar")}
+                />
+                <FieldError message={getFieldError("avatar")} />
+                <p className="text-xs text-[rgb(var(--muted-foreground))]">
+                  Paste the URL of a profile picture. Clear to remove.
+                </p>
+              </div>
+
+              {/* avatarSource is always "external" for now — hidden field */}
+              <input type="hidden" value="external" {...register("avatarSource")} />
             </div>
 
             {readyCustomer ? (

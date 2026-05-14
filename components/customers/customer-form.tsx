@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { CustomerAvatar } from "@/components/customers/customer-avatar";
 import { customerSchema } from "@/lib/customers/schema";
 import {
   type CustomerFieldName,
@@ -66,10 +67,17 @@ export function CustomerForm({ redirectTo }: CustomerFormProps) {
       address: "",
       studioName: "",
       customerCode: "",
+      aadhaarNumber: "",
+      studioAssociationName: "",
+      studioAssociationIdNumber: "",
+      avatar: "",
+      avatarSource: "external",
     },
   });
 
   const type = watch("type");
+  const nameValue = watch("name");
+  const avatarValue = watch("avatar");
 
   function getFieldError(field: CustomerFieldName): string | undefined {
     const err = errors[field];
@@ -209,6 +217,78 @@ export function CustomerForm({ redirectTo }: CustomerFormProps) {
           />
           <FieldError message={getFieldError("address")} />
         </div>
+
+        <div className="space-y-1.5">
+          <FieldLabel htmlFor="customer-aadhaar" optional>
+            Aadhaar number
+          </FieldLabel>
+          <Input
+            id="customer-aadhaar"
+            placeholder="12-digit Aadhaar number"
+            disabled={isSubmitting}
+            {...register("aadhaarNumber")}
+          />
+          <FieldError message={getFieldError("aadhaarNumber")} />
+        </div>
+
+        {type === "studio" ? (
+          <>
+            <div className="space-y-1.5">
+              <FieldLabel htmlFor="customer-assoc-name" optional>
+                Studio association name
+              </FieldLabel>
+              <Input
+                id="customer-assoc-name"
+                placeholder="e.g. Photography Association of India"
+                disabled={isSubmitting}
+                {...register("studioAssociationName")}
+              />
+              <FieldError message={getFieldError("studioAssociationName")} />
+            </div>
+
+            <div className="space-y-1.5">
+              <FieldLabel htmlFor="customer-assoc-id" optional>
+                Studio association ID
+              </FieldLabel>
+              <Input
+                id="customer-assoc-id"
+                placeholder="Association membership ID"
+                disabled={isSubmitting}
+                {...register("studioAssociationIdNumber")}
+              />
+              <FieldError message={getFieldError("studioAssociationIdNumber")} />
+            </div>
+          </>
+        ) : null}
+
+        <div className="space-y-1.5 sm:col-span-2">
+          <FieldLabel htmlFor="customer-avatar" optional>
+            Avatar URL
+          </FieldLabel>
+          <div className="flex items-center gap-3">
+            {/* Live preview alongside the URL input */}
+            <CustomerAvatar
+              name={nameValue || "?"}
+              avatarUrl={avatarValue || null}
+              sizeClass="h-9 w-9 shrink-0"
+            />
+            <Input
+              id="customer-avatar"
+              type="url"
+              placeholder="https://example.com/avatar.jpg"
+              disabled={isSubmitting}
+              className="flex-1"
+              {...register("avatar")}
+            />
+          </div>
+          <FieldError message={getFieldError("avatar")} />
+          <p className="text-xs text-[rgb(var(--muted-foreground))]">
+            Paste the URL of a profile picture. Leave blank to use initials.
+          </p>
+        </div>
+
+        {/* avatarSource is always "external" for now */}
+        <input type="hidden" value="external" {...register("avatarSource")} />
       </div>
 
       <div className="flex flex-col-reverse gap-2 border-t border-[rgb(var(--border)/0.62)] pt-5 sm:flex-row sm:justify-end">

@@ -3,6 +3,8 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, RotateCcw, Trash2 } from "lucide-react";
+import { CustomerAvatar } from "@/components/customers/customer-avatar";
+import { resolveAvatarUrl } from "@/lib/utils/resolve-avatar-url";
 import {
   DataPill,
   getCustomerStatusTone,
@@ -290,15 +292,22 @@ export function CustomerDataTable({
                       className={cn(TABLE_BODY_CELL_CLASS, getStickyBodyCellClass(stickySpecs[0]))}
                       style={getStickyBodyCellStyle(stickySpecs[0])}
                     >
-                      <div className="space-y-0.5">
-                        <p className="leading-6 font-semibold wrap-break-word text-[rgb(var(--card-foreground))]">
-                          {customer.name}
-                        </p>
-                        {customer.customerCode ? (
-                          <p className="text-xs text-[rgb(var(--muted-foreground))]">
-                            {customer.customerCode}
+                      <div className="flex items-center gap-2.5">
+                        <CustomerAvatar
+                          name={customer.name}
+                          avatarUrl={resolveAvatarUrl(customer.avatar, customer.avatarSource)}
+                          sizeClass="h-7 w-7"
+                        />
+                        <div className="space-y-0.5">
+                          <p className="leading-6 font-semibold wrap-break-word text-[rgb(var(--card-foreground))]">
+                            {customer.name}
                           </p>
-                        ) : null}
+                          {customer.customerCode ? (
+                            <p className="text-xs text-[rgb(var(--muted-foreground))]">
+                              {customer.customerCode}
+                            </p>
+                          ) : null}
+                        </div>
                       </div>
                     </td>
                     <td className={TABLE_BODY_CELL_CLASS}>

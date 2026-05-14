@@ -4,6 +4,7 @@ import type { AuthenticatedUser } from "@/lib/auth/current-user";
 import { assertPermission } from "@/lib/auth/permissions";
 import { getPool } from "@/lib/db/postgres";
 import type { CustomerInput } from "@/lib/customers/schema";
+import type { AvatarSource } from "@/lib/customers/types";
 
 type MutationFieldErrors = Partial<Record<string, string>>;
 type ChangedFields = Record<string, { from: unknown; to: unknown }>;
@@ -30,6 +31,12 @@ export type CustomerAuditSnapshot = {
   alternatePhone: string | null;
   address: string | null;
   studioName: string | null;
+  /** Stored as "***" in audit logs to avoid persisting the raw Aadhaar number. */
+  aadhaarNumber: string | null;
+  studioAssociationName: string | null;
+  studioAssociationIdNumber: string | null;
+  avatar: string | null;
+  avatarSource: AvatarSource;
   isActive: boolean;
   createdBy: string | null;
   updatedBy: string | null;
@@ -46,6 +53,11 @@ type CustomerAuditSnapshotRow = {
   alternate_phone: string | null;
   address: string | null;
   studio_name: string | null;
+  aadhaar_number: string | null;
+  studio_association_name: string | null;
+  studio_association_id_number: string | null;
+  avatar: string | null;
+  avatar_source: AvatarSource;
   is_active: boolean;
   created_by: string | null;
   updated_by: string | null;
@@ -68,6 +80,11 @@ export async function fetchCustomerSnapshotForAudit(
         c.alternate_phone,
         c.address,
         c.studio_name,
+        c.aadhaar_number,
+        c.studio_association_name,
+        c.studio_association_id_number,
+        c.avatar,
+        c.avatar_source,
         c.is_active,
         c.created_by::text AS created_by,
         c.updated_by::text AS updated_by,
@@ -93,6 +110,12 @@ export async function fetchCustomerSnapshotForAudit(
     alternatePhone: row.alternate_phone,
     address: row.address,
     studioName: row.studio_name,
+    // Mask Aadhaar in audit snapshot — never persist the raw number in logs.
+    aadhaarNumber: row.aadhaar_number ? "***" : null,
+    studioAssociationName: row.studio_association_name,
+    studioAssociationIdNumber: row.studio_association_id_number,
+    avatar: row.avatar,
+    avatarSource: row.avatar_source,
     isActive: row.is_active,
     createdBy: row.created_by,
     updatedBy: row.updated_by,
@@ -135,6 +158,11 @@ function buildUpdateChangedFields(
   const nextAddress = input.address ?? null;
   const nextStudioName = input.studioName ?? null;
   const nextCustomerCode = input.customerCode ?? null;
+  // When blank, the Aadhaar field means "keep existing" (not "clear"), so we
+  // only track a change when the user explicitly provided a new value.
+  const nextAadhaarMasked = input.aadhaarNumber ? "***" : null;
+  const nextStudioAssociationName = input.studioAssociationName ?? null;
+  const nextStudioAssociationIdNumber = input.studioAssociationIdNumber ?? null;
 
   if (snapshot.type !== input.type) changedFields.type = { from: snapshot.type, to: input.type };
   if (snapshot.name !== input.name) changedFields.name = { from: snapshot.name, to: input.name };
@@ -152,6 +180,32 @@ function buildUpdateChangedFields(
   if ((snapshot.customerCode ?? null) !== nextCustomerCode) {
     changedFields.customerCode = { from: snapshot.customerCode, to: nextCustomerCode };
   }
+  // Only log Aadhaar as changed when the user provided a new value (non-blank).
+  // Blank field means "keep existing", so no change is recorded in that case.
+  if (input.aadhaarNumber && (snapshot.aadhaarNumber ?? null) !== nextAadhaarMasked) {
+    changedFields.aadhaarNumber = { from: snapshot.aadhaarNumber, to: nextAadhaarMasked };
+  }
+  if ((snapshot.studioAssociationName ?? null) !== nextStudioAssociationName) {
+    changedFields.studioAssociationName = {
+      from: snapshot.studioAssociationName,
+      to: nextStudioAssociationName,
+    };
+  }
+  if ((snapshot.studioAssociationIdNumber ?? null) !== nextStudioAssociationIdNumber) {
+    changedFields.studioAssociationIdNumber = {
+      from: snapshot.studioAssociationIdNumber,
+      to: nextStudioAssociationIdNumber,
+    };
+  }
+
+  const nextAvatar = input.avatar ?? null;
+  const nextAvatarSource: AvatarSource = input.avatarSource ?? "external";
+  if ((snapshot.avatar ?? null) !== nextAvatar) {
+    changedFields.avatar = { from: snapshot.avatar, to: nextAvatar };
+  }
+  if (snapshot.avatarSource !== nextAvatarSource) {
+    changedFields.avatarSource = { from: snapshot.avatarSource, to: nextAvatarSource };
+  }
 
   return changedFields;
 }
@@ -166,6 +220,26 @@ function handleDbError(error: unknown): never {
     throw new CustomerMutationError("A customer with this code already exists.", {
       status: 409,
       fieldErrors: { customerCode: "This customer code is already in use." },
+    });
+  }
+
+  if (
+    message.includes("customers_aadhaar_number_unique") ||
+    (message.includes("duplicate key value") && message.includes("aadhaar_number"))
+  ) {
+    throw new CustomerMutationError("A customer with this Aadhaar number already exists.", {
+      status: 409,
+      fieldErrors: { aadhaarNumber: "This Aadhaar number is already in use." },
+    });
+  }
+
+  if (
+    message.includes("customers_aadhaar_number_format") ||
+    message.includes("violates check constraint")
+  ) {
+    throw new CustomerMutationError("Invalid Aadhaar number format.", {
+      status: 400,
+      fieldErrors: { aadhaarNumber: "Aadhaar must be exactly 12 digits." },
     });
   }
 
@@ -188,9 +262,14 @@ export async function createCustomer(
     const { rows } = await client.query<{ id: string }>(
       `
         INSERT INTO customers
-          (type, name, phone, alternate_phone, address, studio_name, customer_code, created_by, updated_by)
+          (
+            type, name, phone, alternate_phone, address, studio_name, customer_code,
+            aadhaar_number, studio_association_name, studio_association_id_number,
+            avatar, avatar_source,
+            created_by, updated_by
+          )
         VALUES
-          ($1::customer_type, $2, $3, $4, $5, $6, $7, $8::uuid, $8::uuid)
+          ($1::customer_type, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::uuid, $13::uuid)
         RETURNING id::text AS id
       `,
       [
@@ -201,6 +280,11 @@ export async function createCustomer(
         input.address ?? null,
         input.studioName ?? null,
         input.customerCode ?? null,
+        input.aadhaarNumber ?? null,
+        input.studioAssociationName ?? null,
+        input.studioAssociationIdNumber ?? null,
+        input.avatar ?? null,
+        input.avatarSource ?? "external",
         currentUser.userId,
       ],
     );
@@ -248,6 +332,9 @@ export async function updateCustomer(
 
     const changedFields = buildUpdateChangedFields(snapshot, input);
 
+    // aadhaar_number: blank field means "keep existing" — use CASE WHEN.
+    // avatar: blank field means "clear" — written directly (null clears it).
+    // avatar_source: always "external" for now.
     const { rowCount } = await client.query(
       `
         UPDATE customers
@@ -259,7 +346,12 @@ export async function updateCustomer(
           address = $6,
           studio_name = $7,
           customer_code = $8,
-          updated_by = $9::uuid
+          aadhaar_number = CASE WHEN $9::text IS NOT NULL THEN $9::text ELSE aadhaar_number END,
+          studio_association_name = $10,
+          studio_association_id_number = $11,
+          avatar = $12,
+          avatar_source = $13,
+          updated_by = $14::uuid
         WHERE id = $1::uuid
       `,
       [
@@ -271,6 +363,11 @@ export async function updateCustomer(
         input.address ?? null,
         input.studioName ?? null,
         input.customerCode ?? null,
+        input.aadhaarNumber ?? null,
+        input.studioAssociationName ?? null,
+        input.studioAssociationIdNumber ?? null,
+        input.avatar ?? null,
+        input.avatarSource ?? "external",
         currentUser.userId,
       ],
     );

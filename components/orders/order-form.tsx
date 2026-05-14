@@ -23,6 +23,8 @@ import {
   Trash2,
 } from "lucide-react";
 import { useDashboardChrome } from "@/components/dashboard/dashboard-chrome-context";
+import { CustomerAvatar } from "@/components/customers/customer-avatar";
+import { resolveAvatarUrl } from "@/lib/utils/resolve-avatar-url";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -666,13 +668,18 @@ export function OrderForm(props: AddOrderPageData) {
                             key={customer.id}
                             type="button"
                             onClick={() => updateValue("customerId", customer.id)}
-                            className={`grid w-full grid-cols-[1fr_auto] items-center gap-3 px-3.5 py-2.5 text-left transition-colors duration-75 last:border-b-0 ${
+                            className={`flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left transition-colors duration-75 last:border-b-0 ${
                               isSelected
                                 ? "bg-[rgb(var(--primary-soft))]"
                                 : "hover:bg-[rgb(var(--muted)/0.4)]"
                             }`}
                           >
-                            <div>
+                            <CustomerAvatar
+                              name={customer.name}
+                              avatarUrl={resolveAvatarUrl(customer.avatar, customer.avatarSource)}
+                              sizeClass="h-7 w-7"
+                            />
+                            <div className="min-w-0 flex-1">
                               <div className="text-[13.5px] font-semibold text-[rgb(var(--card-foreground))]">
                                 {customer.name}
                               </div>

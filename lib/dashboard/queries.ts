@@ -928,14 +928,12 @@ function buildCustomerQueryParts(
   const whereParts: string[] = [];
   const branchScope = `($1::uuid IS NULL OR o.branch_id = $1::uuid)`;
 
-  whereParts.push(`(
-        $1::uuid IS NULL
-        OR EXISTS (
-          SELECT 1 FROM orders o
-          WHERE o.customer_id = c.id
-            AND o.branch_id = $1::uuid
-        )
-      )`);
+  // Customers are global (no branch_id column). Do not restrict visibility by
+  // branch — every authenticated user with customers:view can see all customers.
+  // Order metrics in the SELECT are already branch-scoped via branchScope.
+  // Seed with `true` so the WHERE clause is always syntactically valid even when
+  // no other filters are active.
+  whereParts.push("true");
 
   const dateCol = filters.dateField === "updated" ? "c.updated_at::date" : "c.created_at::date";
 

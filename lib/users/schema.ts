@@ -7,24 +7,16 @@ import {
   type UpdateUserFieldName,
 } from "@/lib/users/types";
 import { requiresBranch } from "@/lib/users/role-rules";
+import {
+  fullNameSchema,
+  indianPhoneSchema,
+  alternatePhoneSchema,
+  emailSchema,
+  addressSchema,
+  usernameSchema,
+} from "@/lib/validations/common-validators";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const usernamePattern = /^[a-z0-9_.-]+$/i;
-const phonePattern = /^[+\d][\d\s\-().]{4,}$/;
-
-function trimString(value: unknown) {
-  return typeof value === "string" ? value.trim() : value;
-}
-
-function optionalTrimmedString(maxLength: number) {
-  return z.preprocess(
-    (value) => {
-      const trimmed = trimString(value);
-      return typeof trimmed === "string" && trimmed.length === 0 ? undefined : trimmed;
-    },
-    z.string().max(maxLength, `Must be ${maxLength} characters or less`).optional(),
-  );
-}
 
 export const userRoleSchema = z.enum(userRoleValues);
 
@@ -33,35 +25,12 @@ export const createUserSchema = z
     role: userRoleSchema,
     // branchId is required for non-admin roles; validated in superRefine
     branchId: z.string().trim(),
-    fullName: z
-      .string()
-      .trim()
-      .min(1, "Full name is required")
-      .max(120, "Full name must be 120 characters or less"),
-    phone: z
-      .string()
-      .trim()
-      .min(1, "Phone number is required")
-      .max(30, "Phone number must be 30 characters or less")
-      .refine((v) => phonePattern.test(v), "Enter a valid phone number"),
-    alternatePhone: optionalTrimmedString(30).refine(
-      (v) => !v || phonePattern.test(v),
-      "Enter a valid alternate phone number",
-    ),
-    email: z.preprocess((value) => {
-      const trimmed = trimString(value);
-      return typeof trimmed === "string" && trimmed.length === 0 ? undefined : trimmed;
-    }, z.string().max(120, "Email must be 120 characters or less").email("Enter a valid email address").optional()),
-    address: optionalTrimmedString(300),
-    username: z
-      .string()
-      .trim()
-      .min(3, "Username must be at least 3 characters")
-      .max(40, "Username must be 40 characters or less")
-      .refine(
-        (v) => usernamePattern.test(v),
-        "Username can only contain letters, numbers, underscores, hyphens, and dots",
-      ),
+    fullName: fullNameSchema,
+    phone: indianPhoneSchema,
+    alternatePhone: alternatePhoneSchema,
+    email: emailSchema,
+    address: addressSchema,
+    username: usernameSchema,
     password: z
       .string()
       .min(8, "Password must be at least 8 characters")
@@ -87,6 +56,15 @@ export const createUserSchema = z
         code: z.ZodIssueCode.custom,
         message: "Passwords do not match",
         path: ["confirmPassword"],
+      });
+    }
+
+    // Alternate phone must differ from primary phone.
+    if (data.phone && data.alternatePhone && data.phone === data.alternatePhone) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Alternate phone must be different from the primary phone",
+        path: ["alternatePhone"],
       });
     }
   });
@@ -126,26 +104,11 @@ export function getCreateUserFieldErrors(error: z.ZodError) {
 
 export const updateUserSchema = z
   .object({
-    fullName: z
-      .string()
-      .trim()
-      .min(1, "Full name is required")
-      .max(120, "Full name must be 120 characters or less"),
-    phone: z
-      .string()
-      .trim()
-      .min(1, "Phone number is required")
-      .max(30, "Phone number must be 30 characters or less")
-      .refine((v) => phonePattern.test(v), "Enter a valid phone number"),
-    alternatePhone: optionalTrimmedString(30).refine(
-      (v) => !v || phonePattern.test(v),
-      "Enter a valid alternate phone number",
-    ),
-    email: z.preprocess((value) => {
-      const trimmed = trimString(value);
-      return typeof trimmed === "string" && trimmed.length === 0 ? undefined : trimmed;
-    }, z.string().max(120, "Email must be 120 characters or less").email("Enter a valid email address").optional()),
-    address: optionalTrimmedString(300),
+    fullName: fullNameSchema,
+    phone: indianPhoneSchema,
+    alternatePhone: alternatePhoneSchema,
+    email: emailSchema,
+    address: addressSchema,
     role: userRoleSchema,
     branchId: z.string().trim(),
     isActive: z.boolean().default(true),
@@ -159,6 +122,15 @@ export const updateUserSchema = z
           path: ["branchId"],
         });
       }
+    }
+
+    // Alternate phone must differ from primary phone.
+    if (data.phone && data.alternatePhone && data.phone === data.alternatePhone) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Alternate phone must be different from the primary phone",
+        path: ["alternatePhone"],
+      });
     }
   });
 

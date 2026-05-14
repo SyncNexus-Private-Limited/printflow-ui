@@ -120,6 +120,7 @@ export function ExpenseFormFields({
             disabled={isSubmitting}
             {...register("title")}
           />
+          <p className="text-sm text-[rgb(var(--muted-foreground))]">2–120 characters.</p>
           <FieldError message={getFieldErrorMessage(errors, "title")} />
         </div>
 

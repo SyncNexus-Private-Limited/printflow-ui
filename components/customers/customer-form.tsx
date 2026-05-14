@@ -133,7 +133,13 @@ export function CustomerForm({ redirectTo }: CustomerFormProps) {
             id="customer-type"
             value={type}
             disabled={isSubmitting}
-            onChange={(event) => setValue("type", event.target.value, { shouldValidate: true })}
+            onChange={(event) => {
+              const next = event.target.value;
+              setValue("type", next, { shouldValidate: true });
+              if (next !== "studio") {
+                clearErrors(["studioName", "studioAssociationName", "studioAssociationIdNumber"]);
+              }
+            }}
           >
             <option value="">Select type</option>
             <option value="studio">Studio</option>
@@ -159,10 +165,14 @@ export function CustomerForm({ redirectTo }: CustomerFormProps) {
           <FieldLabel htmlFor="customer-phone">Phone</FieldLabel>
           <Input
             id="customer-phone"
+            inputMode="tel"
             placeholder="Phone number"
             disabled={isSubmitting}
             {...register("phone")}
           />
+          <p className="text-xs text-[rgb(var(--muted-foreground))]">
+            10-digit Indian mobile number (starts with 6–9).
+          </p>
           <FieldError message={getFieldError("phone")} />
         </div>
 
@@ -172,10 +182,14 @@ export function CustomerForm({ redirectTo }: CustomerFormProps) {
           </FieldLabel>
           <Input
             id="customer-alt-phone"
+            inputMode="tel"
             placeholder="Alternate phone"
             disabled={isSubmitting}
             {...register("alternatePhone")}
           />
+          <p className="text-xs text-[rgb(var(--muted-foreground))]">
+            10-digit Indian mobile number (starts with 6–9).
+          </p>
           <FieldError message={getFieldError("alternatePhone")} />
         </div>
 
@@ -185,24 +199,17 @@ export function CustomerForm({ redirectTo }: CustomerFormProps) {
           </FieldLabel>
           <Input
             id="customer-code"
-            placeholder="e.g. C-001"
+            placeholder="e.g. CUST-001"
             disabled={isSubmitting}
             {...register("customerCode")}
+            onChange={(e) =>
+              setValue("customerCode", e.target.value.toUpperCase(), { shouldDirty: true })
+            }
           />
+          <p className="text-xs text-[rgb(var(--muted-foreground))]">
+            4–25 characters. Uppercase letters, numbers, and hyphens only.
+          </p>
           <FieldError message={getFieldError("customerCode")} />
-        </div>
-
-        <div className="space-y-1.5">
-          <FieldLabel htmlFor="customer-studio-name" optional>
-            Studio name
-          </FieldLabel>
-          <Input
-            id="customer-studio-name"
-            placeholder="Studio name"
-            disabled={isSubmitting}
-            {...register("studioName")}
-          />
-          <FieldError message={getFieldError("studioName")} />
         </div>
 
         <div className="space-y-1.5 sm:col-span-2">
@@ -234,9 +241,18 @@ export function CustomerForm({ redirectTo }: CustomerFormProps) {
         {type === "studio" ? (
           <>
             <div className="space-y-1.5">
-              <FieldLabel htmlFor="customer-assoc-name" optional>
-                Studio association name
-              </FieldLabel>
+              <FieldLabel htmlFor="customer-studio-name">Studio name</FieldLabel>
+              <Input
+                id="customer-studio-name"
+                placeholder="Studio name"
+                disabled={isSubmitting}
+                {...register("studioName")}
+              />
+              <FieldError message={getFieldError("studioName")} />
+            </div>
+
+            <div className="space-y-1.5">
+              <FieldLabel htmlFor="customer-assoc-name">Studio association name</FieldLabel>
               <Input
                 id="customer-assoc-name"
                 placeholder="e.g. Photography Association of India"
@@ -247,9 +263,7 @@ export function CustomerForm({ redirectTo }: CustomerFormProps) {
             </div>
 
             <div className="space-y-1.5">
-              <FieldLabel htmlFor="customer-assoc-id" optional>
-                Studio association ID
-              </FieldLabel>
+              <FieldLabel htmlFor="customer-assoc-id">Studio association ID</FieldLabel>
               <Input
                 id="customer-assoc-id"
                 placeholder="Association membership ID"

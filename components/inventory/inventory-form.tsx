@@ -215,9 +215,11 @@ export function InventoryForm(props: InventoryFormPageData) {
               placeholder="e.g. PAPER-A4-80"
               disabled={isSubmitting}
               {...register("sku")}
+              onChange={(e) => setValue("sku", e.target.value.toUpperCase(), { shouldDirty: true })}
             />
             <p className="text-xs text-[rgb(var(--muted-foreground))]">
-              Must be unique within this branch.
+              3–25 characters. Uppercase letters, numbers, and hyphens only. Must be unique within
+              this branch.
             </p>
             <FieldError message={getFieldError(errors, "sku")} />
           </div>
@@ -360,11 +362,13 @@ export function InventoryForm(props: InventoryFormPageData) {
             </FieldLabel>
             <Input
               id="inv-image"
-              type="url"
               placeholder="https://..."
               disabled={isSubmitting}
               {...register("image")}
             />
+            <p className="text-xs text-[rgb(var(--muted-foreground))]">
+              Enter a full http or https URL.
+            </p>
             <FieldError message={getFieldError(errors, "image")} />
           </div>
 

@@ -1,5 +1,10 @@
 import { z } from "zod";
 import {
+  entityCodeSchema,
+  makeOptionalTextSchema,
+  nameSchema,
+} from "@/lib/validations/common-validators";
+import {
   customerTypeValues,
   offerFieldNames,
   offerTypeValues,
@@ -7,21 +12,6 @@ import {
 } from "@/lib/offers/types";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const codePattern = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
-
-function trimString(value: unknown) {
-  return typeof value === "string" ? value.trim() : value;
-}
-
-function optionalTrimmedString(maxLength: number) {
-  return z.preprocess(
-    (value) => {
-      const trimmed = trimString(value);
-      return typeof trimmed === "string" && trimmed.length === 0 ? undefined : trimmed;
-    },
-    z.string().max(maxLength, `Must be ${maxLength} characters or less`).optional(),
-  );
-}
 
 function optionalMoney(fieldLabel: string) {
   return z
@@ -54,18 +44,9 @@ export const offerSchema = z
       .trim()
       .min(1, "Branch is required")
       .refine((value) => uuidPattern.test(value), "Select a valid branch"),
-    code: z
-      .string()
-      .trim()
-      .min(1, "Code is required")
-      .max(80, "Code must be 80 characters or less")
-      .refine((value) => codePattern.test(value), "Use letters, numbers, underscores, or hyphens"),
-    name: z
-      .string()
-      .trim()
-      .min(1, "Name is required")
-      .max(160, "Name must be 160 characters or less"),
-    description: optionalTrimmedString(400),
+    code: entityCodeSchema,
+    name: nameSchema,
+    description: makeOptionalTextSchema(250),
     offerType: z.enum(offerTypeValues, { error: "Offer type is required" }),
     discountValue: optionalMoney("Discount value"),
     buyQuantity: optionalPositiveInteger("Buy quantity"),
@@ -103,6 +84,12 @@ export const offerSchema = z
     if (value.offerType === "percentage") {
       if (!value.discountValue) {
         ctx.addIssue({ code: "custom", path: ["discountValue"], message: "Discount is required" });
+      } else if (Number.parseFloat(value.discountValue) <= 0) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["discountValue"],
+          message: "Discount must be greater than 0",
+        });
       } else if (Number.parseFloat(value.discountValue) > 100) {
         ctx.addIssue({
           code: "custom",
@@ -119,8 +106,16 @@ export const offerSchema = z
       }
     }
 
-    if (value.offerType === "flat" && !value.discountValue) {
-      ctx.addIssue({ code: "custom", path: ["discountValue"], message: "Discount is required" });
+    if (value.offerType === "flat") {
+      if (!value.discountValue) {
+        ctx.addIssue({ code: "custom", path: ["discountValue"], message: "Discount is required" });
+      } else if (Number.parseFloat(value.discountValue) <= 0) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["discountValue"],
+          message: "Discount must be greater than 0",
+        });
+      }
     }
 
     if (value.offerType === "buy_x_get_y") {

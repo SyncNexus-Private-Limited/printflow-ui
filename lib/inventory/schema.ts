@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { makeOptionalTextSchema, optionalUrlSchema } from "@/lib/validations/common-validators";
 import {
   inventoryUnitValues,
   createInventoryFieldNames,
@@ -11,20 +12,25 @@ import {
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const nonNegativeDecimalPattern = /^\d+(\.\d{1,3})?$/;
+const SKU_RE = /^[A-Z0-9-]+$/;
 
 function trimString(value: unknown) {
   return typeof value === "string" ? value.trim() : value;
 }
 
-function optionalTrimmedString(maxLength: number) {
-  return z.preprocess(
-    (v) => {
-      const trimmed = trimString(v);
-      return typeof trimmed === "string" && trimmed.length === 0 ? undefined : trimmed;
-    },
-    z.string().max(maxLength, `Must be ${maxLength} characters or less`).optional(),
-  );
-}
+/** SKU: 3–25 chars, uppercase letters / digits / hyphens. Input is uppercased. */
+const skuSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? trimmed : trimmed.toUpperCase();
+  },
+  z
+    .string()
+    .min(3, "SKU must be at least 3 characters")
+    .max(25, "SKU must be 25 characters or less")
+    .refine((v) => SKU_RE.test(v), "SKU may only contain uppercase letters, numbers, and hyphens"),
+);
 
 function nonNegativeDecimal(label: string) {
   return z.preprocess(
@@ -53,9 +59,9 @@ export const createInventorySchema = z.object({
   name: z
     .string()
     .trim()
-    .min(1, "Item name is required")
+    .min(2, "Item name must be at least 2 characters")
     .max(120, "Must be 120 characters or less"),
-  sku: z.string().trim().min(1, "SKU is required").max(60, "Must be 60 characters or less"),
+  sku: skuSchema,
   unit: z.enum(inventoryUnitValues, { error: "Unit is required" }),
   isActive: z.boolean().default(true),
   initialQuantity: z
@@ -82,8 +88,8 @@ export const createInventorySchema = z.object({
       .optional(),
   ),
   reorderLevel: nonNegativeDecimal("reorder level"),
-  image: optionalTrimmedString(512),
-  note: optionalTrimmedString(300),
+  image: optionalUrlSchema,
+  note: makeOptionalTextSchema(250),
 });
 
 export type CreateInventoryInput = z.infer<typeof createInventorySchema>;
@@ -114,9 +120,9 @@ export const updateInventorySchema = z.object({
   name: z
     .string()
     .trim()
-    .min(1, "Item name is required")
+    .min(2, "Item name must be at least 2 characters")
     .max(120, "Must be 120 characters or less"),
-  sku: z.string().trim().min(1, "SKU is required").max(60, "Must be 60 characters or less"),
+  sku: skuSchema,
   unit: z.enum(inventoryUnitValues, { error: "Unit is required" }),
   isActive: z.boolean(),
   newQuantity: z
@@ -136,8 +142,8 @@ export const updateInventorySchema = z.object({
       .optional(),
   ),
   reorderLevel: nonNegativeDecimal("reorder level"),
-  image: optionalTrimmedString(512),
-  adjustmentNote: optionalTrimmedString(300),
+  image: optionalUrlSchema,
+  adjustmentNote: makeOptionalTextSchema(250),
 });
 
 export type UpdateInventoryInput = z.infer<typeof updateInventorySchema>;
@@ -170,7 +176,7 @@ export const adjustInventoryStockSchema = z.object({
     .trim()
     .refine((v) => nonNegativeDecimalPattern.test(v), "Enter a valid quantity")
     .refine((v) => parseFloat(v) >= 0, "Quantity cannot be negative"),
-  note: optionalTrimmedString(300),
+  note: makeOptionalTextSchema(250),
 });
 
 export type AdjustInventoryStockInput = z.infer<typeof adjustInventoryStockSchema>;

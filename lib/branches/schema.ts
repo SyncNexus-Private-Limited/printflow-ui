@@ -1,50 +1,38 @@
 import { z } from "zod";
+import {
+  addressSchema,
+  alternatePhoneSchema,
+  emailSchema,
+  entityCodeSchema,
+  indianPhoneSchema,
+  makeOptionalTextSchema,
+  nameSchema,
+  optionalUrlSchema,
+} from "@/lib/validations/common-validators";
 import { branchFieldNames, type BranchFieldName } from "@/lib/branches/types";
 
-const codePattern = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
-
-function trimString(value: unknown) {
-  return typeof value === "string" ? value.trim() : value;
-}
-
-function optionalTrimmedString(maxLength: number) {
-  return z.preprocess(
-    (value) => {
-      const trimmed = trimString(value);
-      return typeof trimmed === "string" && trimmed.length === 0 ? undefined : trimmed;
-    },
-    z.string().max(maxLength, `Must be ${maxLength} characters or less`).optional(),
-  );
-}
-
-export const branchSchema = z.object({
-  code: z
-    .string()
-    .trim()
-    .min(1, "Code is required")
-    .max(80, "Code must be 80 characters or less")
-    .regex(codePattern, "Use letters, numbers, underscores, or hyphens"),
-  name: z
-    .string()
-    .trim()
-    .min(1, "Name is required")
-    .max(160, "Name must be 160 characters or less"),
-  phone: z
-    .string()
-    .trim()
-    .min(1, "Phone is required")
-    .max(40, "Phone must be 40 characters or less"),
-  alternatePhone: optionalTrimmedString(40),
-  email: optionalTrimmedString(160).refine(
-    (value) => value === undefined || z.email().safeParse(value).success,
-    "Enter a valid email address",
-  ),
-  address: optionalTrimmedString(500),
-  logo: optionalTrimmedString(500),
-  banner: optionalTrimmedString(500),
-  description: optionalTrimmedString(800),
-  isActive: z.boolean().default(true),
-});
+export const branchSchema = z
+  .object({
+    code: entityCodeSchema,
+    name: nameSchema,
+    phone: indianPhoneSchema,
+    alternatePhone: alternatePhoneSchema,
+    email: emailSchema,
+    address: addressSchema,
+    logo: optionalUrlSchema,
+    banner: optionalUrlSchema,
+    description: makeOptionalTextSchema(250),
+    isActive: z.boolean().default(true),
+  })
+  .superRefine((data, ctx) => {
+    if (data.phone && data.alternatePhone && data.phone === data.alternatePhone) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Alternate phone must be different from the primary phone",
+        path: ["alternatePhone"],
+      });
+    }
+  });
 
 export type BranchInput = z.infer<typeof branchSchema>;
 

@@ -206,7 +206,17 @@ export function VendorEditDialog({ vendorId, onClose, onSuccess }: VendorEditDia
                 <FieldLabel htmlFor="edit-vendor-code" optional>
                   Code
                 </FieldLabel>
-                <Input id="edit-vendor-code" disabled={isSubmitting} {...register("vendorCode")} />
+                <Input
+                  id="edit-vendor-code"
+                  disabled={isSubmitting}
+                  {...register("vendorCode")}
+                  onChange={(e) =>
+                    setValue("vendorCode", e.target.value.toUpperCase(), { shouldDirty: true })
+                  }
+                />
+                <p className="text-xs text-[rgb(var(--muted-foreground))]">
+                  4–25 characters. Uppercase letters, numbers, and hyphens only.
+                </p>
                 <FieldError message={getFieldError("vendorCode")} />
               </div>
               <div className="space-y-1.5">
@@ -222,6 +232,9 @@ export function VendorEditDialog({ vendorId, onClose, onSuccess }: VendorEditDia
                   disabled={isSubmitting}
                   {...register("phone")}
                 />
+                <p className="text-xs text-[rgb(var(--muted-foreground))]">
+                  10-digit Indian mobile number (starts with 6–9).
+                </p>
                 <FieldError message={getFieldError("phone")} />
               </div>
               <div className="space-y-1.5">
@@ -234,6 +247,9 @@ export function VendorEditDialog({ vendorId, onClose, onSuccess }: VendorEditDia
                   disabled={isSubmitting}
                   {...register("alternatePhone")}
                 />
+                <p className="text-xs text-[rgb(var(--muted-foreground))]">
+                  10-digit Indian mobile number (starts with 6–9).
+                </p>
                 <FieldError message={getFieldError("alternatePhone")} />
               </div>
               <div className="space-y-1.5">
@@ -241,6 +257,9 @@ export function VendorEditDialog({ vendorId, onClose, onSuccess }: VendorEditDia
                   Avatar URL
                 </FieldLabel>
                 <Input id="edit-vendor-avatar" disabled={isSubmitting} {...register("avatar")} />
+                <p className="text-xs text-[rgb(var(--muted-foreground))]">
+                  Enter a full http or https URL.
+                </p>
                 <FieldError message={getFieldError("avatar")} />
               </div>
               <div className="space-y-1.5">

@@ -124,10 +124,16 @@ export function VendorForm({ redirectTo }: VendorFormProps) {
           </FieldLabel>
           <Input
             id="vendor-code"
-            placeholder="vendor_001"
+            placeholder="VND-001"
             disabled={isSubmitting}
             {...register("vendorCode")}
+            onChange={(e) =>
+              setValue("vendorCode", e.target.value.toUpperCase(), { shouldDirty: true })
+            }
           />
+          <p className="text-xs text-[rgb(var(--muted-foreground))]">
+            4–25 characters. Uppercase letters, numbers, and hyphens only.
+          </p>
           <FieldError message={getFieldError("vendorCode")} />
         </div>
 
@@ -145,6 +151,9 @@ export function VendorForm({ redirectTo }: VendorFormProps) {
         <div className="space-y-1.5">
           <FieldLabel htmlFor="vendor-phone">Phone</FieldLabel>
           <Input id="vendor-phone" inputMode="tel" disabled={isSubmitting} {...register("phone")} />
+          <p className="text-xs text-[rgb(var(--muted-foreground))]">
+            10-digit Indian mobile number (starts with 6–9).
+          </p>
           <FieldError message={getFieldError("phone")} />
         </div>
 
@@ -158,6 +167,9 @@ export function VendorForm({ redirectTo }: VendorFormProps) {
             disabled={isSubmitting}
             {...register("alternatePhone")}
           />
+          <p className="text-xs text-[rgb(var(--muted-foreground))]">
+            10-digit Indian mobile number (starts with 6–9).
+          </p>
           <FieldError message={getFieldError("alternatePhone")} />
         </div>
 
@@ -166,6 +178,9 @@ export function VendorForm({ redirectTo }: VendorFormProps) {
             Avatar URL
           </FieldLabel>
           <Input id="vendor-avatar" disabled={isSubmitting} {...register("avatar")} />
+          <p className="text-xs text-[rgb(var(--muted-foreground))]">
+            Enter a full http or https URL.
+          </p>
           <FieldError message={getFieldError("avatar")} />
         </div>
 

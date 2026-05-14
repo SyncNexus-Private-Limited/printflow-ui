@@ -238,6 +238,7 @@ export function BusinessExpenseEditDialog({
                   disabled={isSubmitting}
                   {...register("title")}
                 />
+                <p className="text-xs text-[rgb(var(--muted-foreground))]">2–120 characters.</p>
                 <FieldError message={errors.title?.message} />
               </div>
 

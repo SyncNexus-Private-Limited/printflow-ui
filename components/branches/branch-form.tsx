@@ -128,7 +128,11 @@ export function BranchForm({ redirectTo }: BranchFormProps) {
             placeholder="MAIN"
             disabled={isSubmitting}
             {...register("code")}
+            onChange={(e) => setValue("code", e.target.value.toUpperCase(), { shouldDirty: true })}
           />
+          <p className="text-xs text-[rgb(var(--muted-foreground))]">
+            4–25 characters. Uppercase letters, numbers, and hyphens only.
+          </p>
           <FieldError message={getFieldError("code")} />
         </div>
         <div className="space-y-1.5">
@@ -139,6 +143,9 @@ export function BranchForm({ redirectTo }: BranchFormProps) {
         <div className="space-y-1.5">
           <FieldLabel htmlFor="branch-phone">Phone</FieldLabel>
           <Input id="branch-phone" inputMode="tel" disabled={isSubmitting} {...register("phone")} />
+          <p className="text-xs text-[rgb(var(--muted-foreground))]">
+            10-digit Indian mobile number (starts with 6–9).
+          </p>
           <FieldError message={getFieldError("phone")} />
         </div>
         <div className="space-y-1.5">
@@ -151,6 +158,9 @@ export function BranchForm({ redirectTo }: BranchFormProps) {
             disabled={isSubmitting}
             {...register("alternatePhone")}
           />
+          <p className="text-xs text-[rgb(var(--muted-foreground))]">
+            10-digit Indian mobile number (starts with 6–9).
+          </p>
           <FieldError message={getFieldError("alternatePhone")} />
         </div>
         <div className="space-y-1.5">
@@ -180,6 +190,9 @@ export function BranchForm({ redirectTo }: BranchFormProps) {
             Logo URL
           </FieldLabel>
           <Input id="branch-logo" disabled={isSubmitting} {...register("logo")} />
+          <p className="text-xs text-[rgb(var(--muted-foreground))]">
+            Enter a full http or https URL.
+          </p>
           <FieldError message={getFieldError("logo")} />
         </div>
         <div className="space-y-1.5">
@@ -187,6 +200,9 @@ export function BranchForm({ redirectTo }: BranchFormProps) {
             Banner URL
           </FieldLabel>
           <Input id="branch-banner" disabled={isSubmitting} {...register("banner")} />
+          <p className="text-xs text-[rgb(var(--muted-foreground))]">
+            Enter a full http or https URL.
+          </p>
           <FieldError message={getFieldError("banner")} />
         </div>
         <div className="space-y-1.5 sm:col-span-2">

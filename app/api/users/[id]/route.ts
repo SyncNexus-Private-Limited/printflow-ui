@@ -116,7 +116,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   } catch (error) {
     if (error instanceof UserMutationError) {
       return NextResponse.json(
-        { success: false, message: error.message },
+        { success: false, message: error.message, fieldErrors: error.fieldErrors },
         { status: error.status },
       );
     }

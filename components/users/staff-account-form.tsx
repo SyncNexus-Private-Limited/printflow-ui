@@ -244,10 +244,13 @@ export function UserForm({
               id="user-phone"
               type="tel"
               inputMode="tel"
-              placeholder="+91 98765 43210"
+              placeholder="98765 43210"
               disabled={isSubmitting}
               {...register("phone")}
             />
+            <p className="text-xs text-[rgb(var(--muted-foreground))]">
+              10-digit Indian mobile number.
+            </p>
             <FieldError message={getFieldError(errors, "phone")} />
           </div>
 
@@ -259,7 +262,7 @@ export function UserForm({
               id="user-alt-phone"
               type="tel"
               inputMode="tel"
-              placeholder="+91 91234 56789"
+              placeholder="91234 56789"
               disabled={isSubmitting}
               {...register("alternatePhone")}
             />

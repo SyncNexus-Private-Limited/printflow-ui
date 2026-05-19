@@ -56,3 +56,51 @@ export type EditCustomerRow = {
 export type CustomerMutationResponse =
   | { success: true; data?: { id?: string; redirectTo?: string } }
   | { success: false; message: string; fieldErrors?: Partial<Record<CustomerFieldName, string>> };
+
+// ─── Customer detail page ─────────────────────────────────────────────────────
+
+export type CustomerOrderMetrics = {
+  totalOrders: number;
+  totalPayable: number;
+  totalPaid: number;
+  totalOutstanding: number;
+};
+
+export type CustomerRecentOrder = {
+  id: string;
+  orderCode: string;
+  orderDate: string;
+  status: string;
+  paymentStatus: string;
+  totalAmount: number;
+  payableAmount: number;
+  paidAmount: number;
+  branchName: string | null;
+};
+
+export type CustomerRecentPayment = {
+  id: string;
+  orderId: string;
+  orderCode: string;
+  amount: number;
+  mode: string;
+  txnReference: string | null;
+  receivedByName: string | null;
+  createdAt: string;
+};
+
+export type CustomerAuditLogEntry = {
+  id: string;
+  action: string;
+  changedByName: string | null;
+  changedFields: Record<string, unknown> | null;
+  createdAt: string;
+};
+
+export type CustomerDetailPageData = {
+  customer: EditCustomerRow;
+  metrics: CustomerOrderMetrics;
+  recentOrders: CustomerRecentOrder[];
+  recentPayments: CustomerRecentPayment[];
+  auditLogs: CustomerAuditLogEntry[];
+};

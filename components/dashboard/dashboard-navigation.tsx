@@ -210,6 +210,15 @@ export function getDashboardBreadcrumbs(
     ];
   }
 
+  if (pathname.startsWith("/dashboard/customers/")) {
+    return [
+      { label: "Home", href: homeHref },
+      { label: "Sales", href: salesHref },
+      { label: "Customers", href: customersHref },
+      { label: "Customer Details" },
+    ];
+  }
+
   if (pathname === "/dashboard/inventory/new") {
     return [
       { label: "Home", href: homeHref },

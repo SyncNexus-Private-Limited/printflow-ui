@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, RotateCcw, Trash2 } from "lucide-react";
+import { Eye, Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { CustomerAvatar } from "@/components/customers/customer-avatar";
 import { resolveAvatarUrl } from "@/lib/utils/resolve-avatar-url";
 import {
@@ -190,6 +190,12 @@ export function CustomerDataTable({
 
   function buildRowActions(customer: CustomerDetailRow): RowAction[] {
     const actions: RowAction[] = [];
+    actions.push({
+      key: "view",
+      label: "View",
+      icon: <Eye className="h-4 w-4" strokeWidth={1.9} />,
+      onClick: () => router.push(`/dashboard/customers/${customer.id}`),
+    });
     if (canEdit) {
       actions.push({
         key: "edit",

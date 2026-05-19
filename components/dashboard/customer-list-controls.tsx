@@ -398,7 +398,7 @@ export function CustomerListControls({
           <section className="space-y-3">
             <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">Date range</p>
 
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {customerQuickDatePresetValues.map((preset) => {
                 const isActive = preset === currentDatePreset;
                 const label =

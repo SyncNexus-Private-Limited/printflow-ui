@@ -553,18 +553,12 @@ $$;
 
 -- -----------------------------------------------------------------------------
 -- TRIGGER FUNCTION: trg_recalculate_order_after_items
--- Supports item-replace mode: when app.order_item_replace = 'true', skips
--- intermediate recalculations during bulk DELETE + re-INSERT so that transient
--- states (total=0 while paid_amount>0) don't violate the paid<=payable CHECK.
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION trg_recalculate_order_after_items ()
   RETURNS trigger
   LANGUAGE plpgsql
   AS $$
 BEGIN
-  IF current_setting('app.order_item_replace', TRUE) = 'true' THEN
-    RETURN COALESCE(NEW, OLD);
-  END IF;
   PERFORM
     recalculate_order_financials (COALESCE(NEW.order_id, OLD.order_id));
   RETURN COALESCE(NEW, OLD);

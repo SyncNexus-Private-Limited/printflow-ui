@@ -148,7 +148,7 @@ CREATE INDEX IF NOT EXISTS idx_business_expense_audit_logs_expense_id ON busines
 CREATE TABLE inventory_audit_logs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   inventory_id uuid NOT NULL,
-  action text NOT NULL CHECK (action IN ('create', 'update', 'archive', 'restore', 'activate', 'deactivate', 'adjust_stock')),
+  action text NOT NULL CHECK (action IN ('create', 'update', 'archive', 'restore', 'activate', 'deactivate')),
   snapshot jsonb NOT NULL,
   changed_fields jsonb,
   changed_by uuid REFERENCES users (id) ON DELETE SET NULL,

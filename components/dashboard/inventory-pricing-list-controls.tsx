@@ -360,7 +360,8 @@ export function InventoryPricingListControls({
                       event.target.value === "studio" ||
                       event.target.value === "amateur" ||
                       event.target.value === "other" ||
-                      event.target.value === "employee"
+                      event.target.value === "employee" ||
+                      event.target.value === "lab"
                         ? event.target.value
                         : null,
                   }))
@@ -372,6 +373,7 @@ export function InventoryPricingListControls({
                 <option value="amateur">Amateur</option>
                 <option value="other">Other</option>
                 <option value="employee">Employee</option>
+                <option value="lab">Lab</option>
               </Select>
             </label>
 

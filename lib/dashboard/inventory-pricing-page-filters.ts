@@ -8,7 +8,7 @@ import type { DashboardDateRange, DashboardPageFilterState } from "@/lib/dashboa
 
 export const PRICE_EXPIRING_SOON_DAYS = 7;
 
-const customerTypeValues = ["studio", "amateur", "other", "employee"] as const;
+const customerTypeValues = ["studio", "amateur", "other", "employee", "lab"] as const;
 const pricingStatusValues = ["all", "current", "upcoming", "expired", "expiring-soon"] as const;
 const inventoryPricingSortValues = [
   "item-asc",

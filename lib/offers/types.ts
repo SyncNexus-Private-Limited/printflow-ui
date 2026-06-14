@@ -1,7 +1,7 @@
 import type { BranchOption } from "@/lib/dashboard/types";
 
 export const offerTypeValues = ["percentage", "flat", "buy_x_get_y"] as const;
-export const customerTypeValues = ["studio", "amateur", "other", "employee"] as const;
+export const customerTypeValues = ["studio", "amateur", "other", "employee", "lab"] as const;
 
 export type OfferType = (typeof offerTypeValues)[number];
 export type OfferCustomerType = (typeof customerTypeValues)[number];
@@ -17,6 +17,7 @@ export const customerTypeLabels: Record<OfferCustomerType, string> = {
   amateur: "Amateur",
   other: "Other",
   employee: "Employee",
+  lab: "Lab",
 };
 
 export type OfferFormValues = {

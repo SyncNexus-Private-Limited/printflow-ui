@@ -7,7 +7,7 @@ import {
 } from "@/lib/dashboard/page-filters";
 import type { DashboardDateRange, DashboardPageFilterState } from "@/lib/dashboard/types";
 
-export const customerTypeValues = ["studio", "amateur", "other", "employee"] as const;
+export const customerTypeValues = ["studio", "amateur", "other", "employee", "lab"] as const;
 
 export const customerSortValues = [
   "created-desc",

@@ -151,6 +151,8 @@ export function getCustomerTypeTone(type: string): DataPillTone {
       return "emerald";
     case "employee":
       return "violet";
+    case "lab":
+      return "orange";
     default:
       return "neutral";
   }

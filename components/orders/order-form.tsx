@@ -189,6 +189,7 @@ function CustomerTypeBadge({ type }: { type: OfferCustomerType }) {
     amateur: "bg-[rgb(var(--metric-emerald-soft))] text-[rgb(var(--metric-emerald-ink))]",
     employee: "bg-[rgb(var(--metric-amber-soft))] text-[rgb(var(--metric-amber-ink))]",
     other: "bg-[rgb(var(--muted))] text-[rgb(var(--muted-foreground))]",
+    lab: "bg-[rgb(var(--metric-orange-soft))] text-[rgb(var(--metric-orange-ink))]",
   };
   return (
     <span

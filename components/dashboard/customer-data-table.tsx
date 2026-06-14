@@ -70,6 +70,13 @@ const headerConfigs: HeaderConfig[] = [
     sort: { asc: "name-asc", desc: "name-desc", defaultDirection: "asc" },
   },
   {
+    key: "numeric-id",
+    label: "ID",
+    sticky: "left",
+    width: 80,
+    sort: { asc: "customer-id-asc", desc: "customer-id-desc", defaultDirection: "asc" },
+  },
+  {
     key: "type",
     label: "Type",
     sort: { asc: "type-asc", desc: "type-desc", defaultDirection: "asc" },
@@ -241,6 +248,7 @@ export function CustomerDataTable({
           <table className="w-max min-w-full border-collapse text-left text-sm">
             <colgroup>
               <col className="w-56" />
+              <col className="w-20" />
               <col className="w-32" />
               <col className="w-28" />
               <col className="w-40" />
@@ -315,6 +323,14 @@ export function CustomerDataTable({
                           ) : null}
                         </div>
                       </div>
+                    </td>
+                    <td
+                      className={cn(TABLE_BODY_CELL_CLASS, getStickyBodyCellClass(stickySpecs[1]))}
+                      style={getStickyBodyCellStyle(stickySpecs[1])}
+                    >
+                      <p className="whitespace-nowrap tabular-nums text-[rgb(var(--muted-foreground))]">
+                        {customer.customerNumericId != null ? customer.customerNumericId : "—"}
+                      </p>
                     </td>
                     <td className={TABLE_BODY_CELL_CLASS}>
                       <DataPill tone={getCustomerTypeTone(customer.type)}>

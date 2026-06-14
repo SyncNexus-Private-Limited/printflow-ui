@@ -24,6 +24,8 @@ export const customerSortValues = [
   "studio-name-desc",
   "customer-code-asc",
   "customer-code-desc",
+  "customer-id-asc",
+  "customer-id-desc",
   "order-count-desc",
   "order-count-asc",
   "total-payable-desc",

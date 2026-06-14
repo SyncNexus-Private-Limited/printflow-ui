@@ -57,6 +57,8 @@ export type AddOrderPageData = {
   inventoryItems: OrderInventoryOption[];
   offers: OrderOfferOption[];
   vendors: OrderVendorOption[];
+  prefillCustomer: OrderCustomerOption | null;
+  prefillError: string | null;
 };
 
 export type CreateOrderFormValues = {

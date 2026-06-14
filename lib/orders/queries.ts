@@ -37,6 +37,8 @@ export async function getAddOrderPageData(
       inventoryItems: [],
       offers: [],
       vendors: [],
+      prefillCustomer: null,
+      prefillError: null,
     };
   }
 
@@ -145,7 +147,36 @@ export async function getAddOrderPageData(
     })),
     offers: offersResult.rows,
     vendors: vendorsResult.rows,
+    prefillCustomer: null,
+    prefillError: null,
   };
+}
+
+export async function getOrderPrefillCustomer(
+  customerId: string,
+): Promise<OrderCustomerOption | null> {
+  const db = getPool();
+  const { rows } = await db.query<OrderCustomerOption>(
+    `
+      SELECT
+        c.id::text AS id,
+        c.customer_numeric_id AS "customerNumericId",
+        c.customer_code AS "customerCode",
+        c.type::text AS type,
+        c.name,
+        c.studio_name AS "studioName",
+        c.phone,
+        c.alternate_phone AS "alternatePhone",
+        c.avatar,
+        c.avatar_source AS "avatarSource"
+      FROM customers c
+      WHERE c.id = $1::uuid
+        AND c.is_active = true
+      LIMIT 1
+    `,
+    [customerId],
+  );
+  return rows[0] ?? null;
 }
 
 export async function getOrderDetail(

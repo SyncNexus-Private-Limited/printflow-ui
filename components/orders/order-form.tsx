@@ -91,11 +91,11 @@ function BalanceCard({ label, value, tone }: BalanceCardProps) {
   );
 }
 
-function buildInitialValues(branchId: string): CreateOrderFormValues {
+function buildInitialValues(branchId: string, prefillCustomerId?: string): CreateOrderFormValues {
   return {
     branchId,
     customerMode: "existing",
-    customerId: "",
+    customerId: prefillCustomerId ?? "",
     customerType: "",
     customerName: "",
     customerPhone: "",
@@ -250,6 +250,8 @@ export function OrderForm(props: AddOrderPageData) {
     inventoryItems,
     offers,
     vendors,
+    prefillCustomer,
+    prefillError,
   } = props;
 
   const router = useRouter();
@@ -258,8 +260,9 @@ export function OrderForm(props: AddOrderPageData) {
   const [, startNavTransition] = useTransition();
   const { setBranchControl } = useDashboardChrome();
 
+  const [customerLocked, setCustomerLocked] = useState(prefillCustomer !== null);
   const [values, setValues] = useState<CreateOrderFormValues>(() =>
-    buildInitialValues(selectedBranchId),
+    buildInitialValues(selectedBranchId, prefillCustomer?.id),
   );
   const [customerSearch, setCustomerSearch] = useState("");
   const [serverError, setServerError] = useState<string | null>(null);
@@ -307,7 +310,9 @@ export function OrderForm(props: AddOrderPageData) {
     }
   }
 
-  const selectedCustomer = customers.find((c) => c.id === values.customerId) ?? null;
+  const selectedCustomer =
+    customers.find((c) => c.id === values.customerId) ??
+    (prefillCustomer?.id === values.customerId ? prefillCustomer : null);
   const resolvedCustomerType =
     values.customerMode === "existing"
       ? (selectedCustomer?.type ?? null)
@@ -563,24 +568,33 @@ export function OrderForm(props: AddOrderPageData) {
             title="Customer"
             description="Branch & who is placing this order."
             right={
-              <div className="inline-flex h-10 items-center rounded-[10px] border border-[rgb(var(--border))] bg-[rgb(var(--muted))] p-0.75">
-                {(["existing", "new"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => updateValue("customerMode", mode)}
-                    className={`h-full rounded-lg px-3.5 text-[13px] font-semibold transition-all duration-120 ${
-                      values.customerMode === mode
-                        ? "bg-[rgb(var(--card))] text-[rgb(var(--foreground))] shadow-[0_1px_0_rgb(var(--shadow)/0.05),0_1px_3px_rgb(var(--shadow)/0.06)]"
-                        : "text-[rgb(var(--muted-foreground))] hover:text-[rgb(var(--foreground))]"
-                    }`}
-                  >
-                    {mode === "existing" ? "Existing" : "Create new"}
-                  </button>
-                ))}
-              </div>
+              customerLocked ? undefined : (
+                <div className="inline-flex h-10 items-center rounded-[10px] border border-[rgb(var(--border))] bg-[rgb(var(--muted))] p-0.75">
+                  {(["existing", "new"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => updateValue("customerMode", mode)}
+                      className={`h-full rounded-lg px-3.5 text-[13px] font-semibold transition-all duration-120 ${
+                        values.customerMode === mode
+                          ? "bg-[rgb(var(--card))] text-[rgb(var(--foreground))] shadow-[0_1px_0_rgb(var(--shadow)/0.05),0_1px_3px_rgb(var(--shadow)/0.06)]"
+                          : "text-[rgb(var(--muted-foreground))] hover:text-[rgb(var(--foreground))]"
+                      }`}
+                    >
+                      {mode === "existing" ? "Existing" : "Create new"}
+                    </button>
+                  ))}
+                </div>
+              )
             }
           >
+            {prefillError ? (
+              <div className="mb-3.5 flex items-start gap-2 rounded-xl border border-[rgb(var(--metric-amber)/0.3)] bg-[rgb(var(--metric-amber-soft))] px-4 py-3 text-[13px] text-[rgb(var(--metric-amber-ink))]">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{prefillError}</span>
+              </div>
+            ) : null}
+
             {/* Branch + customer type row */}
             <div className="mb-3.5 grid grid-cols-2 gap-4 max-[720px]:grid-cols-1">
               <div className="flex flex-col gap-1.5">
@@ -636,8 +650,50 @@ export function OrderForm(props: AddOrderPageData) {
               </div>
             </div>
 
-            {/* Existing customer mode */}
-            {values.customerMode === "existing" ? (
+            {/* Customer selection: locked pre-fill | existing search | create new */}
+            {customerLocked && prefillCustomer ? (
+              <div>
+                <div className="overflow-hidden rounded-xl border border-[rgb(var(--primary)/0.25)] bg-[rgb(var(--primary-soft))]">
+                  <div className="flex items-center gap-3 px-3.5 py-3">
+                    <CustomerAvatar
+                      name={prefillCustomer.name}
+                      avatarUrl={resolveAvatarUrl(prefillCustomer.avatar, prefillCustomer.avatarSource)}
+                      sizeClass="h-9 w-9 shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[14px] font-semibold text-[rgb(var(--primary-soft-foreground))]">
+                          {prefillCustomer.name}
+                        </span>
+                        <CustomerTypeBadge type={prefillCustomer.type} />
+                      </div>
+                      <div className="mt-0.5 font-mono text-[11.5px] text-[rgb(var(--primary-soft-foreground)/0.8)]">
+                        {[
+                          prefillCustomer.phone,
+                          prefillCustomer.customerCode,
+                          prefillCustomer.customerNumericId != null
+                            ? `#${prefillCustomer.customerNumericId}`
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomerLocked(false);
+                        updateValue("customerId", "");
+                      }}
+                      className="shrink-0 rounded-lg px-3 py-1.5 text-[12.5px] font-medium text-[rgb(var(--primary-soft-foreground)/0.8)] transition-colors hover:bg-[rgb(var(--primary)/0.12)] hover:text-[rgb(var(--primary-soft-foreground))]"
+                    >
+                      Change
+                    </button>
+                  </div>
+                </div>
+                <FieldError message={fieldErrors.customerId} />
+              </div>
+            ) : values.customerMode === "existing" ? (
               <div>
                 <div className="overflow-hidden rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
                   {/* Search header */}

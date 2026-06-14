@@ -151,19 +151,6 @@ function parseNumber(value: string) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function getCustomerSearchText(customer: OrderCustomerOption) {
-  return [
-    customer.name,
-    customer.phone,
-    customer.customerCode,
-    customer.customerNumericId,
-    customer.studioName,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-}
-
 function calculateOfferDiscount(offer: OrderOfferOption, remainingSubtotal: number) {
   if (offer.offerType === "percentage") {
     return Math.round(remainingSubtotal * ((offer.discountValue ?? 0) / 100) * 100) / 100;
@@ -265,6 +252,9 @@ export function OrderForm(props: AddOrderPageData) {
     buildInitialValues(selectedBranchId, prefillCustomer?.id),
   );
   const [customerSearch, setCustomerSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<OrderCustomerOption[]>(customers);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedFromSearch, setSelectedFromSearch] = useState<OrderCustomerOption | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<CreateOrderFieldName, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -272,6 +262,7 @@ export function OrderForm(props: AddOrderPageData) {
 
   // Track previous customer type so we can detect changes after items are added
   const prevCustomerTypeRef = useRef<string | null>(null);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Register branch control in top navbar
   useLayoutEffect(() => {
@@ -296,6 +287,29 @@ export function OrderForm(props: AddOrderPageData) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isSubmitting]);
 
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    const q = customerSearch.trim();
+    if (!q) {
+      setSearchResults(customers);
+      setIsSearching(false);
+      return;
+    }
+    setIsSearching(true);
+    searchTimerRef.current = setTimeout(() => {
+      fetch(`/api/customers?q=${encodeURIComponent(q)}`)
+        .then((res) => res.json())
+        .then((data: { success: boolean; data: OrderCustomerOption[] }) => {
+          if (data.success) setSearchResults(data.data);
+        })
+        .catch(() => {})
+        .finally(() => setIsSearching(false));
+    }, 300);
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, [customerSearch, customers]);
+
   function setVendorOpen(open: boolean) {
     setVendorOpenState(open);
     if (!open) {
@@ -312,6 +326,7 @@ export function OrderForm(props: AddOrderPageData) {
 
   const selectedCustomer =
     customers.find((c) => c.id === values.customerId) ??
+    (selectedFromSearch?.id === values.customerId ? selectedFromSearch : null) ??
     (prefillCustomer?.id === values.customerId ? prefillCustomer : null);
   const resolvedCustomerType =
     values.customerMode === "existing"
@@ -336,12 +351,6 @@ export function OrderForm(props: AddOrderPageData) {
       }),
     }));
   }, [resolvedCustomerType, inventoryItems]);
-
-  const filteredCustomers = useMemo(() => {
-    const query = customerSearch.trim().toLowerCase();
-    if (!query) return customers.slice(0, 20);
-    return customers.filter((c) => getCustomerSearchText(c).includes(query)).slice(0, 20);
-  }, [customerSearch, customers]);
 
   const lineItems = values.items.map((item) => {
     const inventory = inventoryItems.find((opt) => opt.id === item.inventoryId);
@@ -710,8 +719,12 @@ export function OrderForm(props: AddOrderPageData) {
                   </div>
                   {/* Result list */}
                   <div className="max-h-45 overflow-y-auto">
-                    {filteredCustomers.length > 0 ? (
-                      filteredCustomers.map((customer) => {
+                    {isSearching ? (
+                      <div className="px-4 py-6 text-center text-[13px] text-[rgb(var(--muted-foreground))]">
+                        Searching…
+                      </div>
+                    ) : searchResults.length > 0 ? (
+                      searchResults.map((customer) => {
                         const isSelected = values.customerId === customer.id;
                         const metaParts = [
                           customer.phone,
@@ -724,7 +737,10 @@ export function OrderForm(props: AddOrderPageData) {
                           <button
                             key={customer.id}
                             type="button"
-                            onClick={() => updateValue("customerId", customer.id)}
+                            onClick={() => {
+                              setSelectedFromSearch(customer);
+                              updateValue("customerId", customer.id);
+                            }}
                             className={`flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left transition-colors duration-75 last:border-b-0 ${
                               isSelected
                                 ? "bg-[rgb(var(--primary-soft))]"

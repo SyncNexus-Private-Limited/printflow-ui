@@ -59,8 +59,9 @@ export async function getAddOrderPageData(
             c.avatar,
             c.avatar_source AS "avatarSource"
           FROM customers c
+          WHERE c.is_active = true
           ORDER BY c.created_at DESC
-          LIMIT 500
+          LIMIT 10
         `,
       ),
       db.query<Omit<OrderInventoryOption, "prices">>(

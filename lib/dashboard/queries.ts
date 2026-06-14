@@ -952,6 +952,16 @@ function buildCustomerQueryParts(
     whereParts.push(`c.type::text = $${values.length}`);
   }
 
+  if (filters.search) {
+    values.push(filters.search);
+    whereParts.push(
+      `(c.name ILIKE '%' || $${values.length} || '%'` +
+        ` OR c.phone ILIKE '%' || $${values.length} || '%'` +
+        ` OR c.customer_code ILIKE '%' || $${values.length} || '%'` +
+        ` OR c.customer_numeric_id::text ILIKE '%' || $${values.length} || '%')`,
+    );
+  }
+
   if (filters.name) {
     values.push(filters.name);
     whereParts.push(`c.name ILIKE '%' || $${values.length} || '%'`);

@@ -55,6 +55,7 @@ export type CustomerPageFilterState = DashboardPageFilterState & {
   sort: CustomerSortValue;
   status: CustomerStatusValue;
   type: string | null;
+  search: string | null;
   name: string | null;
   phone: string | null;
   alternatePhone: string | null;
@@ -231,6 +232,7 @@ export function parseCustomerPageFilters(
     sort: normalizeCustomerSort(sortValue),
     status: isValidCustomerStatus(statusValue) ? statusValue : "all",
     type: isValidCustomerType(typeValue) ? typeValue : null,
+    search: normalizeCustomerTextInput(normalizeDashboardSearchParam(searchParams?.search)),
     name: normalizeCustomerTextInput(normalizeDashboardSearchParam(searchParams?.name)),
     phone: normalizeCustomerTextInput(normalizeDashboardSearchParam(searchParams?.phone)),
     alternatePhone: normalizeCustomerTextInput(
@@ -326,6 +328,10 @@ export function buildCustomerPageHref(
 
   if (nextFilters.type) {
     searchParams.set("type", nextFilters.type);
+  }
+
+  if (nextFilters.search) {
+    searchParams.set("search", nextFilters.search);
   }
 
   if (nextFilters.name) {

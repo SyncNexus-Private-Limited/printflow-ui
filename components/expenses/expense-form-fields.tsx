@@ -1,7 +1,8 @@
 "use client";
 
-import type { FieldErrors, UseFormRegister } from "react-hook-form";
+import { Controller, type Control, type FieldErrors, type UseFormRegister } from "react-hook-form";
 import { ExpenseTypeSwitch } from "@/components/expenses/expense-type-switch";
+import { CategoryCombobox } from "@/components/ui/category-combobox";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +30,7 @@ type ExpenseFormFieldsProps = Pick<
   errors: FieldErrors<CreateExpenseFormValues>;
   isSubmitting: boolean;
   register: UseFormRegister<CreateExpenseFormValues>;
+  control: Control<CreateExpenseFormValues>;
   selectedVendorId: string;
   onTypeChange: (nextType: ExpenseType) => void;
   onBranchChange: (nextBranchId: string) => void;
@@ -72,6 +74,7 @@ export function ExpenseFormFields({
   errors,
   isSubmitting,
   register,
+  control,
   selectedVendorId,
   onTypeChange,
   onBranchChange,
@@ -126,21 +129,20 @@ export function ExpenseFormFields({
 
         <div className="space-y-2">
           <FieldLabel htmlFor="expense-category">Category</FieldLabel>
-          <Select
-            id="expense-category"
-            disabled={isSubmitting}
-            defaultValue=""
-            {...register("categoryId")}
-          >
-            <option value="" disabled>
-              Select a category
-            </option>
-            {categoryOptions.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </Select>
+          <Controller
+            control={control}
+            name="categoryId"
+            render={({ field }) => (
+              <CategoryCombobox
+                id="expense-category"
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                options={categoryOptions}
+                disabled={isSubmitting}
+              />
+            )}
+          />
           <FieldError message={getFieldErrorMessage(errors, "categoryId")} />
         </div>
 

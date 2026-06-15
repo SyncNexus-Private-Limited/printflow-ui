@@ -423,7 +423,7 @@ export function CustomerListControls({
                   type="text"
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
-                  placeholder="Search by name, ID, or mobile"
+                  placeholder="Search by name, ID, mobile, or studio name"
                   className="h-10 w-48 min-w-0 bg-transparent text-sm text-[rgb(var(--foreground))] placeholder:text-[rgb(var(--muted-foreground))] focus:outline-none sm:w-56"
                   aria-label="Search customers"
                 />

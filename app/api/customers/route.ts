@@ -45,6 +45,7 @@ export async function GET(request: Request) {
             OR c.phone ILIKE '%' || $1 || '%'
             OR c.customer_code ILIKE '%' || $1 || '%'
             OR c.customer_numeric_id::text ILIKE '%' || $1 || '%'
+            OR c.studio_name ILIKE '%' || $1 || '%'
           )
         ORDER BY c.created_at DESC
         LIMIT 10

@@ -961,7 +961,9 @@ function buildCustomerQueryParts(
     whereParts.push(
       `(c.name ILIKE '%' || $${values.length} || '%'` +
         ` OR c.phone ILIKE '%' || $${values.length} || '%'` +
-        ` OR c.customer_numeric_id::text ILIKE '%' || $${values.length} || '%')`,
+        ` OR c.customer_numeric_id::text ILIKE '%' || $${values.length} || '%'` +
+        ` OR c.customer_code ILIKE '%' || $${values.length} || '%'` +
+        ` OR c.studio_name ILIKE '%' || $${values.length} || '%')`,
     );
   }
 

@@ -12,6 +12,7 @@ import { vendorFieldNames, type VendorFieldName } from "@/lib/vendors/types";
 export const vendorSchema = z
   .object({
     vendorCode: optionalEntityCodeSchema,
+    businessName: nameSchema,
     name: nameSchema,
     avatar: optionalUrlSchema,
     phone: indianPhoneSchema,

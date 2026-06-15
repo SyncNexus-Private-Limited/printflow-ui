@@ -427,6 +427,7 @@ export type ExpenseCategoriesPageData = {
 export type VendorManagementRow = {
   id: string;
   vendorCode: string | null;
+  businessName: string;
   name: string;
   avatar: string | null;
   phone: string;

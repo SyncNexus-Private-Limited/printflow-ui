@@ -255,12 +255,10 @@ export function VendorsDataTable({
                     >
                       <div className="min-w-0">
                         <p className="font-semibold wrap-break-word text-[rgb(var(--card-foreground))]">
-                          {vendor.name}
+                          {vendor.businessName}
                         </p>
                         <p className="mt-1 text-xs text-[rgb(var(--muted-foreground))]">
-                          {vendor.alternatePhone
-                            ? `Alt: ${vendor.alternatePhone}`
-                            : "No alternate phone"}
+                          {vendor.name}
                         </p>
                       </div>
                     </td>

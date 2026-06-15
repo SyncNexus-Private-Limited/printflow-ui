@@ -24,6 +24,7 @@ export class VendorMutationError extends Error {
 export type VendorAuditSnapshot = {
   id: string;
   vendorCode: string | null;
+  businessName: string;
   name: string;
   avatar: string | null;
   phone: string;
@@ -39,6 +40,7 @@ export type VendorAuditSnapshot = {
 type VendorAuditSnapshotRow = {
   id: string;
   vendor_code: string | null;
+  business_name: string;
   name: string;
   avatar: string | null;
   phone: string;
@@ -60,6 +62,7 @@ export async function fetchVendorSnapshotForAudit(
       SELECT
         v.id::text AS id,
         v.vendor_code,
+        v.business_name,
         v.name,
         v.avatar,
         v.phone,
@@ -84,6 +87,7 @@ export async function fetchVendorSnapshotForAudit(
   return {
     id: row.id,
     vendorCode: row.vendor_code,
+    businessName: row.business_name,
     name: row.name,
     avatar: row.avatar,
     phone: row.phone,
@@ -139,6 +143,9 @@ function buildUpdateChangedFields(
   if ((snapshot.vendorCode ?? null) !== nextVendorCode) {
     changedFields.vendorCode = { from: snapshot.vendorCode, to: nextVendorCode };
   }
+  if (snapshot.businessName !== input.businessName) {
+    changedFields.businessName = { from: snapshot.businessName, to: input.businessName };
+  }
   if (snapshot.name !== input.name) changedFields.name = { from: snapshot.name, to: input.name };
   if ((snapshot.avatar ?? null) !== nextAvatar) {
     changedFields.avatar = { from: snapshot.avatar, to: nextAvatar };
@@ -191,13 +198,14 @@ export async function createVendor(
     const { rows } = await client.query<{ id: string }>(
       `
         INSERT INTO vendors
-          (vendor_code, name, avatar, phone, alternate_phone, address, is_active, created_by, updated_by)
+          (vendor_code, business_name, name, avatar, phone, alternate_phone, address, is_active, created_by, updated_by)
         VALUES
-          ($1, $2, $3, $4, $5, $6, $7, $8::uuid, $8::uuid)
+          ($1, $2, $3, $4, $5, $6, $7, $8, $9::uuid, $9::uuid)
         RETURNING id::text AS id
       `,
       [
         normalizeOptional(input.vendorCode),
+        input.businessName,
         input.name,
         normalizeOptional(input.avatar),
         input.phone,
@@ -254,18 +262,20 @@ export async function updateVendor(
         UPDATE vendors
         SET
           vendor_code = $2,
-          name = $3,
-          avatar = $4,
-          phone = $5,
-          alternate_phone = $6,
-          address = $7,
-          is_active = $8,
-          updated_by = $9::uuid
+          business_name = $3,
+          name = $4,
+          avatar = $5,
+          phone = $6,
+          alternate_phone = $7,
+          address = $8,
+          is_active = $9,
+          updated_by = $10::uuid
         WHERE id = $1::uuid
       `,
       [
         vendorId,
         normalizeOptional(input.vendorCode),
+        input.businessName,
         input.name,
         normalizeOptional(input.avatar),
         input.phone,

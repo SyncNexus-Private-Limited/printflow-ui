@@ -63,6 +63,7 @@ function FieldError({ message }: { message?: string }) {
 function buildDefaultValues(vendor: EditVendorRow): VendorFormValues {
   return {
     vendorCode: vendor.vendorCode ?? "",
+    businessName: vendor.businessName,
     name: vendor.name,
     avatar: vendor.avatar ?? "",
     phone: vendor.phone,
@@ -90,6 +91,7 @@ export function VendorEditDialog({ vendorId, onClose, onSuccess }: VendorEditDia
     resolver: zodResolver(vendorSchema) as unknown as Resolver<VendorFormValues>,
     defaultValues: {
       vendorCode: "",
+      businessName: "",
       name: "",
       avatar: "",
       phone: "",
@@ -218,6 +220,15 @@ export function VendorEditDialog({ vendorId, onClose, onSuccess }: VendorEditDia
                   4–25 characters. Uppercase letters, numbers, and hyphens only.
                 </p>
                 <FieldError message={getFieldError("vendorCode")} />
+              </div>
+              <div className="space-y-1.5">
+                <FieldLabel htmlFor="edit-vendor-business-name">Business Name</FieldLabel>
+                <Input
+                  id="edit-vendor-business-name"
+                  disabled={isSubmitting}
+                  {...register("businessName")}
+                />
+                <FieldError message={getFieldError("businessName")} />
               </div>
               <div className="space-y-1.5">
                 <FieldLabel htmlFor="edit-vendor-name">Name</FieldLabel>

@@ -1,5 +1,6 @@
 export type VendorFormValues = {
   vendorCode: string;
+  businessName: string;
   name: string;
   avatar: string;
   phone: string;
@@ -10,6 +11,7 @@ export type VendorFormValues = {
 
 export const vendorFieldNames = [
   "vendorCode",
+  "businessName",
   "name",
   "avatar",
   "phone",
@@ -31,6 +33,7 @@ export type VendorMutationResponse =
 export type EditVendorRow = {
   id: string;
   vendorCode: string | null;
+  businessName: string;
   name: string;
   avatar: string | null;
   phone: string;

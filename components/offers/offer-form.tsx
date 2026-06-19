@@ -15,11 +15,13 @@ import {
   customerTypeValues,
   offerTypeLabels,
   offerTypeValues,
+  type OfferCustomerType,
   type OfferFieldName,
   type OfferFormPageData,
   type OfferFormValues,
   type OfferMutationResponse,
 } from "@/lib/offers/types";
+import { cn } from "@/lib/utils/cn";
 
 function buildDefaultValues(selectedBranchId: string): OfferFormValues {
   return {
@@ -32,7 +34,7 @@ function buildDefaultValues(selectedBranchId: string): OfferFormValues {
     buyQuantity: "",
     getQuantity: "",
     minimumOrderValue: "",
-    customerType: "",
+    customerTypes: [],
     startsAt: new Date().toISOString().slice(0, 10),
     endsAt: "",
     isActive: true,
@@ -44,7 +46,7 @@ function FieldLabel({
   children,
   optional = false,
 }: {
-  htmlFor: string;
+  htmlFor?: string;
   children: string;
   optional?: boolean;
 }) {
@@ -93,11 +95,18 @@ export function OfferForm({ branchOptions, selectedBranchId, canSelectBranch }: 
 
   const offerType = watch("offerType");
   const isActive = watch("isActive");
+  const selectedCustomerTypes = watch("customerTypes");
 
   function getFieldError(field: OfferFieldName): string | undefined {
     const err = errors[field];
     if (!err || typeof err !== "object" || !("message" in err)) return undefined;
     return typeof err.message === "string" ? err.message : undefined;
+  }
+
+  function toggleCustomerType(type: OfferCustomerType) {
+    const current = selectedCustomerTypes ?? [];
+    const next = current.includes(type) ? current.filter((t) => t !== type) : [...current, type];
+    setValue("customerTypes", next, { shouldValidate: true });
   }
 
   const navigateToBranch = (nextBranchId: string) => {
@@ -257,20 +266,40 @@ export function OfferForm({ branchOptions, selectedBranchId, canSelectBranch }: 
           />
           <FieldError message={getFieldError("minimumOrderValue")} />
         </div>
+
+        {/* Customer type — multi-select chips */}
         <div className="space-y-1.5">
-          <FieldLabel htmlFor="offer-customer-type" optional>
-            Customer type
-          </FieldLabel>
-          <Select id="offer-customer-type" disabled={isSubmitting} {...register("customerType")}>
-            <option value="">All customers</option>
-            {customerTypeValues.map((value) => (
-              <option key={value} value={value}>
-                {customerTypeLabels[value]}
-              </option>
-            ))}
-          </Select>
-          <FieldError message={getFieldError("customerType")} />
+          <FieldLabel optional>Customer type</FieldLabel>
+          <div className="flex flex-wrap gap-2 pt-0.5">
+            {customerTypeValues.map((type) => {
+              const isSelected = selectedCustomerTypes.includes(type);
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  disabled={isSubmitting}
+                  onClick={() => toggleCustomerType(type)}
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                    isSelected
+                      ? "border-[rgb(var(--primary)/0.6)] bg-[rgb(var(--primary)/0.1)] text-[rgb(var(--primary))]"
+                      : "border-[rgb(var(--border))] text-[rgb(var(--muted-foreground))] hover:border-[rgb(var(--primary)/0.4)] hover:text-[rgb(var(--foreground))]",
+                    isSubmitting && "cursor-not-allowed opacity-50",
+                  )}
+                >
+                  {customerTypeLabels[type]}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-[rgb(var(--muted-foreground))]">
+            {selectedCustomerTypes.length === 0
+              ? "No selection — applies to all customer types."
+              : `Applies to: ${selectedCustomerTypes.map((t) => customerTypeLabels[t]).join(", ")}.`}
+          </p>
+          <FieldError message={getFieldError("customerTypes")} />
         </div>
+
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <FieldLabel htmlFor="offer-starts-at">Starts</FieldLabel>

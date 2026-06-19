@@ -36,7 +36,7 @@ export type OrderOfferOption = {
   buyQuantity: number | null;
   getQuantity: number | null;
   minimumOrderValue: number | null;
-  customerType: OfferCustomerType | null;
+  customerTypes: OfferCustomerType[] | null;
   startsAt: string;
   endsAt: string | null;
 };

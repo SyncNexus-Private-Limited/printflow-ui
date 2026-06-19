@@ -105,7 +105,7 @@ export async function getAddOrderPageData(
             o.buy_quantity AS "buyQuantity",
             o.get_quantity AS "getQuantity",
             o.minimum_order_value::double precision AS "minimumOrderValue",
-            o.customer_type::text AS "customerType",
+            o.customer_types::text[] AS "customerTypes",
             o.starts_at::text AS "startsAt",
             o.ends_at::text AS "endsAt"
           FROM offers o

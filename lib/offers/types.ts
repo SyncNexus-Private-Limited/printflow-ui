@@ -30,7 +30,7 @@ export type OfferFormValues = {
   buyQuantity: string;
   getQuantity: string;
   minimumOrderValue: string;
-  customerType: OfferCustomerType | "";
+  customerTypes: OfferCustomerType[];
   startsAt: string;
   endsAt: string;
   isActive: boolean;
@@ -46,7 +46,7 @@ export const offerFieldNames = [
   "buyQuantity",
   "getQuantity",
   "minimumOrderValue",
-  "customerType",
+  "customerTypes",
   "startsAt",
   "endsAt",
   "isActive",
@@ -80,7 +80,7 @@ export type EditOfferRow = {
   buyQuantity: number | null;
   getQuantity: number | null;
   minimumOrderValue: number | null;
-  customerType: OfferCustomerType | null;
+  customerTypes: OfferCustomerType[] | null;
   startsAt: string;
   endsAt: string | null;
   isActive: boolean;

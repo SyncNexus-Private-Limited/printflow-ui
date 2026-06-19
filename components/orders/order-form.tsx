@@ -361,7 +361,13 @@ export function OrderForm(props: AddOrderPageData) {
   const subtotal = lineItems.reduce((sum, i) => sum + i.lineTotal, 0);
 
   const eligibleOffers = offers.filter((offer) => {
-    if (offer.customerType && offer.customerType !== resolvedCustomerType) return false;
+    if (
+      offer.customerTypes &&
+      offer.customerTypes.length > 0 &&
+      (!resolvedCustomerType ||
+        !offer.customerTypes.includes(resolvedCustomerType as OfferCustomerType))
+    )
+      return false;
     if (offer.minimumOrderValue !== null && subtotal < offer.minimumOrderValue) return false;
     return true;
   });
@@ -394,8 +400,15 @@ export function OrderForm(props: AddOrderPageData) {
 
   function getIneligibilityReason(offer: OrderOfferOption): string | null {
     const reasons: string[] = [];
-    if (offer.customerType && offer.customerType !== resolvedCustomerType) {
-      reasons.push(`for ${customerTypeLabels[offer.customerType]} only`);
+    if (
+      offer.customerTypes &&
+      offer.customerTypes.length > 0 &&
+      (!resolvedCustomerType ||
+        !offer.customerTypes.includes(resolvedCustomerType as OfferCustomerType))
+    ) {
+      reasons.push(
+        `for ${offer.customerTypes.map((t) => customerTypeLabels[t]).join(", ")} only`,
+      );
     }
     if (offer.minimumOrderValue !== null && subtotal < offer.minimumOrderValue) {
       reasons.push(`min ${formatCurrency(offer.minimumOrderValue)}`);

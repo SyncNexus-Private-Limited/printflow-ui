@@ -495,7 +495,7 @@ export type OfferManagementRow = {
   buyQuantity: number | null;
   getQuantity: number | null;
   minimumOrderValue: number | null;
-  customerType: string | null;
+  customerTypes: string[] | null;
   startsAt: string;
   endsAt: string | null;
   isActive: boolean;

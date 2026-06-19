@@ -32,7 +32,7 @@ export type OfferAuditSnapshot = {
   buyQuantity: number | null;
   getQuantity: number | null;
   minimumOrderValue: number | null;
-  customerType: string | null;
+  customerTypes: string[] | null;
   startsAt: string;
   endsAt: string | null;
   isActive: boolean;
@@ -53,7 +53,7 @@ type OfferAuditSnapshotRow = {
   buy_quantity: number | null;
   get_quantity: number | null;
   minimum_order_value: number | null;
-  customer_type: string | null;
+  customer_types: string[] | null;
   starts_at: string;
   ends_at: string | null;
   is_active: boolean;
@@ -73,6 +73,19 @@ function parseOptionalInteger(value: string | undefined) {
 
 function normalizeOptional(value: string | undefined) {
   return value ?? null;
+}
+
+// Format a JS string array as a PostgreSQL array literal for enum[] columns.
+// pg does not know the custom enum type, so we pass a string and cast in SQL.
+function pgEnumArray(values: string[] | null | undefined): string | null {
+  if (!values || values.length === 0) return null;
+  return `{${values.join(",")}}`;
+}
+
+function enumArraysEqual(a: string[] | null, b: string[] | null | undefined): boolean {
+  const aNorm = a ? [...a].sort().join(",") : "";
+  const bNorm = b ? [...b].sort().join(",") : "";
+  return aNorm === bNorm;
 }
 
 async function assertBranchExists(client: PoolClient, branchId: string) {
@@ -117,7 +130,7 @@ export async function fetchOfferSnapshotForAudit(
         o.buy_quantity,
         o.get_quantity,
         o.minimum_order_value::double precision AS minimum_order_value,
-        o.customer_type::text AS customer_type,
+        o.customer_types::text[] AS customer_types,
         o.starts_at::text AS starts_at,
         o.ends_at::text AS ends_at,
         o.is_active,
@@ -147,7 +160,7 @@ export async function fetchOfferSnapshotForAudit(
     buyQuantity: row.buy_quantity,
     getQuantity: row.get_quantity,
     minimumOrderValue: row.minimum_order_value,
-    customerType: row.customer_type,
+    customerTypes: row.customer_types,
     startsAt: row.starts_at,
     endsAt: row.ends_at,
     isActive: row.is_active,
@@ -189,7 +202,7 @@ function buildUpdateChangedFields(snapshot: OfferAuditSnapshot, input: OfferInpu
   const nextGetQuantity = parseOptionalInteger(input.getQuantity);
   const nextMinimumOrderValue = parseOptionalMoney(input.minimumOrderValue);
   const nextDescription = normalizeOptional(input.description);
-  const nextCustomerType = input.customerType ?? null;
+  const nextCustomerTypes = input.customerTypes ?? null;
   const nextEndsAt = input.endsAt ?? null;
   const changedFields: ChangedFields = {};
 
@@ -213,8 +226,8 @@ function buildUpdateChangedFields(snapshot: OfferAuditSnapshot, input: OfferInpu
       to: nextMinimumOrderValue,
     };
   }
-  if ((snapshot.customerType ?? null) !== nextCustomerType)
-    changedFields.customerType = { from: snapshot.customerType, to: nextCustomerType };
+  if (!enumArraysEqual(snapshot.customerTypes, nextCustomerTypes))
+    changedFields.customerTypes = { from: snapshot.customerTypes, to: nextCustomerTypes };
   if (snapshot.startsAt !== input.startsAt)
     changedFields.startsAt = { from: snapshot.startsAt, to: input.startsAt };
   if ((snapshot.endsAt ?? null) !== nextEndsAt)
@@ -258,12 +271,12 @@ export async function createOffer(
         INSERT INTO offers
           (
             branch_id, code, name, description, offer_type, discount_value,
-            buy_quantity, get_quantity, minimum_order_value, customer_type,
+            buy_quantity, get_quantity, minimum_order_value, customer_types,
             starts_at, ends_at, is_active, created_by, updated_by
           )
         VALUES
           (
-            $1::uuid, $2, $3, $4, $5, $6, $7, $8, $9, $10::customer_type,
+            $1::uuid, $2, $3, $4, $5, $6, $7, $8, $9, $10::customer_type[],
             $11::date, $12::date, $13, $14::uuid, $14::uuid
           )
         RETURNING id::text AS id
@@ -278,7 +291,7 @@ export async function createOffer(
         parseOptionalInteger(input.buyQuantity),
         parseOptionalInteger(input.getQuantity),
         parseOptionalMoney(input.minimumOrderValue),
-        input.customerType ?? null,
+        pgEnumArray(input.customerTypes),
         input.startsAt,
         input.endsAt ?? null,
         input.isActive,
@@ -340,7 +353,7 @@ export async function updateOffer(
           buy_quantity = $8,
           get_quantity = $9,
           minimum_order_value = $10,
-          customer_type = $11::customer_type,
+          customer_types = $11::customer_type[],
           starts_at = $12::date,
           ends_at = $13::date,
           is_active = $14,
@@ -358,7 +371,7 @@ export async function updateOffer(
         parseOptionalInteger(input.buyQuantity),
         parseOptionalInteger(input.getQuantity),
         parseOptionalMoney(input.minimumOrderValue),
-        input.customerType ?? null,
+        pgEnumArray(input.customerTypes),
         input.startsAt,
         input.endsAt ?? null,
         input.isActive,

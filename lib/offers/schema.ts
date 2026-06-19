@@ -52,11 +52,14 @@ export const offerSchema = z
     buyQuantity: optionalPositiveInteger("Buy quantity"),
     getQuantity: optionalPositiveInteger("Get quantity"),
     minimumOrderValue: optionalMoney("Minimum order value"),
-    customerType: z
-      .enum(customerTypeValues)
-      .or(z.literal(""))
-      .transform((value) => (value === "" ? undefined : value))
-      .optional(),
+    customerTypes: z
+      .array(z.enum(customerTypeValues))
+      .default([])
+      .refine(
+        (arr) => new Set(arr).size === arr.length,
+        "Each customer type may only be selected once",
+      )
+      .transform((arr) => (arr.length > 0 ? arr : undefined)),
     startsAt: z
       .string()
       .trim()

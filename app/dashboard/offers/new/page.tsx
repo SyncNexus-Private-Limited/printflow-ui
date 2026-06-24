@@ -32,21 +32,22 @@ export default async function AddOfferPage({ searchParams }: AddOfferPageProps) 
           <div className="mx-auto max-w-7xl space-y-8">
             <DashboardHeader
               title="Add Offer"
-              branchOptions={[
-                {
-                  label: currentUser.branchName ?? "Branch",
-                  value: currentUser.branchId ?? "unavailable",
-                },
-              ]}
-              selectedBranchValue={currentUser.branchId ?? "unavailable"}
+              branchOptions={[{ label: pageData.selectedBranchName, value: "none" }]}
+              selectedBranchValue="none"
               branchFilterDisabled
             />
             <SectionCard
               title="No branch available"
-              description="A branch must exist before you can add offers."
+              description={
+                pageData.noBranchAssigned
+                  ? "You don't have a branch assigned yet."
+                  : "A branch must exist before you can add offers."
+              }
             >
               <p className="text-sm text-[rgb(var(--muted-foreground))]">
-                Please create a branch first or contact your system administrator.
+                {pageData.noBranchAssigned
+                  ? "Please contact your system administrator to get a branch assigned."
+                  : "Please create a branch first or contact your system administrator."}
               </p>
             </SectionCard>
           </div>
@@ -88,7 +89,7 @@ export default async function AddOfferPage({ searchParams }: AddOfferPageProps) 
             title="Add Offer"
             branchOptions={[
               {
-                label: currentUser.branchName ?? "Branch",
+                label: currentUser.branchName ?? "Unavailable",
                 value: currentUser.branchId ?? "unavailable",
               },
             ]}

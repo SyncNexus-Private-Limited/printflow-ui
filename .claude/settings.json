@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(node -e \"const u=new URL\\(require\\('dotenv'\\).config\\({path:'.env'}\\).parsed.DATABASE_URL\\); console.log\\(decodeURIComponent\\(u.password\\)\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(timeout 40 bash -c 'until curl -sf http://localhost:3000 >/dev/null 2>&1; do sleep 1; done')",
+      "Bash(chromium-cli --help)",
+      "Bash(npx --yes playwright --version)",
+      "Bash(node -e \"require.resolve\\('playwright'\\)\")",
+      "Bash(node -e \"const {chromium}=require\\('playwright'\\); chromium.launch\\({headless:true}\\).then\\(b=>{console.log\\('OK'\\); b.close\\(\\);}\\).catch\\(e=>console.error\\('LAUNCH_ERR',e.message\\)\\)\")",
+      "Read(//c/Users/Pattabi Raman/AppData/Local/ms-playwright/**)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(pkill -f \"npm run dev\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000/login)",
+      "Read(//tmp/**)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill //PID 42616 //F)",
+      "Bash(taskkill //PID 16164 //F)",
+      "Bash(tail -10 /tmp/dev_server.log *)",
+      "Bash(npx eslint *)",
+      "Bash(npx prettier *)",
+      "Bash(taskkill //PID 44552 //F)"
+    ]
+  }
+}

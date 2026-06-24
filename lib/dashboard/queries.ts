@@ -67,7 +67,7 @@ import { getPool } from "@/lib/db/postgres";
 import { branchFilterSchema } from "@/lib/validations/dashboard";
 import "server-only";
 
-const NO_BRANCH_SCOPE_ID = "00000000-0000-0000-0000-000000000000";
+export const NO_BRANCH_SCOPE_ID = "00000000-0000-0000-0000-000000000000";
 
 function normalizeBranchSearchParam(branchId: string | string[] | undefined) {
   if (Array.isArray(branchId)) {

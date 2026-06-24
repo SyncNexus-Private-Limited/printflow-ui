@@ -1,7 +1,7 @@
 import "server-only";
 import type { AuthenticatedUser } from "@/lib/auth/current-user";
 import { getPool } from "@/lib/db/postgres";
-import { getDashboardContext } from "@/lib/dashboard/queries";
+import { getDashboardContext, NO_BRANCH_SCOPE_ID } from "@/lib/dashboard/queries";
 import type {
   DashboardPaginationState,
   OfferManagementRow,
@@ -27,8 +27,11 @@ export async function getOfferFormPageData(
   requestedBranchId?: string,
 ): Promise<OfferFormPageData & { selectedBranchName: string }> {
   const context = await getDashboardContext(currentUser, requestedBranchId);
+  const noBranchAssigned = !context.isAdmin && context.selectedBranchId === NO_BRANCH_SCOPE_ID;
   const branchOptions = context.branches;
-  const selectedBranchId = context.selectedBranchId ?? branchOptions[0]?.id ?? "";
+  const selectedBranchId = noBranchAssigned
+    ? ""
+    : (context.selectedBranchId ?? branchOptions[0]?.id ?? "");
   const selectedBranchName =
     branchOptions.find((branch) => branch.id === selectedBranchId)?.name ??
     context.selectedBranchName;
@@ -38,6 +41,7 @@ export async function getOfferFormPageData(
     selectedBranchId,
     selectedBranchName,
     canSelectBranch: context.canSelectAll,
+    noBranchAssigned,
   };
 }
 

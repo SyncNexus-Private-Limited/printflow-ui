@@ -1,6 +1,6 @@
 import "server-only";
 import type { AuthenticatedUser } from "@/lib/auth/current-user";
-import { getDashboardContext } from "@/lib/dashboard/queries";
+import { getDashboardContext, NO_BRANCH_SCOPE_ID } from "@/lib/dashboard/queries";
 import { getPool } from "@/lib/db/postgres";
 import type {
   AddOrderPageData,
@@ -18,6 +18,7 @@ export async function getAddOrderPageData(
   requestedBranchId?: string,
 ): Promise<AddOrderPageData> {
   const context = await getDashboardContext(currentUser, requestedBranchId);
+  const noBranchAssigned = !context.isAdmin && context.selectedBranchId === NO_BRANCH_SCOPE_ID;
   const branchId = context.selectedBranchId ?? context.branches[0]?.id ?? "";
   const selectedBranchName =
     context.branches.find((branch) => branch.id === branchId)?.name ?? context.selectedBranchName;
@@ -25,12 +26,13 @@ export async function getAddOrderPageData(
   const canApplyDiscount = hasPermission(currentUser, "orders:apply_discount");
   const canApplyHighDiscount = hasPermission(currentUser, "orders:apply_high_discount");
 
-  if (!branchId) {
+  if (!branchId || noBranchAssigned) {
     return {
       branchOptions: context.branches,
       selectedBranchId: "",
       selectedBranchName,
       canSelectBranch: context.canSelectAll,
+      noBranchAssigned,
       canApplyDiscount,
       canApplyHighDiscount,
       customers: [],
@@ -139,6 +141,7 @@ export async function getAddOrderPageData(
     selectedBranchId: branchId,
     selectedBranchName,
     canSelectBranch: context.canSelectAll,
+    noBranchAssigned: false,
     canApplyDiscount,
     canApplyHighDiscount,
     customers: customersResult.rows,

@@ -66,6 +66,7 @@ export type OfferFormPageData = {
   branchOptions: BranchOption[];
   selectedBranchId: string;
   canSelectBranch: boolean;
+  noBranchAssigned: boolean;
 };
 
 export type EditOfferRow = {

@@ -51,6 +51,7 @@ export type AddOrderPageData = {
   selectedBranchId: string;
   selectedBranchName: string;
   canSelectBranch: boolean;
+  noBranchAssigned: boolean;
   canApplyDiscount: boolean;
   canApplyHighDiscount: boolean;
   customers: OrderCustomerOption[];

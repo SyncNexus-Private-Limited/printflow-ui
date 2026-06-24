@@ -45,21 +45,22 @@ export default async function AddOrderPage({ searchParams }: AddOrderPageProps) 
           <div className="mx-auto max-w-7xl space-y-8">
             <DashboardHeader
               title="Add Order"
-              branchOptions={[
-                {
-                  label: currentUser.branchName ?? "Branch",
-                  value: currentUser.branchId ?? "unavailable",
-                },
-              ]}
-              selectedBranchValue={currentUser.branchId ?? "unavailable"}
+              branchOptions={[{ label: pageData.selectedBranchName, value: "none" }]}
+              selectedBranchValue="none"
               branchFilterDisabled
             />
             <SectionCard
               title="No branch available"
-              description="A branch is required before you can create orders."
+              description={
+                pageData.noBranchAssigned
+                  ? "You don't have a branch assigned yet."
+                  : "A branch is required before you can create orders."
+              }
             >
               <p className="text-sm text-[rgb(var(--muted-foreground))]">
-                Please contact your system administrator.
+                {pageData.noBranchAssigned
+                  ? "Please contact your system administrator to get a branch assigned."
+                  : "Please contact your system administrator."}
               </p>
             </SectionCard>
           </div>
@@ -84,7 +85,7 @@ export default async function AddOrderPage({ searchParams }: AddOrderPageProps) 
             title="Add Order"
             branchOptions={[
               {
-                label: currentUser.branchName ?? "Branch",
+                label: currentUser.branchName ?? "Unavailable",
                 value: currentUser.branchId ?? "unavailable",
               },
             ]}

@@ -16,11 +16,13 @@ import {
   offerTypeLabels,
   offerTypeValues,
   type EditOfferRow,
+  type OfferCustomerType,
   type OfferFieldName,
   type OfferFormValues,
   type OfferMutationResponse,
 } from "@/lib/offers/types";
 import type { BranchOption } from "@/lib/dashboard/types";
+import { cn } from "@/lib/utils/cn";
 import { formatDateTime } from "@/lib/utils/format";
 
 type OfferDetailApiResponse =
@@ -46,7 +48,7 @@ function FieldLabel({
   children,
   optional = false,
 }: {
-  htmlFor: string;
+  htmlFor?: string;
   children: string;
   optional?: boolean;
 }) {
@@ -78,7 +80,7 @@ function buildDefaultValues(offer: EditOfferRow): OfferFormValues {
     buyQuantity: offer.buyQuantity === null ? "" : String(offer.buyQuantity),
     getQuantity: offer.getQuantity === null ? "" : String(offer.getQuantity),
     minimumOrderValue: offer.minimumOrderValue === null ? "" : String(offer.minimumOrderValue),
-    customerType: offer.customerType ?? "",
+    customerTypes: (offer.customerTypes as OfferCustomerType[]) ?? [],
     startsAt: offer.startsAt,
     endsAt: offer.endsAt ?? "",
     isActive: offer.isActive,
@@ -117,7 +119,7 @@ export function OfferEditDialog({
       buyQuantity: "",
       getQuantity: "",
       minimumOrderValue: "",
-      customerType: "",
+      customerTypes: [],
       startsAt: "",
       endsAt: "",
       isActive: true,
@@ -157,11 +159,18 @@ export function OfferEditDialog({
 
   const offerType = watch("offerType");
   const isActive = watch("isActive");
+  const selectedCustomerTypes = watch("customerTypes");
 
   function getFieldError(field: OfferFieldName): string | undefined {
     const err = errors[field];
     if (!err || typeof err !== "object" || !("message" in err)) return undefined;
     return typeof err.message === "string" ? err.message : undefined;
+  }
+
+  function toggleCustomerType(type: OfferCustomerType) {
+    const current = selectedCustomerTypes ?? [];
+    const next = current.includes(type) ? current.filter((t) => t !== type) : [...current, type];
+    setValue("customerTypes", next, { shouldValidate: true });
   }
 
   const onSubmit = handleSubmit(async (values) => {
@@ -335,24 +344,40 @@ export function OfferEditDialog({
                 />
                 <FieldError message={getFieldError("minimumOrderValue")} />
               </div>
+
+              {/* Customer type — multi-select chips */}
               <div className="space-y-1.5">
-                <FieldLabel htmlFor="edit-offer-customer-type" optional>
-                  Customer type
-                </FieldLabel>
-                <Select
-                  id="edit-offer-customer-type"
-                  disabled={isSubmitting}
-                  {...register("customerType")}
-                >
-                  <option value="">All customers</option>
-                  {customerTypeValues.map((value) => (
-                    <option key={value} value={value}>
-                      {customerTypeLabels[value]}
-                    </option>
-                  ))}
-                </Select>
-                <FieldError message={getFieldError("customerType")} />
+                <FieldLabel optional>Customer type</FieldLabel>
+                <div className="flex flex-wrap gap-2 pt-0.5">
+                  {customerTypeValues.map((type) => {
+                    const isSelected = selectedCustomerTypes.includes(type);
+                    return (
+                      <button
+                        key={type}
+                        type="button"
+                        disabled={isSubmitting}
+                        onClick={() => toggleCustomerType(type)}
+                        className={cn(
+                          "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                          isSelected
+                            ? "border-[rgb(var(--primary)/0.6)] bg-[rgb(var(--primary)/0.1)] text-[rgb(var(--primary))]"
+                            : "border-[rgb(var(--border))] text-[rgb(var(--muted-foreground))] hover:border-[rgb(var(--primary)/0.4)] hover:text-[rgb(var(--foreground))]",
+                          isSubmitting && "cursor-not-allowed opacity-50",
+                        )}
+                      >
+                        {customerTypeLabels[type]}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-[rgb(var(--muted-foreground))]">
+                  {selectedCustomerTypes.length === 0
+                    ? "No selection — applies to all customer types."
+                    : `Applies to: ${selectedCustomerTypes.map((t) => customerTypeLabels[t]).join(", ")}.`}
+                </p>
+                <FieldError message={getFieldError("customerTypes")} />
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <FieldLabel htmlFor="edit-offer-starts-at">Starts</FieldLabel>

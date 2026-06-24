@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useWatch, type Resolver } from "react-hook-form";
+import { Controller, useForm, useWatch, type Resolver } from "react-hook-form";
+import { CategoryCombobox } from "@/components/ui/category-combobox";
 import { Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -244,20 +245,20 @@ export function BusinessExpenseEditDialog({
 
               <div className="space-y-1.5">
                 <FieldLabel htmlFor="edit-biz-category">Category</FieldLabel>
-                <Select
-                  id="edit-biz-category"
-                  disabled={isSubmitting || (options?.categories.length ?? 0) === 0}
-                  {...register("categoryId")}
-                >
-                  <option value="" disabled>
-                    Select a category
-                  </option>
-                  {options?.categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </Select>
+                <Controller
+                  control={control}
+                  name="categoryId"
+                  render={({ field }) => (
+                    <CategoryCombobox
+                      id="edit-biz-category"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      options={options?.categories ?? []}
+                      disabled={isSubmitting || (options?.categories.length ?? 0) === 0}
+                    />
+                  )}
+                />
                 <FieldError message={errors.categoryId?.message} />
               </div>
 

@@ -284,7 +284,9 @@ export function OffersDataTable({
                       </p>
                     </td>
                     <td className={TABLE_BODY_CELL_CLASS}>
-                      {offer.customerType ? formatEnumLabel(offer.customerType) : "All customers"}
+                      {offer.customerTypes && offer.customerTypes.length > 0
+                        ? offer.customerTypes.map((t) => formatEnumLabel(t)).join(", ")
+                        : "All"}
                     </td>
                     <td className={TABLE_BODY_CELL_CLASS}>
                       <p className="whitespace-nowrap text-[rgb(var(--foreground)/0.72)]">

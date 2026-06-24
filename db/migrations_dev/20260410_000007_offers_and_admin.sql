@@ -5,8 +5,6 @@
 
 -- -----------------------------------------------------------------------------
 -- TABLE: offers
--- Validation constraints and case-insensitive code index from 20260514_190720
--- merged in.
 -- -----------------------------------------------------------------------------
 CREATE TABLE offers (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -35,10 +33,7 @@ CREATE TABLE offers (
   CHECK (
     (offer_type IN ('percentage', 'flat') AND discount_value IS NOT NULL AND buy_quantity IS NULL AND get_quantity IS NULL)
     OR (offer_type = 'buy_x_get_y' AND discount_value IS NULL AND buy_quantity IS NOT NULL AND get_quantity IS NOT NULL)
-  ),
-  CONSTRAINT offers_code_format CHECK (code ~ '^[A-Z0-9-]{4,25}$'),
-  CONSTRAINT offers_name_length CHECK (char_length(btrim(name)) >= 2 AND char_length(name) <= 120),
-  CONSTRAINT offers_description_length CHECK (description IS NULL OR char_length(description) <= 250)
+  )
 );
 
 CREATE TRIGGER trg_offers_updated_at
@@ -71,10 +66,6 @@ CREATE INDEX IF NOT EXISTS idx_offers_updated_at ON offers (updated_at);
 CREATE INDEX IF NOT EXISTS idx_offers_branch_active_dates ON offers (branch_id, starts_at, ends_at)
 WHERE
   is_active = TRUE;
-
--- Case-insensitive unique index on code (format constraint enforces uppercase,
--- but this index provides an extra safety net and consistent lookup behaviour).
-CREATE UNIQUE INDEX uq_offers_code_lower ON offers (lower(code));
 
 -- -----------------------------------------------------------------------------
 -- TABLE: order_applied_offers (references offers — must come after offers)
@@ -122,16 +113,15 @@ CREATE INDEX IF NOT EXISTS idx_offer_audit_logs_offer_created_at ON offer_audit_
 
 -- -----------------------------------------------------------------------------
 -- BOOTSTRAP: admin user (admin / admin123)
--- Phone is a valid placeholder satisfying users_phone_format (^[6-9][0-9]{9}$).
 -- Uses a DO block because there is no prior admin to pass as p_admin_id.
--- IMPORTANT: Change the password and phone immediately after first login.
+-- IMPORTANT: Change this password immediately after first login.
 -- -----------------------------------------------------------------------------
 DO $$
 DECLARE
   v_admin_id uuid := gen_random_uuid();
 BEGIN
   INSERT INTO users (id, full_name, phone, role, is_active, created_at, updated_at)
-    VALUES (v_admin_id, 'System Administrator', '9000000000', 'admin', TRUE, now(), now());
+    VALUES (v_admin_id, 'System Administrator', '0000000000', 'admin', TRUE, now(), now());
   INSERT INTO user_auth (user_id, username, password_hash, failed_attempts, is_locked, created_at, updated_at)
     VALUES (v_admin_id, 'admin', crypt('admin123', gen_salt('bf')), 0, FALSE, now(), now());
 END;
@@ -152,8 +142,6 @@ DROP INDEX IF EXISTS idx_offer_audit_logs_offer_id;
 DROP INDEX IF EXISTS idx_order_applied_offers_offer_id;
 
 DROP INDEX IF EXISTS idx_order_applied_offers_order_id;
-
-DROP INDEX IF EXISTS uq_offers_code_lower;
 
 DROP TRIGGER IF EXISTS trg_offers_updated_at ON offers;
 

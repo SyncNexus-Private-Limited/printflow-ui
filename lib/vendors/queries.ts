@@ -55,7 +55,7 @@ function buildQueryParts(filters: VendorsPageFilterState): QueryParts {
   if (filters.search) {
     values.push(filters.search);
     whereParts.push(
-      `(v.vendor_code ILIKE '%' || $${values.length} || '%' OR v.name ILIKE '%' || $${values.length} || '%' OR v.phone ILIKE '%' || $${values.length} || '%' OR v.alternate_phone ILIKE '%' || $${values.length} || '%' OR v.address ILIKE '%' || $${values.length} || '%')`,
+      `(v.vendor_code ILIKE '%' || $${values.length} || '%' OR v.business_name ILIKE '%' || $${values.length} || '%' OR v.name ILIKE '%' || $${values.length} || '%' OR v.phone ILIKE '%' || $${values.length} || '%' OR v.alternate_phone ILIKE '%' || $${values.length} || '%' OR v.address ILIKE '%' || $${values.length} || '%')`,
     );
   }
 
@@ -135,6 +135,7 @@ export async function getVendorsPageData(
       SELECT
         v.id::text AS id,
         v.vendor_code AS "vendorCode",
+        v.business_name AS "businessName",
         v.name,
         v.avatar,
         v.phone,
@@ -180,6 +181,7 @@ export async function getVendorById(vendorId: string): Promise<EditVendorRow | n
       SELECT
         v.id::text AS id,
         v.vendor_code AS "vendorCode",
+        v.business_name AS "businessName",
         v.name,
         v.avatar,
         v.phone,

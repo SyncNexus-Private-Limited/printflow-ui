@@ -898,6 +898,10 @@ function getCustomerOrderByClause(filters: CustomerPageFilterState): string {
       return "CASE WHEN c.customer_code IS NULL THEN 1 ELSE 0 END ASC, LOWER(COALESCE(c.customer_code, '')) ASC, c.created_at DESC";
     case "customer-code-desc":
       return "CASE WHEN c.customer_code IS NULL THEN 1 ELSE 0 END ASC, LOWER(COALESCE(c.customer_code, '')) DESC, c.created_at DESC";
+    case "customer-id-asc":
+      return "c.customer_numeric_id ASC NULLS LAST, c.created_at DESC";
+    case "customer-id-desc":
+      return "c.customer_numeric_id DESC NULLS LAST, c.created_at DESC";
     case "order-count-desc":
       return "ord_agg.order_count DESC, c.created_at DESC";
     case "order-count-asc":
@@ -950,6 +954,17 @@ function buildCustomerQueryParts(
   if (filters.type) {
     values.push(filters.type);
     whereParts.push(`c.type::text = $${values.length}`);
+  }
+
+  if (filters.search) {
+    values.push(filters.search);
+    whereParts.push(
+      `(c.name ILIKE '%' || $${values.length} || '%'` +
+        ` OR c.phone ILIKE '%' || $${values.length} || '%'` +
+        ` OR c.customer_numeric_id::text ILIKE '%' || $${values.length} || '%'` +
+        ` OR c.customer_code ILIKE '%' || $${values.length} || '%'` +
+        ` OR c.studio_name ILIKE '%' || $${values.length} || '%')`,
+    );
   }
 
   if (filters.name) {

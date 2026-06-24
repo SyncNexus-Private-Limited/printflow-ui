@@ -146,6 +146,7 @@ export function CustomerForm({ redirectTo }: CustomerFormProps) {
             <option value="amateur">Amateur</option>
             <option value="other">Other</option>
             <option value="employee">Employee</option>
+            <option value="lab">Lab</option>
           </Select>
           <FieldError message={getFieldError("type")} />
         </div>

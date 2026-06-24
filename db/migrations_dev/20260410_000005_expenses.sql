@@ -1,9 +1,7 @@
 -- migrate:up
 
 -- -----------------------------------------------------------------------------
--- TABLE: expense_categories
--- Final validation constraints merged in from 20260514_162929 and
--- 20260514_164520 (code max widened to 25, sort_order_max added).
+-- TABLE: expense_categories (FINAL: created_by/updated_by from 20260430_132802)
 -- No seed data — admin creates categories via API after first login.
 -- -----------------------------------------------------------------------------
 CREATE TABLE expense_categories (
@@ -18,11 +16,7 @@ CREATE TABLE expense_categories (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   created_by uuid REFERENCES users (id) ON DELETE SET NULL,
-  updated_by uuid REFERENCES users (id) ON DELETE SET NULL,
-  CONSTRAINT expense_categories_code_format CHECK (code ~ '^[A-Z0-9-]{4,25}$'),
-  CONSTRAINT expense_categories_description_length CHECK (description IS NULL OR char_length(description) <= 250),
-  CONSTRAINT expense_categories_name_length CHECK (char_length(btrim(name)) >= 2 AND char_length(name) <= 120),
-  CONSTRAINT expense_categories_sort_order_max CHECK (sort_order <= 10000)
+  updated_by uuid REFERENCES users (id) ON DELETE SET NULL
 );
 
 CREATE TRIGGER trg_expense_categories_updated_at
@@ -50,10 +44,9 @@ WHERE
   is_active = TRUE;
 
 -- -----------------------------------------------------------------------------
--- TABLE: branch_expenses
--- 'name' was renamed to 'title' in the dev migration history; written here with
--- the final column name. Title/remarks length constraints from 20260514_165654
--- merged in.
+-- TABLE: branch_expenses (FINAL: title column (not name), category_id, expense_date)
+-- 'name' was renamed to 'title' in 20260414. Written here with the final column name.
+-- 'category' TEXT column from the baseline was dropped in 20260414 — not included.
 -- -----------------------------------------------------------------------------
 CREATE TABLE branch_expenses (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -69,8 +62,7 @@ CREATE TABLE branch_expenses (
   created_by uuid REFERENCES users (id) ON DELETE SET NULL,
   updated_at timestamptz NOT NULL DEFAULT now(),
   updated_by uuid REFERENCES users (id) ON DELETE SET NULL,
-  CONSTRAINT branch_expenses_title_length CHECK (title IS NULL OR (char_length(btrim(title)) >= 2 AND char_length(title) <= 120)),
-  CONSTRAINT branch_expenses_remarks_length CHECK (remarks IS NULL OR char_length(remarks) <= 250)
+  CONSTRAINT branch_expenses_title_not_blank CHECK (title IS NULL OR btrim(title) <> '')
 );
 
 CREATE TRIGGER trg_branch_expenses_updated_at
@@ -85,10 +77,9 @@ CREATE INDEX IF NOT EXISTS idx_branch_expenses_category_id ON branch_expenses (c
 CREATE INDEX IF NOT EXISTS idx_branch_expenses_order_vendor_id ON branch_expenses (order_vendor_id);
 
 -- -----------------------------------------------------------------------------
--- TABLE: employee_expenses
--- 'category' TEXT and lack of branch_id from baseline were fixed in dev
--- migration history; written here with the final schema. Title/remarks length
--- constraints from 20260514_165654 merged in.
+-- TABLE: employee_expenses (FINAL: title/branch_id/category_id/expense_date)
+-- 'category' TEXT and lack of branch_id from baseline were fixed in 20260414.
+-- 'remarks' column is kept (was not dropped).
 -- -----------------------------------------------------------------------------
 CREATE TABLE employee_expenses (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -105,8 +96,7 @@ CREATE TABLE employee_expenses (
   created_by uuid REFERENCES users (id) ON DELETE SET NULL,
   updated_at timestamptz NOT NULL DEFAULT now(),
   updated_by uuid REFERENCES users (id) ON DELETE SET NULL,
-  CONSTRAINT employee_expenses_title_length CHECK (char_length(btrim(title)) >= 2 AND char_length(title) <= 120),
-  CONSTRAINT employee_expenses_remarks_length CHECK (remarks IS NULL OR char_length(remarks) <= 250)
+  CONSTRAINT employee_expenses_title_not_blank CHECK (btrim(title) <> '')
 );
 
 CREATE TRIGGER trg_employee_expenses_updated_at

@@ -91,11 +91,11 @@ function BalanceCard({ label, value, tone }: BalanceCardProps) {
   );
 }
 
-function buildInitialValues(branchId: string): CreateOrderFormValues {
+function buildInitialValues(branchId: string, prefillCustomerId?: string): CreateOrderFormValues {
   return {
     branchId,
     customerMode: "existing",
-    customerId: "",
+    customerId: prefillCustomerId ?? "",
     customerType: "",
     customerName: "",
     customerPhone: "",
@@ -151,19 +151,6 @@ function parseNumber(value: string) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function getCustomerSearchText(customer: OrderCustomerOption) {
-  return [
-    customer.name,
-    customer.phone,
-    customer.customerCode,
-    customer.customerNumericId,
-    customer.studioName,
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .toLowerCase();
-}
-
 function calculateOfferDiscount(offer: OrderOfferOption, remainingSubtotal: number) {
   if (offer.offerType === "percentage") {
     return Math.round(remainingSubtotal * ((offer.discountValue ?? 0) / 100) * 100) / 100;
@@ -189,6 +176,7 @@ function CustomerTypeBadge({ type }: { type: OfferCustomerType }) {
     amateur: "bg-[rgb(var(--metric-emerald-soft))] text-[rgb(var(--metric-emerald-ink))]",
     employee: "bg-[rgb(var(--metric-amber-soft))] text-[rgb(var(--metric-amber-ink))]",
     other: "bg-[rgb(var(--muted))] text-[rgb(var(--muted-foreground))]",
+    lab: "bg-[rgb(var(--metric-orange-soft))] text-[rgb(var(--metric-orange-ink))]",
   };
   return (
     <span
@@ -249,6 +237,8 @@ export function OrderForm(props: AddOrderPageData) {
     inventoryItems,
     offers,
     vendors,
+    prefillCustomer,
+    prefillError,
   } = props;
 
   const router = useRouter();
@@ -257,10 +247,14 @@ export function OrderForm(props: AddOrderPageData) {
   const [, startNavTransition] = useTransition();
   const { setBranchControl } = useDashboardChrome();
 
+  const [customerLocked, setCustomerLocked] = useState(prefillCustomer !== null);
   const [values, setValues] = useState<CreateOrderFormValues>(() =>
-    buildInitialValues(selectedBranchId),
+    buildInitialValues(selectedBranchId, prefillCustomer?.id),
   );
   const [customerSearch, setCustomerSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<OrderCustomerOption[]>(customers);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedFromSearch, setSelectedFromSearch] = useState<OrderCustomerOption | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<CreateOrderFieldName, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -268,6 +262,7 @@ export function OrderForm(props: AddOrderPageData) {
 
   // Track previous customer type so we can detect changes after items are added
   const prevCustomerTypeRef = useRef<string | null>(null);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Register branch control in top navbar
   useLayoutEffect(() => {
@@ -292,6 +287,29 @@ export function OrderForm(props: AddOrderPageData) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isSubmitting]);
 
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    const q = customerSearch.trim();
+    if (!q) {
+      setSearchResults(customers);
+      setIsSearching(false);
+      return;
+    }
+    setIsSearching(true);
+    searchTimerRef.current = setTimeout(() => {
+      fetch(`/api/customers?q=${encodeURIComponent(q)}`)
+        .then((res) => res.json())
+        .then((data: { success: boolean; data: OrderCustomerOption[] }) => {
+          if (data.success) setSearchResults(data.data);
+        })
+        .catch(() => {})
+        .finally(() => setIsSearching(false));
+    }, 300);
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, [customerSearch, customers]);
+
   function setVendorOpen(open: boolean) {
     setVendorOpenState(open);
     if (!open) {
@@ -306,7 +324,10 @@ export function OrderForm(props: AddOrderPageData) {
     }
   }
 
-  const selectedCustomer = customers.find((c) => c.id === values.customerId) ?? null;
+  const selectedCustomer =
+    customers.find((c) => c.id === values.customerId) ??
+    (selectedFromSearch?.id === values.customerId ? selectedFromSearch : null) ??
+    (prefillCustomer?.id === values.customerId ? prefillCustomer : null);
   const resolvedCustomerType =
     values.customerMode === "existing"
       ? (selectedCustomer?.type ?? null)
@@ -331,12 +352,6 @@ export function OrderForm(props: AddOrderPageData) {
     }));
   }, [resolvedCustomerType, inventoryItems]);
 
-  const filteredCustomers = useMemo(() => {
-    const query = customerSearch.trim().toLowerCase();
-    if (!query) return customers.slice(0, 20);
-    return customers.filter((c) => getCustomerSearchText(c).includes(query)).slice(0, 20);
-  }, [customerSearch, customers]);
-
   const lineItems = values.items.map((item) => {
     const inventory = inventoryItems.find((opt) => opt.id === item.inventoryId);
     const quantity = parseNumber(item.quantity);
@@ -346,7 +361,13 @@ export function OrderForm(props: AddOrderPageData) {
   const subtotal = lineItems.reduce((sum, i) => sum + i.lineTotal, 0);
 
   const eligibleOffers = offers.filter((offer) => {
-    if (offer.customerType && offer.customerType !== resolvedCustomerType) return false;
+    if (
+      offer.customerTypes &&
+      offer.customerTypes.length > 0 &&
+      (!resolvedCustomerType ||
+        !offer.customerTypes.includes(resolvedCustomerType as OfferCustomerType))
+    )
+      return false;
     if (offer.minimumOrderValue !== null && subtotal < offer.minimumOrderValue) return false;
     return true;
   });
@@ -379,8 +400,15 @@ export function OrderForm(props: AddOrderPageData) {
 
   function getIneligibilityReason(offer: OrderOfferOption): string | null {
     const reasons: string[] = [];
-    if (offer.customerType && offer.customerType !== resolvedCustomerType) {
-      reasons.push(`for ${customerTypeLabels[offer.customerType]} only`);
+    if (
+      offer.customerTypes &&
+      offer.customerTypes.length > 0 &&
+      (!resolvedCustomerType ||
+        !offer.customerTypes.includes(resolvedCustomerType as OfferCustomerType))
+    ) {
+      reasons.push(
+        `for ${offer.customerTypes.map((t) => customerTypeLabels[t]).join(", ")} only`,
+      );
     }
     if (offer.minimumOrderValue !== null && subtotal < offer.minimumOrderValue) {
       reasons.push(`min ${formatCurrency(offer.minimumOrderValue)}`);
@@ -562,24 +590,33 @@ export function OrderForm(props: AddOrderPageData) {
             title="Customer"
             description="Branch & who is placing this order."
             right={
-              <div className="inline-flex h-10 items-center rounded-[10px] border border-[rgb(var(--border))] bg-[rgb(var(--muted))] p-0.75">
-                {(["existing", "new"] as const).map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    onClick={() => updateValue("customerMode", mode)}
-                    className={`h-full rounded-lg px-3.5 text-[13px] font-semibold transition-all duration-120 ${
-                      values.customerMode === mode
-                        ? "bg-[rgb(var(--card))] text-[rgb(var(--foreground))] shadow-[0_1px_0_rgb(var(--shadow)/0.05),0_1px_3px_rgb(var(--shadow)/0.06)]"
-                        : "text-[rgb(var(--muted-foreground))] hover:text-[rgb(var(--foreground))]"
-                    }`}
-                  >
-                    {mode === "existing" ? "Existing" : "Create new"}
-                  </button>
-                ))}
-              </div>
+              customerLocked ? undefined : (
+                <div className="inline-flex h-10 items-center rounded-[10px] border border-[rgb(var(--border))] bg-[rgb(var(--muted))] p-0.75">
+                  {(["existing", "new"] as const).map((mode) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => updateValue("customerMode", mode)}
+                      className={`h-full rounded-lg px-3.5 text-[13px] font-semibold transition-all duration-120 ${
+                        values.customerMode === mode
+                          ? "bg-[rgb(var(--card))] text-[rgb(var(--foreground))] shadow-[0_1px_0_rgb(var(--shadow)/0.05),0_1px_3px_rgb(var(--shadow)/0.06)]"
+                          : "text-[rgb(var(--muted-foreground))] hover:text-[rgb(var(--foreground))]"
+                      }`}
+                    >
+                      {mode === "existing" ? "Existing" : "Create new"}
+                    </button>
+                  ))}
+                </div>
+              )
             }
           >
+            {prefillError ? (
+              <div className="mb-3.5 flex items-start gap-2 rounded-xl border border-[rgb(var(--metric-amber)/0.3)] bg-[rgb(var(--metric-amber-soft))] px-4 py-3 text-[13px] text-[rgb(var(--metric-amber-ink))]">
+                <Info className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{prefillError}</span>
+              </div>
+            ) : null}
+
             {/* Branch + customer type row */}
             <div className="mb-3.5 grid grid-cols-2 gap-4 max-[720px]:grid-cols-1">
               <div className="flex flex-col gap-1.5">
@@ -635,8 +672,50 @@ export function OrderForm(props: AddOrderPageData) {
               </div>
             </div>
 
-            {/* Existing customer mode */}
-            {values.customerMode === "existing" ? (
+            {/* Customer selection: locked pre-fill | existing search | create new */}
+            {customerLocked && prefillCustomer ? (
+              <div>
+                <div className="overflow-hidden rounded-xl border border-[rgb(var(--primary)/0.25)] bg-[rgb(var(--primary-soft))]">
+                  <div className="flex items-center gap-3 px-3.5 py-3">
+                    <CustomerAvatar
+                      name={prefillCustomer.name}
+                      avatarUrl={resolveAvatarUrl(prefillCustomer.avatar, prefillCustomer.avatarSource)}
+                      sizeClass="h-9 w-9 shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[14px] font-semibold text-[rgb(var(--primary-soft-foreground))]">
+                          {prefillCustomer.name}
+                        </span>
+                        <CustomerTypeBadge type={prefillCustomer.type} />
+                      </div>
+                      <div className="mt-0.5 font-mono text-[11.5px] text-[rgb(var(--primary-soft-foreground)/0.8)]">
+                        {[
+                          prefillCustomer.phone,
+                          prefillCustomer.customerCode,
+                          prefillCustomer.customerNumericId != null
+                            ? `#${prefillCustomer.customerNumericId}`
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomerLocked(false);
+                        updateValue("customerId", "");
+                      }}
+                      className="shrink-0 rounded-lg px-3 py-1.5 text-[12.5px] font-medium text-[rgb(var(--primary-soft-foreground)/0.8)] transition-colors hover:bg-[rgb(var(--primary)/0.12)] hover:text-[rgb(var(--primary-soft-foreground))]"
+                    >
+                      Change
+                    </button>
+                  </div>
+                </div>
+                <FieldError message={fieldErrors.customerId} />
+              </div>
+            ) : values.customerMode === "existing" ? (
               <div>
                 <div className="overflow-hidden rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
                   {/* Search header */}
@@ -653,8 +732,12 @@ export function OrderForm(props: AddOrderPageData) {
                   </div>
                   {/* Result list */}
                   <div className="max-h-45 overflow-y-auto">
-                    {filteredCustomers.length > 0 ? (
-                      filteredCustomers.map((customer) => {
+                    {isSearching ? (
+                      <div className="px-4 py-6 text-center text-[13px] text-[rgb(var(--muted-foreground))]">
+                        Searching…
+                      </div>
+                    ) : searchResults.length > 0 ? (
+                      searchResults.map((customer) => {
                         const isSelected = values.customerId === customer.id;
                         const metaParts = [
                           customer.phone,
@@ -667,7 +750,10 @@ export function OrderForm(props: AddOrderPageData) {
                           <button
                             key={customer.id}
                             type="button"
-                            onClick={() => updateValue("customerId", customer.id)}
+                            onClick={() => {
+                              setSelectedFromSearch(customer);
+                              updateValue("customerId", customer.id);
+                            }}
                             className={`flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left transition-colors duration-75 last:border-b-0 ${
                               isSelected
                                 ? "bg-[rgb(var(--primary-soft))]"

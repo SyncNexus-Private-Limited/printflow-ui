@@ -36,7 +36,7 @@ export type OrderOfferOption = {
   buyQuantity: number | null;
   getQuantity: number | null;
   minimumOrderValue: number | null;
-  customerType: OfferCustomerType | null;
+  customerTypes: OfferCustomerType[] | null;
   startsAt: string;
   endsAt: string | null;
 };
@@ -57,6 +57,8 @@ export type AddOrderPageData = {
   inventoryItems: OrderInventoryOption[];
   offers: OrderOfferOption[];
   vendors: OrderVendorOption[];
+  prefillCustomer: OrderCustomerOption | null;
+  prefillError: string | null;
 };
 
 export type CreateOrderFormValues = {

@@ -35,6 +35,7 @@ export type ExpenseCategoryOption = {
   id: string;
   code: string;
   name: string;
+  description: string | null;
   scope: ExpenseCategoryScope;
 };
 

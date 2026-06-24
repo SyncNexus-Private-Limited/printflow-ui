@@ -4,8 +4,6 @@
 
 -- -----------------------------------------------------------------------------
 -- TABLE: orders
--- offer_discount_amount and manual_discount_amount from 20260510_172717 merged in.
--- discount_amount is the authoritative total kept in sync by application code.
 -- -----------------------------------------------------------------------------
 CREATE TABLE orders (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -16,8 +14,6 @@ CREATE TABLE orders (
   status order_status NOT NULL DEFAULT 'pending',
   total_amount numeric(14, 2) NOT NULL DEFAULT 0 CHECK (total_amount >= 0),
   discount_amount numeric(14, 2) NOT NULL DEFAULT 0 CHECK (discount_amount >= 0),
-  offer_discount_amount numeric(14, 2) NOT NULL DEFAULT 0 CHECK (offer_discount_amount >= 0),
-  manual_discount_amount numeric(14, 2) NOT NULL DEFAULT 0 CHECK (manual_discount_amount >= 0),
   payable_amount numeric(14, 2) NOT NULL DEFAULT 0 CHECK (payable_amount >= 0),
   paid_amount numeric(14, 2) NOT NULL DEFAULT 0 CHECK (paid_amount >= 0),
   payment_status payment_status NOT NULL DEFAULT 'pending',

@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { ChevronDown, Search, X } from "lucide-react";
 import {
   AppliedFilterPills,
   type AppliedFilterSummaryItem,
@@ -47,6 +48,7 @@ const RESET_CUSTOMER_FILTERS: Partial<CustomerPageFilterState> = {
   dateField: "created",
   status: "all",
   type: null,
+  search: null,
   name: null,
   phone: null,
   alternatePhone: null,
@@ -83,6 +85,7 @@ function getActiveFilterCount(filters: CustomerPageFilterState) {
     count += 1;
   if (filters.status !== "all") count += 1;
   if (filters.type) count += 1;
+  if (filters.search) count += 1;
   if (filters.name) count += 1;
   if (filters.phone) count += 1;
   if (filters.alternatePhone) count += 1;
@@ -160,6 +163,7 @@ function buildAppliedFilterSummaryItems(
     });
   }
 
+  if (filters.search) items.push({ key: "search", label: `Search: ${filters.search}` });
   if (filters.name) items.push({ key: "name", label: `Name: ${filters.name}` });
   if (filters.phone) items.push({ key: "phone", label: `Phone: ${filters.phone}` });
   if (filters.alternatePhone)
@@ -256,7 +260,13 @@ export function CustomerListControls({
   selectedBranchName,
   canCreate = false,
 }: CustomerListControlsProps) {
+  const router = useRouter();
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(!!currentFilters.search);
+  const [searchValue, setSearchValue] = useState(currentFilters.search ?? "");
+  const [, startSearchTransition] = useTransition();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentHref = useMemo(
     () => buildCustomerPageHref(currentPath, currentFilters),
@@ -345,7 +355,47 @@ export function CustomerListControls({
     const nextHref = buildCustomerPageHref(currentPath, currentFilters, RESET_CUSTOMER_FILTERS);
 
     setDraftFilters((currentValue) => ({ ...currentValue, ...RESET_CUSTOMER_FILTERS }));
+    setSearchValue("");
     navigateToHref(nextHref);
+  };
+
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    const trimmed = searchValue.trim();
+    const current = currentFilters.search ?? "";
+    if (trimmed === current) return;
+    searchDebounceRef.current = setTimeout(() => {
+      const nextHref = buildCustomerPageHref(currentPath, currentFilters, {
+        search: trimmed.length > 0 ? trimmed : null,
+        page: 1,
+      });
+      startSearchTransition(() => {
+        router.push(nextHref, { scroll: false });
+      });
+    }, 400);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchValue]);
+
+  const handleSearchOpen = () => {
+    setIsSearchOpen(true);
+    setTimeout(() => searchInputRef.current?.focus(), 0);
+  };
+
+  const handleSearchClear = () => {
+    setSearchValue("");
+    setIsSearchOpen(false);
+    if (currentFilters.search) {
+      const nextHref = buildCustomerPageHref(currentPath, currentFilters, {
+        search: null,
+        page: 1,
+      });
+      startSearchTransition(() => {
+        router.push(nextHref, { scroll: false });
+      });
+    }
   };
 
   return (
@@ -361,6 +411,41 @@ export function CustomerListControls({
           </div>
 
           <div className="flex shrink-0 items-center gap-2 self-start">
+            {isSearchOpen ? (
+              <div className="flex items-center gap-1 overflow-hidden rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--background))] px-3 shadow-sm focus-within:ring-2 focus-within:ring-[rgb(var(--primary)/0.35)]">
+                <Search
+                  className="h-4 w-4 shrink-0 text-[rgb(var(--muted-foreground))]"
+                  strokeWidth={1.9}
+                  aria-hidden="true"
+                />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  placeholder="Search by name, ID, mobile, or studio name"
+                  className="h-10 w-48 min-w-0 bg-transparent text-sm text-[rgb(var(--foreground))] placeholder:text-[rgb(var(--muted-foreground))] focus:outline-none sm:w-56"
+                  aria-label="Search customers"
+                />
+                <button
+                  type="button"
+                  onClick={handleSearchClear}
+                  className="ml-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[rgb(var(--muted-foreground))] hover:text-[rgb(var(--foreground))] focus-visible:outline-none"
+                  aria-label="Clear search"
+                >
+                  <X className="h-3.5 w-3.5" strokeWidth={2} aria-hidden="true" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSearchOpen}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted-foreground))] shadow-sm transition-colors hover:bg-[rgb(var(--muted)/0.5)] hover:text-[rgb(var(--foreground))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:outline-none"
+                aria-label="Search customers"
+              >
+                <Search className="h-4 w-4" strokeWidth={1.9} aria-hidden="true" />
+              </button>
+            )}
             {canCreate ? (
               <Link
                 href="/dashboard/customers/new"
@@ -497,6 +582,7 @@ export function CustomerListControls({
                   <option value="amateur">Amateur</option>
                   <option value="other">Other</option>
                   <option value="employee">Employee</option>
+                  <option value="lab">Lab</option>
                 </Select>
               </label>
 

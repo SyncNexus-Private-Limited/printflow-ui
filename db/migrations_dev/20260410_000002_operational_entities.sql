@@ -1,8 +1,7 @@
 -- migrate:up
 
 -- -----------------------------------------------------------------------------
--- TABLE: branches
--- Validation constraints from 20260514_171435 merged in.
+-- TABLE: branches (FINAL: created_by/updated_by FKs added after users exists)
 -- -----------------------------------------------------------------------------
 CREATE TABLE branches (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -19,16 +18,7 @@ CREATE TABLE branches (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   created_by uuid,
-  updated_by uuid,
-  CONSTRAINT branches_code_format CHECK (code ~ '^[A-Z0-9-]{4,25}$'),
-  CONSTRAINT branches_name_length CHECK (char_length(btrim(name)) >= 2 AND char_length(name) <= 120),
-  CONSTRAINT branches_phone_format CHECK (phone ~ '^[6-9][0-9]{9}$'),
-  CONSTRAINT branches_alternate_phone_format CHECK (alternate_phone IS NULL OR alternate_phone ~ '^[6-9][0-9]{9}$'),
-  CONSTRAINT branches_email_format CHECK (email IS NULL OR (char_length(email) <= 254 AND email LIKE '%@%')),
-  CONSTRAINT branches_logo_url CHECK (logo IS NULL OR (char_length(logo) <= 500 AND logo ~ '^https?://')),
-  CONSTRAINT branches_banner_url CHECK (banner IS NULL OR (char_length(banner) <= 500 AND banner ~ '^https?://')),
-  CONSTRAINT branches_address_length CHECK (address IS NULL OR char_length(address) <= 250),
-  CONSTRAINT branches_description_length CHECK (description IS NULL OR char_length(description) <= 250)
+  updated_by uuid
 );
 
 CREATE TRIGGER trg_branches_updated_at
@@ -52,10 +42,6 @@ CREATE INDEX IF NOT EXISTS idx_branches_created_by ON branches (created_by);
 
 CREATE INDEX IF NOT EXISTS idx_branches_updated_by ON branches (updated_by);
 
--- Case-insensitive unique index on code (format constraint enforces uppercase,
--- but this index provides an extra safety net and consistent lookup behaviour).
-CREATE UNIQUE INDEX uq_branches_code_lower ON branches (lower(code));
-
 -- -----------------------------------------------------------------------------
 -- TABLE: order_sequences (FK to branches — must come before users)
 -- -----------------------------------------------------------------------------
@@ -67,10 +53,7 @@ CREATE TABLE order_sequences (
 );
 
 -- -----------------------------------------------------------------------------
--- TABLE: users
--- Validation constraints from 20260514_160057 merged in.
--- Note: the bootstrap admin (migration 7) uses phone '9000000000' so it satisfies
--- the phone_format constraint from day one.
+-- TABLE: users (FINAL: self-referential created_by/updated_by)
 -- -----------------------------------------------------------------------------
 CREATE TABLE users (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -86,11 +69,7 @@ CREATE TABLE users (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   created_by uuid REFERENCES users (id) ON DELETE SET NULL,
-  updated_by uuid REFERENCES users (id) ON DELETE SET NULL,
-  CONSTRAINT users_phone_format CHECK (phone ~ '^[6-9][0-9]{9}$'),
-  CONSTRAINT users_alternate_phone_format CHECK (alternate_phone IS NULL OR alternate_phone ~ '^[6-9][0-9]{9}$'),
-  CONSTRAINT users_email_format CHECK (email IS NULL OR (char_length(email) <= 254 AND email ~ '@')),
-  CONSTRAINT users_address_length CHECK (address IS NULL OR char_length(address) <= 250)
+  updated_by uuid REFERENCES users (id) ON DELETE SET NULL
 );
 
 -- Now that users exists, wire up the branches audit FK columns
@@ -112,7 +91,7 @@ CREATE INDEX IF NOT EXISTS idx_users_is_active ON users (is_active);
 CREATE INDEX IF NOT EXISTS idx_users_created_at ON users (created_at);
 
 -- -----------------------------------------------------------------------------
--- TABLE: user_auth (includes password_changed_at/must_reset_password)
+-- TABLE: user_auth (FINAL: includes password_changed_at/must_reset_password from 20260429)
 -- -----------------------------------------------------------------------------
 CREATE TABLE user_auth (
   user_id uuid PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
@@ -164,8 +143,7 @@ WHERE
   is_revoked = FALSE;
 
 -- -----------------------------------------------------------------------------
--- TABLE: vendors
--- Validation constraints from 20260514_190720 merged in.
+-- TABLE: vendors (FINAL: includes is_active/created_by/updated_by from 20260501)
 -- -----------------------------------------------------------------------------
 CREATE TABLE vendors (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -179,13 +157,7 @@ CREATE TABLE vendors (
   updated_at timestamptz NOT NULL DEFAULT now(),
   is_active boolean NOT NULL DEFAULT TRUE,
   created_by uuid REFERENCES users (id) ON DELETE SET NULL,
-  updated_by uuid REFERENCES users (id) ON DELETE SET NULL,
-  CONSTRAINT vendors_code_format CHECK (vendor_code IS NULL OR vendor_code ~ '^[A-Z0-9-]{4,25}$'),
-  CONSTRAINT vendors_name_length CHECK (char_length(btrim(name)) >= 2 AND char_length(name) <= 120),
-  CONSTRAINT vendors_phone_format CHECK (phone ~ '^[6-9][0-9]{9}$'),
-  CONSTRAINT vendors_alternate_phone_format CHECK (alternate_phone IS NULL OR alternate_phone ~ '^[6-9][0-9]{9}$'),
-  CONSTRAINT vendors_avatar_url CHECK (avatar IS NULL OR (char_length(avatar) <= 500 AND avatar ~ '^https?://')),
-  CONSTRAINT vendors_address_length CHECK (address IS NULL OR char_length(address) <= 250)
+  updated_by uuid REFERENCES users (id) ON DELETE SET NULL
 );
 
 CREATE TRIGGER trg_vendors_updated_at
@@ -209,16 +181,8 @@ CREATE INDEX IF NOT EXISTS idx_vendors_created_by ON vendors (created_by);
 
 CREATE INDEX IF NOT EXISTS idx_vendors_updated_by ON vendors (updated_by);
 
--- Case-insensitive unique index on vendor_code (NULLs excluded — multiple vendors
--- may legitimately have no code).
-CREATE UNIQUE INDEX uq_vendors_code_lower ON vendors (lower(vendor_code))
-WHERE
-  vendor_code IS NOT NULL;
-
 -- -----------------------------------------------------------------------------
--- TABLE: customers
--- New profile columns from 20260514_141621 and 20260514_145919 merged in.
--- Validation constraints from 20260514_190720 merged in.
+-- TABLE: customers (FINAL: includes is_active/created_by/updated_by from 20260501_100000)
 -- -----------------------------------------------------------------------------
 CREATE TABLE customers (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -227,30 +191,15 @@ CREATE TABLE customers (
   type customer_type NOT NULL DEFAULT 'other',
   name text NOT NULL CHECK (btrim(name) <> ''),
   avatar text,
-  avatar_source text NOT NULL DEFAULT 'external',
   studio_name text,
   phone text NOT NULL CHECK (btrim(phone) <> ''),
   alternate_phone text,
   address text,
-  aadhaar_number text,
-  studio_association_name text,
-  studio_association_id_number text,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   is_active boolean NOT NULL DEFAULT TRUE,
   created_by uuid REFERENCES users (id) ON DELETE SET NULL,
-  updated_by uuid REFERENCES users (id) ON DELETE SET NULL,
-  CONSTRAINT customers_avatar_source_check CHECK (avatar_source IN ('external', 'uploaded')),
-  CONSTRAINT customers_aadhaar_number_format CHECK (aadhaar_number ~ '^\d{12}$'),
-  CONSTRAINT customers_code_format CHECK (customer_code IS NULL OR customer_code ~ '^[A-Z0-9-]{4,25}$'),
-  CONSTRAINT customers_name_length CHECK (char_length(btrim(name)) >= 2 AND char_length(name) <= 120),
-  CONSTRAINT customers_phone_format CHECK (phone ~ '^[6-9][0-9]{9}$'),
-  CONSTRAINT customers_alternate_phone_format CHECK (alternate_phone IS NULL OR alternate_phone ~ '^[6-9][0-9]{9}$'),
-  CONSTRAINT customers_avatar_url CHECK (avatar IS NULL OR (char_length(avatar) <= 500 AND avatar ~ '^https?://')),
-  CONSTRAINT customers_address_length CHECK (address IS NULL OR char_length(address) <= 250),
-  CONSTRAINT customers_studio_name_length CHECK (studio_name IS NULL OR char_length(studio_name) <= 120),
-  CONSTRAINT customers_studio_association_name_length CHECK (studio_association_name IS NULL OR char_length(studio_association_name) <= 120),
-  CONSTRAINT customers_studio_association_id_length CHECK (studio_association_id_number IS NULL OR char_length(studio_association_id_number) <= 50)
+  updated_by uuid REFERENCES users (id) ON DELETE SET NULL
 );
 
 CREATE TRIGGER trg_customers_updated_at
@@ -274,16 +223,6 @@ CREATE INDEX IF NOT EXISTS idx_customers_created_at ON customers (created_at);
 
 CREATE INDEX IF NOT EXISTS idx_customers_updated_at ON customers (updated_at);
 
--- Partial unique index on aadhaar_number (NULLs excluded).
-CREATE UNIQUE INDEX customers_aadhaar_number_unique ON customers (aadhaar_number)
-WHERE
-  aadhaar_number IS NOT NULL;
-
--- Case-insensitive unique index on customer_code (NULLs excluded).
-CREATE UNIQUE INDEX uq_customers_code_lower ON customers (lower(customer_code))
-WHERE
-  customer_code IS NOT NULL;
-
 -- migrate:down
 
 DROP TRIGGER IF EXISTS trg_customers_updated_at ON customers;
@@ -295,10 +234,6 @@ DROP TRIGGER IF EXISTS trg_user_auth_updated_at ON user_auth;
 DROP TRIGGER IF EXISTS trg_users_updated_at ON users;
 
 DROP TRIGGER IF EXISTS trg_branches_updated_at ON branches;
-
-DROP INDEX IF EXISTS uq_customers_code_lower;
-
-DROP INDEX IF EXISTS customers_aadhaar_number_unique;
 
 DROP INDEX IF EXISTS idx_customers_updated_at;
 
@@ -313,8 +248,6 @@ DROP INDEX IF EXISTS idx_customers_phone;
 DROP INDEX IF EXISTS idx_customers_type;
 
 DROP INDEX IF EXISTS idx_customers_is_active;
-
-DROP INDEX IF EXISTS uq_vendors_code_lower;
 
 DROP INDEX IF EXISTS idx_vendors_updated_by;
 
@@ -349,8 +282,6 @@ DROP INDEX IF EXISTS idx_users_is_active;
 DROP INDEX IF EXISTS idx_users_role;
 
 DROP INDEX IF EXISTS idx_users_branch_id;
-
-DROP INDEX IF EXISTS uq_branches_code_lower;
 
 DROP INDEX IF EXISTS idx_branches_updated_by;
 

@@ -61,6 +61,7 @@ export function VendorForm({ redirectTo }: VendorFormProps) {
     resolver: zodResolver(vendorSchema) as unknown as Resolver<VendorFormValues>,
     defaultValues: {
       vendorCode: "",
+      businessName: "",
       name: "",
       avatar: "",
       phone: "",
@@ -138,10 +139,21 @@ export function VendorForm({ redirectTo }: VendorFormProps) {
         </div>
 
         <div className="space-y-1.5">
+          <FieldLabel htmlFor="vendor-business-name">Business Name</FieldLabel>
+          <Input
+            id="vendor-business-name"
+            placeholder="Acme Corporation"
+            disabled={isSubmitting}
+            {...register("businessName")}
+          />
+          <FieldError message={getFieldError("businessName")} />
+        </div>
+
+        <div className="space-y-1.5">
           <FieldLabel htmlFor="vendor-name">Name</FieldLabel>
           <Input
             id="vendor-name"
-            placeholder="Supplier name"
+            placeholder="Anil Kumar"
             disabled={isSubmitting}
             {...register("name")}
           />

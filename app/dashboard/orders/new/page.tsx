@@ -4,10 +4,10 @@ import { SectionCard } from "@/components/dashboard/section-card";
 import { OrderForm } from "@/components/orders/order-form";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasPermission } from "@/lib/auth/permissions";
-import { getAddOrderPageData } from "@/lib/orders/queries";
+import { getAddOrderPageData, getOrderPrefillCustomer } from "@/lib/orders/queries";
 
 type AddOrderPageProps = {
-  searchParams?: Promise<{ branchId?: string | string[] }>;
+  searchParams?: Promise<{ branchId?: string | string[]; customerId?: string | string[] }>;
 };
 
 function normalizeSingleParam(value: string | string[] | undefined): string | undefined {
@@ -22,9 +22,22 @@ export default async function AddOrderPage({ searchParams }: AddOrderPageProps) 
 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const requestedBranchId = normalizeSingleParam(resolvedSearchParams?.branchId);
+  const requestedCustomerId = normalizeSingleParam(resolvedSearchParams?.customerId);
 
   try {
-    const pageData = await getAddOrderPageData(currentUser, requestedBranchId);
+    const basePageData = await getAddOrderPageData(currentUser, requestedBranchId);
+
+    let prefillCustomer = null;
+    let prefillError: string | null = null;
+    if (requestedCustomerId) {
+      prefillCustomer = await getOrderPrefillCustomer(requestedCustomerId);
+      if (!prefillCustomer) {
+        prefillError =
+          "The selected customer was not found or is no longer active. Search for a different customer below.";
+      }
+    }
+
+    const pageData = { ...basePageData, prefillCustomer, prefillError };
 
     if (pageData.branchOptions.length === 0 || !pageData.selectedBranchId) {
       return (

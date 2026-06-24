@@ -37,6 +37,8 @@ export async function getAddOrderPageData(
       inventoryItems: [],
       offers: [],
       vendors: [],
+      prefillCustomer: null,
+      prefillError: null,
     };
   }
 
@@ -57,8 +59,9 @@ export async function getAddOrderPageData(
             c.avatar,
             c.avatar_source AS "avatarSource"
           FROM customers c
+          WHERE c.is_active = true
           ORDER BY c.created_at DESC
-          LIMIT 500
+          LIMIT 10
         `,
       ),
       db.query<Omit<OrderInventoryOption, "prices">>(
@@ -102,7 +105,7 @@ export async function getAddOrderPageData(
             o.buy_quantity AS "buyQuantity",
             o.get_quantity AS "getQuantity",
             o.minimum_order_value::double precision AS "minimumOrderValue",
-            o.customer_type::text AS "customerType",
+            o.customer_types::text[] AS "customerTypes",
             o.starts_at::text AS "startsAt",
             o.ends_at::text AS "endsAt"
           FROM offers o
@@ -145,7 +148,36 @@ export async function getAddOrderPageData(
     })),
     offers: offersResult.rows,
     vendors: vendorsResult.rows,
+    prefillCustomer: null,
+    prefillError: null,
   };
+}
+
+export async function getOrderPrefillCustomer(
+  customerId: string,
+): Promise<OrderCustomerOption | null> {
+  const db = getPool();
+  const { rows } = await db.query<OrderCustomerOption>(
+    `
+      SELECT
+        c.id::text AS id,
+        c.customer_numeric_id AS "customerNumericId",
+        c.customer_code AS "customerCode",
+        c.type::text AS type,
+        c.name,
+        c.studio_name AS "studioName",
+        c.phone,
+        c.alternate_phone AS "alternatePhone",
+        c.avatar,
+        c.avatar_source AS "avatarSource"
+      FROM customers c
+      WHERE c.id = $1::uuid
+        AND c.is_active = true
+      LIMIT 1
+    `,
+    [customerId],
+  );
+  return rows[0] ?? null;
 }
 
 export async function getOrderDetail(

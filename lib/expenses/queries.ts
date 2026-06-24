@@ -79,6 +79,7 @@ export async function getExpenseCategories(
         id::text AS id,
         code,
         name,
+        description,
         scope::text AS scope
       FROM expense_categories
       WHERE is_active = true

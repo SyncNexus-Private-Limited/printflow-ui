@@ -427,6 +427,7 @@ export type ExpenseCategoriesPageData = {
 export type VendorManagementRow = {
   id: string;
   vendorCode: string | null;
+  businessName: string;
   name: string;
   avatar: string | null;
   phone: string;
@@ -494,7 +495,7 @@ export type OfferManagementRow = {
   buyQuantity: number | null;
   getQuantity: number | null;
   minimumOrderValue: number | null;
-  customerType: string | null;
+  customerTypes: string[] | null;
   startsAt: string;
   endsAt: string | null;
   isActive: boolean;

@@ -5,6 +5,7 @@ export const inventoryPricingCustomerTypeValues = [
   "amateur",
   "other",
   "employee",
+  "lab",
 ] as const;
 
 export const inventoryPricingCustomerTypeLabels: Record<InventoryPricingCustomerType, string> = {
@@ -12,6 +13,7 @@ export const inventoryPricingCustomerTypeLabels: Record<InventoryPricingCustomer
   amateur: "Amateur",
   other: "Other",
   employee: "Employee",
+  lab: "Lab",
 };
 
 export type InventoryPricingFormValues = {

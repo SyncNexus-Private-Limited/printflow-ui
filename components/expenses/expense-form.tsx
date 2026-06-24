@@ -57,6 +57,7 @@ export function ExpenseForm(props: ExpenseFormProps) {
     handleSubmit,
     reset,
     watch,
+    control,
     clearErrors,
     setError,
     formState: { errors, isSubmitting },
@@ -151,6 +152,7 @@ export function ExpenseForm(props: ExpenseFormProps) {
         errors={errors}
         isSubmitting={isSubmitting}
         register={register}
+        control={control}
         selectedVendorId={selectedVendorId}
         onTypeChange={(nextType) => navigateToContext(props.selectedBranchId, nextType)}
         onBranchChange={(nextBranchId) => navigateToContext(nextBranchId, props.selectedType)}

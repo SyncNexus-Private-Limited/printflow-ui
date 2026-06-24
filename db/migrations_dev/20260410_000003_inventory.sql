@@ -1,10 +1,7 @@
 -- migrate:up
 
 -- -----------------------------------------------------------------------------
--- TABLE: inventory
--- Includes audit/soft-delete/reorder columns.
--- Validation constraints and case-insensitive SKU index from 20260514_190720
--- merged in.
+-- TABLE: inventory (FINAL: includes audit/soft-delete/reorder columns from 20260430)
 -- -----------------------------------------------------------------------------
 CREATE TABLE inventory (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -24,10 +21,7 @@ CREATE TABLE inventory (
   deleted_at timestamptz,
   deleted_by uuid REFERENCES users (id) ON DELETE SET NULL,
   reorder_level numeric(12, 3) CHECK (reorder_level IS NULL OR reorder_level >= 0),
-  UNIQUE (branch_id, sku),
-  CONSTRAINT inventory_sku_format CHECK (sku ~ '^[A-Z0-9-]{3,25}$'),
-  CONSTRAINT inventory_name_length CHECK (char_length(btrim(name)) >= 2 AND char_length(name) <= 120),
-  CONSTRAINT inventory_image_url CHECK (image IS NULL OR (char_length(image) <= 500 AND image ~ '^https?://'))
+  UNIQUE (branch_id, sku)
 );
 
 COMMENT ON COLUMN inventory.deleted_at IS 'Set when the item is archived (soft delete). NULL means active.';
@@ -60,14 +54,8 @@ CREATE INDEX IF NOT EXISTS idx_inventory_low_stock ON inventory (branch_id, quan
 WHERE
   deleted_at IS NULL;
 
--- Case-insensitive unique index for active items only (archived items are
--- excluded so their SKUs can be reused by future active items).
-CREATE UNIQUE INDEX uq_inventory_branch_sku_lower ON inventory (branch_id, lower(sku))
-WHERE
-  deleted_at IS NULL;
-
 -- -----------------------------------------------------------------------------
--- TABLE: inventory_pricing
+-- TABLE: inventory_pricing (FINAL: includes audit columns from 20260430)
 -- -----------------------------------------------------------------------------
 CREATE TABLE inventory_pricing (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -139,8 +127,6 @@ DROP INDEX IF EXISTS idx_inventory_stock_movements_branch_id;
 DROP INDEX IF EXISTS idx_inventory_stock_movements_inventory_id;
 
 DROP INDEX IF EXISTS idx_inventory_pricing_lookup;
-
-DROP INDEX IF EXISTS uq_inventory_branch_sku_lower;
 
 DROP INDEX IF EXISTS idx_inventory_low_stock;
 

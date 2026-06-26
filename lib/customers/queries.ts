@@ -2,10 +2,12 @@ import "server-only";
 import { getPool } from "@/lib/db/postgres";
 import type {
   CustomerAuditLogEntry,
+  CustomerCreditTransactionEntry,
   CustomerDetailPageData,
   CustomerOrderMetrics,
   CustomerRecentOrder,
   CustomerRecentPayment,
+  CustomerRefundEntry,
   EditCustomerRow,
 } from "@/lib/customers/types";
 
@@ -97,6 +99,31 @@ type CustomerMetricsDbRow = {
   total_payable: number;
   total_paid: number;
   total_outstanding: number;
+  cancelled_orders: number;
+  credit_balance: number;
+  total_refunded: number;
+  pending_refund_amount: number;
+};
+
+type CustomerRefundDbRow = {
+  id: string;
+  order_id: string;
+  order_code: string;
+  trigger_action: string;
+  reason: string;
+  refund_amount: number;
+  refund_mode: string;
+  refund_status: string;
+  created_at: string;
+};
+
+type CustomerCreditTransactionDbRow = {
+  id: string;
+  transaction_type: string;
+  amount: number;
+  related_order_code: string | null;
+  note: string | null;
+  created_at: string;
 };
 
 type CustomerRecentOrderDbRow = {
@@ -135,8 +162,15 @@ export async function getCustomerDetailPageData(
 ): Promise<CustomerDetailPageData | null> {
   const db = getPool();
 
-  const [customerResult, metricsResult, recentOrdersResult, recentPaymentsResult, auditLogsResult] =
-    await Promise.all([
+  const [
+    customerResult,
+    metricsResult,
+    recentOrdersResult,
+    recentPaymentsResult,
+    recentRefundsResult,
+    recentCreditTransactionsResult,
+    auditLogsResult,
+  ] = await Promise.all([
       db.query<EditCustomerDbRow>(
         `
         SELECT
@@ -175,7 +209,20 @@ export async function getCustomerDetailPageData(
           COALESCE(SUM(o.payable_amount), 0)::double precision AS total_payable,
           COALESCE(SUM(o.paid_amount), 0)::double precision AS total_paid,
           COALESCE(SUM(GREATEST(o.payable_amount - o.paid_amount, 0)), 0)::double precision
-            AS total_outstanding
+            AS total_outstanding,
+          COUNT(o.id) FILTER (WHERE o.status::text = 'cancelled')::int AS cancelled_orders,
+          COALESCE(
+            (SELECT SUM(cct.amount) FROM customer_credit_transactions cct
+              WHERE cct.customer_id = $1::uuid), 0
+          )::double precision AS credit_balance,
+          COALESCE(
+            (SELECT SUM(r.refund_amount) FROM order_refunds r
+              WHERE r.customer_id = $1::uuid AND r.refund_status = 'completed'), 0
+          )::double precision AS total_refunded,
+          COALESCE(
+            (SELECT SUM(r.refund_amount) FROM order_refunds r
+              WHERE r.customer_id = $1::uuid AND r.refund_status IN ('pending', 'processing')), 0
+          )::double precision AS pending_refund_amount
         FROM orders o
         WHERE o.customer_id = $1::uuid
       `,
@@ -219,6 +266,45 @@ export async function getCustomerDetailPageData(
         LEFT JOIN users u ON u.id = p.received_by
         WHERE o.customer_id = $1::uuid
         ORDER BY p.created_at DESC
+        LIMIT 10
+      `,
+        [id],
+      ),
+
+      db.query<CustomerRefundDbRow>(
+        `
+        SELECT
+          r.id::text AS id,
+          r.order_id::text AS order_id,
+          o.order_code,
+          r.trigger_action,
+          r.reason,
+          r.refund_amount::double precision AS refund_amount,
+          r.refund_mode::text AS refund_mode,
+          r.refund_status::text AS refund_status,
+          r.created_at::text AS created_at
+        FROM order_refunds r
+        JOIN orders o ON o.id = r.order_id
+        WHERE r.customer_id = $1::uuid
+        ORDER BY r.created_at DESC
+        LIMIT 10
+      `,
+        [id],
+      ),
+
+      db.query<CustomerCreditTransactionDbRow>(
+        `
+        SELECT
+          cct.id::text AS id,
+          cct.transaction_type,
+          cct.amount::double precision AS amount,
+          o.order_code AS related_order_code,
+          cct.note,
+          cct.created_at::text AS created_at
+        FROM customer_credit_transactions cct
+        LEFT JOIN orders o ON o.id = cct.related_order_id
+        WHERE cct.customer_id = $1::uuid
+        ORDER BY cct.created_at DESC
         LIMIT 10
       `,
         [id],
@@ -275,8 +361,21 @@ export async function getCustomerDetailPageData(
         totalPayable: metricsRow.total_payable,
         totalPaid: metricsRow.total_paid,
         totalOutstanding: metricsRow.total_outstanding,
+        cancelledOrders: metricsRow.cancelled_orders,
+        creditBalance: metricsRow.credit_balance,
+        totalRefunded: metricsRow.total_refunded,
+        pendingRefundAmount: metricsRow.pending_refund_amount,
       }
-    : { totalOrders: 0, totalPayable: 0, totalPaid: 0, totalOutstanding: 0 };
+    : {
+        totalOrders: 0,
+        totalPayable: 0,
+        totalPaid: 0,
+        totalOutstanding: 0,
+        cancelledOrders: 0,
+        creditBalance: 0,
+        totalRefunded: 0,
+        pendingRefundAmount: 0,
+      };
 
   const recentOrders: CustomerRecentOrder[] = recentOrdersResult.rows.map((row) => ({
     id: row.id,
@@ -301,6 +400,28 @@ export async function getCustomerDetailPageData(
     createdAt: row.created_at,
   }));
 
+  const recentRefunds: CustomerRefundEntry[] = recentRefundsResult.rows.map((row) => ({
+    id: row.id,
+    orderId: row.order_id,
+    orderCode: row.order_code,
+    triggerAction: row.trigger_action,
+    reason: row.reason,
+    refundAmount: row.refund_amount,
+    refundMode: row.refund_mode,
+    refundStatus: row.refund_status,
+    createdAt: row.created_at,
+  }));
+
+  const recentCreditTransactions: CustomerCreditTransactionEntry[] =
+    recentCreditTransactionsResult.rows.map((row) => ({
+      id: row.id,
+      transactionType: row.transaction_type,
+      amount: row.amount,
+      relatedOrderCode: row.related_order_code,
+      note: row.note,
+      createdAt: row.created_at,
+    }));
+
   const auditLogs: CustomerAuditLogEntry[] = auditLogsResult.rows.map((row) => ({
     id: row.id,
     action: row.action,
@@ -309,5 +430,13 @@ export async function getCustomerDetailPageData(
     createdAt: row.created_at,
   }));
 
-  return { customer, metrics, recentOrders, recentPayments, auditLogs };
+  return {
+    customer,
+    metrics,
+    recentOrders,
+    recentPayments,
+    recentRefunds,
+    recentCreditTransactions,
+    auditLogs,
+  };
 }

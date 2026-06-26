@@ -32,6 +32,7 @@ export type Permission =
   | "orders:add_payment"
   | "orders:update_status"
   | "orders:cancel"
+  | "orders:delete"
   | "orders:edit_vendor"
   | "orders:add_vendor_payment"
   | "expenses:view"
@@ -114,6 +115,7 @@ const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<Permission>>> = {
     "orders:add_payment",
     "orders:update_status",
     "orders:cancel",
+    "orders:delete",
     "orders:edit_vendor",
     "orders:add_vendor_payment",
     "expenses:view",

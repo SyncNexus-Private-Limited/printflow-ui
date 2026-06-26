@@ -11,6 +11,7 @@ import {
 } from "@/components/dashboard/data-pill";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { OrderDetailActions } from "@/components/orders/order-detail-actions";
+import { RefundsSection } from "@/components/orders/refunds-section";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasPermission } from "@/lib/auth/permissions";
 import { paymentModeLabels } from "@/lib/expenses/types";
@@ -186,6 +187,10 @@ function getAuditActionLabel(action: string) {
       return "Vendor payment recorded";
     case "cancelled":
       return "Cancelled";
+    case "deleted":
+      return "Deleted";
+    case "refund_status_updated":
+      return "Refund status updated";
     default:
       return formatEnumLabel(action);
   }
@@ -221,6 +226,10 @@ function summarizeChangedFields(log: OrderDetailData["auditLogs"][number]) {
       return "Vendor expense payment was recorded";
     case "cancelled":
       return "Order was marked cancelled";
+    case "deleted":
+      return "Cancelled order was soft-deleted";
+    case "refund_status_updated":
+      return "Refund status was changed";
     default:
       return "Audit snapshot recorded";
   }
@@ -240,6 +249,8 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
   const orderPageData = await getAddOrderPageData(currentUser, order.branchId);
   const assignedVendor = detail.vendors[0] ?? null;
   const outstandingAmount = Math.max(0, order.payableAmount - order.paidAmount);
+  const totalRefunded = detail.refunds.reduce((sum, refund) => sum + refund.refundAmount, 0);
+  const remainingRefundableAmount = Math.max(0, order.paidAmount - totalRefunded);
 
   return (
     <main className="min-h-screen px-7 pt-8 pb-16">
@@ -284,11 +295,15 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
             orderId={order.id}
             orderCode={order.orderCode}
             status={order.status}
+            isDeleted={order.isDeleted}
             outstandingAmount={outstandingAmount}
+            paidAmount={order.paidAmount}
+            remainingRefundableAmount={remainingRefundableAmount}
             canEdit={hasPermission(currentUser, "orders:edit")}
             canAddPayment={hasPermission(currentUser, "orders:add_payment")}
             canUpdateStatus={hasPermission(currentUser, "orders:update_status")}
             canCancel={hasPermission(currentUser, "orders:cancel")}
+            canDelete={hasPermission(currentUser, "orders:delete")}
             canEditVendor={hasPermission(currentUser, "orders:edit_vendor")}
             canAddVendorPayment={hasPermission(currentUser, "orders:add_vendor_payment")}
             vendors={orderPageData.vendors}
@@ -306,6 +321,7 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
             <DataPill tone={getOrderPaymentStatusTone(order.paymentStatus)}>
               Payment: {getOrderPaymentStatusLabel(order.paymentStatus)}
             </DataPill>
+            {order.isDeleted ? <DataPill tone="rose">Deleted</DataPill> : null}
             <span className="ml-auto font-mono text-[12.5px] text-[rgb(var(--muted-foreground))]">
               {formatDate(order.orderDate)}
             </span>
@@ -320,6 +336,12 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
             <DetailRow label="Branch" value={order.branchName} />
             <DetailRow label="Created by" value={order.createdByName ?? "System"} />
             <DetailRow label="Created at" value={formatDateTime(order.createdAt)} />
+            {order.cancellationReason ? (
+              <DetailRow label="Cancellation reason" value={order.cancellationReason} />
+            ) : null}
+            {order.deletionReason ? (
+              <DetailRow label="Deletion reason" value={order.deletionReason} />
+            ) : null}
           </div>
 
           {/* Financial summary — full-bleed cells with gap-line dividers */}
@@ -480,6 +502,22 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
               </div>
             </div>
           )}
+        </SectionCard>
+
+        {/* ── 3b. Refunds ──────────────────────────────────────────────────── */}
+        <SectionCard
+          title="Refunds"
+          description={
+            detail.refunds.length > 0
+              ? `${detail.refunds.length} ${detail.refunds.length === 1 ? "refund" : "refunds"}`
+              : undefined
+          }
+        >
+          <RefundsSection
+            orderId={order.id}
+            refunds={detail.refunds}
+            canUpdateStatus={hasPermission(currentUser, "orders:cancel")}
+          />
         </SectionCard>
 
         {/* ── 4. Vendor / Outsource ────────────────────────────────────────── */}

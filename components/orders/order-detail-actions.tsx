@@ -8,27 +8,33 @@ import {
   HandCoins,
   Pencil,
   RotateCcw,
+  Trash2,
   Truck,
   XCircle,
   type LucideIcon,
 } from "lucide-react";
 import { AddPaymentDialog } from "@/components/orders/add-payment-dialog";
+import { CancelOrderDialog } from "@/components/orders/cancel-order-dialog";
+import { DeleteOrderDialog } from "@/components/orders/delete-order-dialog";
 import { OrderVendorDialog } from "@/components/orders/order-vendor-dialog";
 import { OrderVendorPaymentDialog } from "@/components/orders/order-vendor-payment-dialog";
 import { OrderStatusDialog } from "@/components/orders/order-status-dialog";
 import { Button } from "@/components/ui/button";
-import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { OrderDetailData, OrderStatusValue, OrderVendorOption } from "@/lib/orders/types";
 
 type OrderDetailActionsProps = {
   orderId: string;
   orderCode: string;
   status: OrderStatusValue;
+  isDeleted: boolean;
   outstandingAmount: number;
+  paidAmount: number;
+  remainingRefundableAmount: number;
   canEdit: boolean;
   canAddPayment: boolean;
   canUpdateStatus: boolean;
   canCancel: boolean;
+  canDelete: boolean;
   canEditVendor: boolean;
   canAddVendorPayment: boolean;
   vendors: OrderVendorOption[];
@@ -69,11 +75,15 @@ export function OrderDetailActions({
   orderId,
   orderCode,
   status,
+  isDeleted,
   outstandingAmount,
+  paidAmount,
+  remainingRefundableAmount,
   canEdit,
   canAddPayment,
   canUpdateStatus,
   canCancel,
+  canDelete,
   canEditVendor,
   canAddVendorPayment,
   vendors,
@@ -87,12 +97,14 @@ export function OrderDetailActions({
   const [showVendor, setShowVendor] = useState(false);
   const [showVendorPayment, setShowVendorPayment] = useState(false);
   const [showCancel, setShowCancel] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
   const [showMore, setShowMore] = useState(false);
-  const [isCancelling, setIsCancelling] = useState(false);
 
   const isCancelled = status === "cancelled";
-  const hasMoreActions =
+  const showActiveOrderActions =
     !isCancelled && (canUpdateStatus || canEditVendor || canAddVendorPayment || canCancel);
+  const showDeleteAction = canDelete && isCancelled && !isDeleted;
+  const hasMoreActions = showActiveOrderActions || showDeleteAction;
 
   // Close dropdown on outside click or Escape
   useEffect(() => {
@@ -110,23 +122,6 @@ export function OrderDetailActions({
       document.removeEventListener("keydown", onEscape);
     };
   }, [showMore]);
-
-  async function handleCancel() {
-    setIsCancelling(true);
-    try {
-      const response = await fetch(`/api/orders/${orderId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "cancel" }),
-      });
-      if (response.ok) {
-        setShowCancel(false);
-        router.refresh();
-      }
-    } finally {
-      setIsCancelling(false);
-    }
-  }
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -171,7 +166,7 @@ export function OrderDetailActions({
 
           {showMore ? (
             <div className="absolute top-full right-0 z-80 mt-1.5 min-w-53.75 overflow-hidden rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] py-1 shadow-[0_8px_24px_-8px_rgb(var(--shadow)/0.22)]">
-              {canUpdateStatus ? (
+              {!isCancelled && canUpdateStatus ? (
                 <DropdownItem
                   icon={RotateCcw}
                   onClick={() => {
@@ -183,7 +178,7 @@ export function OrderDetailActions({
                 </DropdownItem>
               ) : null}
 
-              {canEditVendor ? (
+              {!isCancelled && canEditVendor ? (
                 <DropdownItem
                   icon={Truck}
                   onClick={() => {
@@ -195,7 +190,7 @@ export function OrderDetailActions({
                 </DropdownItem>
               ) : null}
 
-              {canAddVendorPayment ? (
+              {!isCancelled && canAddVendorPayment ? (
                 <DropdownItem
                   icon={HandCoins}
                   disabled={!assignedVendor || assignedVendor.balanceAmount <= 0}
@@ -208,7 +203,7 @@ export function OrderDetailActions({
                 </DropdownItem>
               ) : null}
 
-              {canCancel ? (
+              {!isCancelled && canCancel ? (
                 <>
                   <div className="mx-2 my-1 h-px bg-[rgb(var(--border))]" />
                   <DropdownItem
@@ -220,6 +215,22 @@ export function OrderDetailActions({
                     }}
                   >
                     Cancel Order
+                  </DropdownItem>
+                </>
+              ) : null}
+
+              {showDeleteAction ? (
+                <>
+                  <div className="mx-2 my-1 h-px bg-[rgb(var(--border))]" />
+                  <DropdownItem
+                    icon={Trash2}
+                    destructive
+                    onClick={() => {
+                      setShowMore(false);
+                      setShowDelete(true);
+                    }}
+                  >
+                    Delete Order
                   </DropdownItem>
                 </>
               ) : null}
@@ -254,15 +265,19 @@ export function OrderDetailActions({
         vendor={assignedVendor}
         onClose={() => setShowVendorPayment(false)}
       />
-      <ConfirmDialog
+      <CancelOrderDialog
         isOpen={showCancel}
+        orderId={orderId}
+        orderLabel={orderCode}
+        paidAmount={paidAmount}
         onClose={() => setShowCancel(false)}
-        onConfirm={handleCancel}
-        title="Cancel order?"
-        description="This marks the order as cancelled and lets the database restore item stock."
-        confirmKeyword="cancel"
-        confirmLabel="Cancel order"
-        isPending={isCancelling}
+      />
+      <DeleteOrderDialog
+        isOpen={showDelete}
+        orderId={orderId}
+        orderLabel={orderCode}
+        remainingRefundableAmount={remainingRefundableAmount}
+        onClose={() => setShowDelete(false)}
       />
     </div>
   );

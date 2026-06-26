@@ -583,7 +583,7 @@ function buildOrdersQueryParts(
   filters: OrderPageFilterState,
 ): OrderQueryParts {
   const values: Array<number | string | null> = [branchId];
-  const whereParts = ["($1::uuid IS NULL OR o.branch_id = $1::uuid)"];
+  const whereParts = ["($1::uuid IS NULL OR o.branch_id = $1::uuid)", "o.is_deleted = false"];
   const joins = [
     "JOIN customers c ON c.id = o.customer_id",
     "LEFT JOIN users u ON u.id = o.created_by",
@@ -761,7 +761,12 @@ export async function getOrdersPageData(
         (
           (SELECT COUNT(*)::int FROM order_items oi WHERE oi.order_id = o.id) +
           (SELECT COUNT(*)::int FROM order_offer_items ooi WHERE ooi.order_id = o.id)
-        ) AS "itemCount"
+        ) AS "itemCount",
+        (
+          SELECT COALESCE(SUM(r.refund_amount), 0)::double precision
+          FROM order_refunds r
+          WHERE r.order_id = o.id
+        ) AS "refundedAmount"
       FROM orders o
       ${queryParts.joins}
       WHERE ${queryParts.whereClause}

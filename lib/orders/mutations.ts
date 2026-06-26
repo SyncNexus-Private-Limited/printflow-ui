@@ -5,16 +5,20 @@ import { assertPermission, canAccessBranch, hasPermission } from "@/lib/auth/per
 import { getPool } from "@/lib/db/postgres";
 import {
   type AddOrderPaymentInput,
+  type CancelOrderInput,
   type CreateOrderInput,
+  type DeleteOrderInput,
   type RecordOrderVendorPaymentInput,
   type UpdateOrderInput,
   type UpdateOrderStatusInput,
+  type UpdateRefundStatusInput,
   type UpsertOrderVendorInput,
 } from "@/lib/orders/schema";
 import {
   canAddCustomerPayment,
   canAddVendorPayment,
   canCancelOrder,
+  canDeleteOrder,
   canEditOrder,
   canEditOrderDiscount,
   canEditOrderItems,
@@ -72,6 +76,7 @@ type MutableOrderRow = {
   manual_discount_amount: number;
   payable_amount: number;
   paid_amount: number;
+  is_deleted: boolean;
 };
 
 type OrderAuditAction =
@@ -83,7 +88,9 @@ type OrderAuditAction =
   | "customer_payment_added"
   | "vendor_assigned"
   | "vendor_updated"
-  | "vendor_payment_recorded";
+  | "vendor_payment_recorded"
+  | "deleted"
+  | "refund_status_updated";
 
 function parseAmount(value: string | undefined) {
   return value ? Number.parseFloat(value) : 0;
@@ -302,7 +309,8 @@ async function fetchMutableOrder(client: PoolClient, orderId: string): Promise<M
         offer_discount_amount::double precision AS offer_discount_amount,
         manual_discount_amount::double precision AS manual_discount_amount,
         payable_amount::double precision AS payable_amount,
-        paid_amount::double precision AS paid_amount
+        paid_amount::double precision AS paid_amount,
+        is_deleted
       FROM orders
       WHERE id = $1::uuid
       FOR UPDATE
@@ -401,6 +409,81 @@ async function insertOrderAudit(
       changedFields !== undefined ? JSON.stringify(changedFields) : null,
     ],
   );
+}
+
+async function insertOrderRefund(
+  client: PoolClient,
+  params: {
+    orderId: string;
+    customerId: string;
+    triggerAction: "cancel" | "delete";
+    reason: string;
+    refundBasisAmount: number;
+    refundAmount: number;
+    refundMode: string;
+    txnReference: string | null;
+    createdBy: string;
+  },
+) {
+  const refundPercent =
+    params.refundBasisAmount > 0
+      ? roundMoney((params.refundAmount / params.refundBasisAmount) * 100)
+      : 0;
+  // Crediting is instant and has nothing further to action; a zero-amount
+  // refund decision (e.g. a delete with no further refund due) is also
+  // immediately "done". Cash/UPI/card/other refunds start pending until the
+  // physical transfer is confirmed via updateOrderRefundStatus.
+  const refundStatus =
+    params.refundAmount === 0 || params.refundMode === "credit" ? "completed" : "pending";
+
+  const { rows } = await client.query<{ id: string }>(
+    `
+      INSERT INTO order_refunds (
+        order_id, customer_id, trigger_action, reason, refund_basis_amount,
+        refund_percent, refund_amount, refund_mode, refund_status, txn_reference, created_by
+      )
+      VALUES (
+        $1::uuid, $2::uuid, $3, $4, $5::numeric(14,2),
+        $6::numeric(5,2), $7::numeric(14,2), $8::payment_mode, $9::refund_status_value, $10, $11::uuid
+      )
+      RETURNING id::text AS id
+    `,
+    [
+      params.orderId,
+      params.customerId,
+      params.triggerAction,
+      params.reason,
+      params.refundBasisAmount,
+      refundPercent,
+      params.refundAmount,
+      params.refundMode,
+      refundStatus,
+      params.txnReference,
+      params.createdBy,
+    ],
+  );
+
+  const refundId = rows[0].id;
+
+  if (params.refundMode === "credit" && params.refundAmount > 0) {
+    await client.query(
+      `
+        INSERT INTO customer_credit_transactions
+          (customer_id, transaction_type, amount, related_order_id, order_refund_id, note, created_by)
+        VALUES ($1::uuid, 'refund_credit', $2::numeric(14,2), $3::uuid, $4::uuid, $5, $6::uuid)
+      `,
+      [
+        params.customerId,
+        params.refundAmount,
+        params.orderId,
+        refundId,
+        params.reason,
+        params.createdBy,
+      ],
+    );
+  }
+
+  return refundId;
 }
 
 export async function createOrder(
@@ -504,10 +587,39 @@ export async function createOrder(
     }
 
     const payableAmount = roundMoney(subtotal - discountAmount);
+
+    const creditsAppliedAmount = parseAmount(input.creditsAppliedAmount);
+    if (creditsAppliedAmount > 0) {
+      // Serialize concurrent credit spends for this customer: balance is computed
+      // as SUM(amount) on the fly (no denormalized column), so two concurrent
+      // orders applying credit must not both read the same pre-spend balance.
+      await client.query("SELECT pg_advisory_xact_lock(hashtext($1::text))", [customer.id]);
+      const { rows: creditRows } = await client.query<{ balance: number }>(
+        `
+          SELECT COALESCE(SUM(amount), 0)::double precision AS balance
+          FROM customer_credit_transactions
+          WHERE customer_id = $1::uuid
+        `,
+        [customer.id],
+      );
+      const availableCreditBalance = creditRows[0]?.balance ?? 0;
+      if (creditsAppliedAmount > Math.min(availableCreditBalance, payableAmount)) {
+        throw new OrderMutationError(
+          "Credits applied cannot exceed available balance or payable amount.",
+          {
+            status: 400,
+            fieldErrors: {
+              creditsAppliedAmount: "Exceeds available credit or order payable amount.",
+            },
+          },
+        );
+      }
+    }
+
     const initialPayment = parseAmount(input.initialPaymentAmount);
 
-    if (initialPayment > payableAmount) {
-      throw new OrderMutationError("Initial payment cannot exceed payable amount.", {
+    if (initialPayment + creditsAppliedAmount > payableAmount) {
+      throw new OrderMutationError("Payment cannot exceed payable amount.", {
         status: 400,
         fieldErrors: { initialPaymentAmount: "Payment cannot exceed payable amount." },
       });
@@ -586,6 +698,24 @@ export async function createOrder(
           input.paymentMode,
           normalizeOptional(input.txnReference),
         ],
+      );
+    }
+
+    if (creditsAppliedAmount > 0) {
+      await client.query(
+        `
+          INSERT INTO payments (order_id, branch_id, received_by, amount, mode)
+          VALUES ($1::uuid, $2::uuid, $3::uuid, $4::numeric(14,2), 'credit'::payment_mode)
+        `,
+        [order.id, input.branchId, currentUser.userId, creditsAppliedAmount],
+      );
+      await client.query(
+        `
+          INSERT INTO customer_credit_transactions
+            (customer_id, transaction_type, amount, related_order_id, created_by)
+          VALUES ($1::uuid, 'applied_to_order', $2::numeric(14,2), $3::uuid, $4::uuid)
+        `,
+        [customer.id, -creditsAppliedAmount, order.id, currentUser.userId],
       );
     }
 
@@ -1032,7 +1162,11 @@ export async function updateOrderStatus(
   }
 }
 
-export async function cancelOrder(currentUser: AuthenticatedUser, orderId: string) {
+export async function cancelOrder(
+  currentUser: AuthenticatedUser,
+  orderId: string,
+  input: CancelOrderInput,
+) {
   assertPermission(currentUser, "orders:cancel");
 
   const db = getPool();
@@ -1045,21 +1179,202 @@ export async function cancelOrder(currentUser: AuthenticatedUser, orderId: strin
       throw new OrderMutationError("Order is already cancelled.", { status: 400 });
     }
 
+    const refundAmount = parseAmount(input.refundAmount);
+    if (refundAmount > order.paid_amount) {
+      throw new OrderMutationError("Refund amount cannot exceed the amount paid on this order.", {
+        status: 400,
+        fieldErrors: { refundAmount: `Cannot exceed the paid amount of ₹${order.paid_amount}.` },
+      });
+    }
+
     await client.query(
       `
         UPDATE orders
-        SET status = 'cancelled'::order_status, updated_at = now()
+        SET status = 'cancelled'::order_status,
+            cancellation_reason = $2,
+            cancelled_at = now(),
+            cancelled_by = $3::uuid,
+            updated_at = now()
         WHERE id = $1::uuid
       `,
-      [order.id],
+      [order.id, input.reason, currentUser.userId],
     );
-    await insertOrderAudit(client, order.id, "cancelled", currentUser.userId);
+
+    await insertOrderRefund(client, {
+      orderId: order.id,
+      customerId: order.customer_id,
+      triggerAction: "cancel",
+      reason: input.reason,
+      refundBasisAmount: order.paid_amount,
+      refundAmount,
+      refundMode: input.refundMode,
+      txnReference: normalizeOptional(input.txnReference),
+      createdBy: currentUser.userId,
+    });
+
+    await insertOrderAudit(client, order.id, "cancelled", currentUser.userId, {
+      reason: input.reason,
+      refundAmount,
+      refundMode: input.refundMode,
+    });
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK");
     if (error instanceof OrderMutationError) throw error;
     console.error("Order cancel failed", error);
     throw new OrderMutationError("Unable to cancel order right now.", { status: 500 });
+  } finally {
+    client.release();
+  }
+}
+
+export async function deleteOrder(
+  currentUser: AuthenticatedUser,
+  orderId: string,
+  input: DeleteOrderInput,
+) {
+  assertPermission(currentUser, "orders:delete");
+
+  const db = getPool();
+  const client = await db.connect();
+
+  try {
+    await client.query("BEGIN");
+    const order = await fetchMutableOrder(client, orderId);
+    if (
+      !canDeleteOrder(currentUser, {
+        branchId: order.branch_id,
+        status: order.status,
+        isDeleted: order.is_deleted,
+      })
+    ) {
+      throw new OrderMutationError("Only already-cancelled orders can be deleted.", {
+        status: 400,
+      });
+    }
+
+    const { rows: refundedRows } = await client.query<{ total: number }>(
+      `
+        SELECT COALESCE(SUM(refund_amount), 0)::double precision AS total
+        FROM order_refunds
+        WHERE order_id = $1::uuid
+      `,
+      [order.id],
+    );
+    const alreadyRefunded = refundedRows[0]?.total ?? 0;
+    const remainingBasis = Math.max(0, roundMoney(order.paid_amount - alreadyRefunded));
+
+    const refundAmount = parseAmount(input.refundAmount);
+    if (refundAmount > remainingBasis) {
+      throw new OrderMutationError(
+        "Refund amount cannot exceed the remaining unrefunded paid amount.",
+        {
+          status: 400,
+          fieldErrors: { refundAmount: `Cannot exceed ₹${remainingBasis} unrefunded.` },
+        },
+      );
+    }
+
+    await client.query(
+      `
+        UPDATE orders
+        SET is_deleted = true,
+            deleted_at = now(),
+            deleted_by = $2::uuid,
+            deletion_reason = $3,
+            updated_at = now()
+        WHERE id = $1::uuid
+      `,
+      [order.id, currentUser.userId, input.reason],
+    );
+
+    await insertOrderRefund(client, {
+      orderId: order.id,
+      customerId: order.customer_id,
+      triggerAction: "delete",
+      reason: input.reason,
+      refundBasisAmount: remainingBasis,
+      refundAmount,
+      refundMode: input.refundMode,
+      txnReference: normalizeOptional(input.txnReference),
+      createdBy: currentUser.userId,
+    });
+
+    await insertOrderAudit(client, order.id, "deleted", currentUser.userId, {
+      reason: input.reason,
+      refundAmount,
+      refundMode: input.refundMode,
+    });
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    if (error instanceof OrderMutationError) throw error;
+    console.error("Order delete failed", error);
+    throw new OrderMutationError("Unable to delete order right now.", { status: 500 });
+  } finally {
+    client.release();
+  }
+}
+
+export async function updateOrderRefundStatus(
+  currentUser: AuthenticatedUser,
+  orderId: string,
+  refundId: string,
+  input: UpdateRefundStatusInput,
+) {
+  assertPermission(currentUser, "orders:cancel");
+
+  const db = getPool();
+  const client = await db.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const { rows } = await client.query<{
+      id: string;
+      branch_id: string;
+      refund_status: string;
+    }>(
+      `
+        SELECT r.id::text AS id, o.branch_id::text AS branch_id, r.refund_status::text AS refund_status
+        FROM order_refunds r
+        JOIN orders o ON o.id = r.order_id
+        WHERE r.id = $1::uuid AND r.order_id = $2::uuid
+        FOR UPDATE OF r
+        LIMIT 1
+      `,
+      [refundId, orderId],
+    );
+    const refund = rows[0];
+    if (!refund) {
+      throw new OrderMutationError("Refund not found.", { status: 404 });
+    }
+    if (!canAccessBranch(currentUser, refund.branch_id)) {
+      throw new OrderMutationError("You do not have access to this order.", { status: 403 });
+    }
+
+    await client.query(
+      `
+        UPDATE order_refunds
+        SET refund_status = $2::refund_status_value, updated_at = now()
+        WHERE id = $1::uuid
+      `,
+      [refund.id, input.status],
+    );
+
+    await insertOrderAudit(client, orderId, "refund_status_updated", currentUser.userId, {
+      refundId: refund.id,
+      from: refund.refund_status,
+      to: input.status,
+      note: input.note ?? null,
+    });
+
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    if (error instanceof OrderMutationError) throw error;
+    console.error("Refund status update failed", error);
+    throw new OrderMutationError("Unable to update refund status right now.", { status: 500 });
   } finally {
     client.release();
   }

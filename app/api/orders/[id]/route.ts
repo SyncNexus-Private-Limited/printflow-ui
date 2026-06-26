@@ -4,10 +4,16 @@ import { PermissionError } from "@/lib/auth/permissions";
 import {
   OrderMutationError,
   cancelOrder,
+  deleteOrder,
   updateOrder,
   updateOrderStatus,
 } from "@/lib/orders/mutations";
-import { updateOrderSchema, updateOrderStatusSchema } from "@/lib/orders/schema";
+import {
+  cancelOrderSchema,
+  deleteOrderSchema,
+  updateOrderSchema,
+  updateOrderStatusSchema,
+} from "@/lib/orders/schema";
 
 export const runtime = "nodejs";
 
@@ -57,7 +63,26 @@ export async function PATCH(request: Request, context: OrderRouteContext) {
     }
 
     if (action === "cancel") {
-      await cancelOrder(currentUser, id);
+      const parsed = cancelOrderSchema.safeParse(body);
+      if (!parsed.success) {
+        return NextResponse.json(
+          { success: false, message: "Enter a reason and a valid refund decision." },
+          { status: 400 },
+        );
+      }
+      await cancelOrder(currentUser, id, parsed.data);
+      return NextResponse.json({ success: true });
+    }
+
+    if (action === "delete") {
+      const parsed = deleteOrderSchema.safeParse(body);
+      if (!parsed.success) {
+        return NextResponse.json(
+          { success: false, message: "Enter a reason and a valid refund decision." },
+          { status: 400 },
+        );
+      }
+      await deleteOrder(currentUser, id, parsed.data);
       return NextResponse.json({ success: true });
     }
 

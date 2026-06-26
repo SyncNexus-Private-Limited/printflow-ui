@@ -20,7 +20,18 @@
       "Bash(tail -10 /tmp/dev_server.log *)",
       "Bash(npx eslint *)",
       "Bash(npx prettier *)",
-      "Bash(taskkill //PID 44552 //F)"
+      "Bash(taskkill //PID 44552 //F)",
+      "Bash(cd \"d:/projects/codex-PrintFlow/printflow-ui\" && mkdir -p \"app/api/orders/[id]/refunds/[refundId]\")",
+      "Bash(grep -E \"^D:.*\\\\.\\(ts|tsx\\)$\")",
+      "Bash(git status *)",
+      "Bash(git check-ignore *)",
+      "Bash(git stash *)",
+      "Bash(cat .prettierrc*)",
+      "Bash(cat prettier.config.*)",
+      "Bash(grep -A5 '\"prettier\"' package.json)"
+    ],
+    "additionalDirectories": [
+      "D:\\projects\\codex-PrintFlow\\printflow-ui\\app\\api\\orders\\[id]\\refunds"
     ]
   }
 }

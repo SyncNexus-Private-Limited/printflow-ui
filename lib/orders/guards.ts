@@ -45,6 +45,18 @@ export function canCancelOrder(
   );
 }
 
+export function canDeleteOrder(
+  user: AuthenticatedUser,
+  order: { branchId: string; status: string; isDeleted: boolean },
+) {
+  return (
+    hasPermission(user, "orders:delete") &&
+    order.status === "cancelled" &&
+    !order.isDeleted &&
+    canAccessBranch(user, order.branchId)
+  );
+}
+
 export function canAddCustomerPayment(
   user: AuthenticatedUser,
   order: { branchId: string; status: string },

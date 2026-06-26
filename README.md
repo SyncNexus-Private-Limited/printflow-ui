@@ -195,9 +195,13 @@ Role-based access is defined in `lib/auth/permissions.ts`. Every guarded action 
 ## Order management
 
 - `/dashboard/orders/new` creates orders with customer, items, offers, payment, vendor, and summary sections.
-- `/dashboard/orders/[id]` shows order summary, customer payments, vendor expenses, and audit/history.
+- `/dashboard/orders/[id]` shows order summary, customer payments, vendor expenses, refunds, and audit/history.
 - Customer payments use `payments`; vendor payments use `branch_expenses` linked to `order_vendor_id`.
 - Orders breadcrumbs use `Home > Sales > Orders`, including Add/Edit/Detail routes.
+- Cancelling or (soft-)deleting an order requires a mandatory reason and a refund decision (amount + mode); each decision is recorded in `order_refunds` with an independently trackable/updatable refund status.
+- A refund mode of `credit` adds the refunded amount to the customer's store-credit ledger (`customer_credit_transactions`, 1 credit = ₹1) instead of paying it out. That credit can later be applied to a new order for the same customer, capped at the lesser of the available balance and the new order's payable amount.
+- Delete (`orders:delete`, admin-only) is only available once an order is already cancelled — it soft-deletes the order (`is_deleted`) without re-running inventory restoration, since that already happened when the order was cancelled.
+- The customer detail page shows credit balance, cancelled-order count, and refunded-amount metrics alongside recent refunds/credit activity.
 
 ## Toast system
 

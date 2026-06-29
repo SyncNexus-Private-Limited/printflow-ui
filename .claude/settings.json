@@ -29,6 +29,7 @@
       "Bash(cat .prettierrc*)",
       "Bash(cat prettier.config.*)",
       "Bash(grep -A5 '\"prettier\"' package.json)",
+      "Bash(npm install *)",
       "Skill(run)",
       "Skill(run:*)",
       "Bash(ls .claude/skills)",

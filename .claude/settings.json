@@ -41,7 +41,12 @@
       "Bash(curl -s -c /tmp/cookies.txt -X POST http://localhost:3001/api/auth/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"admin123\"}' -w \"\\\\nHTTP:%{http_code}\\\\n\")",
       "Bash(curl -s -i -X POST http://localhost:3001/api/auth/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"admin123\"}')",
       "Bash(taskkill //F //PID 30624)",
-      "Bash(taskkill //F //PID 5296)"
+      "Bash(taskkill //F //PID 5296)",
+      "Bash(sleep 5 && cat /tmp/dev-server.log)",
+      "Bash(curl -s -o /dev/null -w \"login: %{http_code}\\\\n\" http://localhost:3000/login)",
+      "Bash(curl -s -o /dev/null -w \"orders \\(no auth\\): %{http_code}\\\\n\" -D - http://localhost:3000/dashboard/orders)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(git show *)"
     ],
     "additionalDirectories": [
       "D:\\projects\\codex-PrintFlow\\printflow-ui\\app\\api\\orders\\[id]\\refunds"

@@ -39,6 +39,7 @@ Prettier handles formatting, Tailwind class sorting, and PostgreSQL SQL formatti
 - Migration files use `-- migrate:up` and `-- migrate:down`.
 - Applied migrations are tracked in the `schema_migrations` table.
 - 7 consolidated production migrations exist (`20260410_000001` – `20260410_000007`). See `db/MIGRATIONS.md` for the full structure.
+- Several point migrations have since been added on top of that baseline: `lab` customer type, vendor `business_name`, offer `customer_types` array, and order cancellation/refunds/credits.
 - Migration checksums are validated before apply and rollback.
 - Original dev migrations are archived in `db/migrations_dev/` — do not run them.
 - Branch management adds branch audit logs plus created/updated user tracking.
@@ -153,8 +154,12 @@ Role-based access is defined in `lib/auth/permissions.ts`. Every guarded action 
 - Permissions: staff can view, operators can create/edit, managers/admins can archive/restore.
 - Added inventory pricing management: list/create pages, API routes, Zod validation, mutations, overlap-safe DB rules, and audit logs.
 - Added expense category management: list/create UI, API routes, active/inactive handling, RBAC permissions, and audit logs.
-- Added vendors management: list/create UI, edit modal, soft deactivate/restore, RBAC permissions, audit logs.
+- Added vendors management: list/create UI, edit modal, soft deactivate/restore, RBAC permissions, audit logs, a `businessName` field, and a debounced server-search combobox (`/api/vendors/search`) reused in expense and order forms.
+- Added offers management: list/create UI, edit modal, soft deactivate/restore, RBAC permissions, audit logs, and multi-customer-type targeting (`customer_types` array) with redemption tracking.
+- Added user management: admin-only list/create/edit UI plus an Active Users session list, RBAC permissions, audit logs.
 - Added branches management: admin-only list/create UI, edit modal, soft deactivate/restore, RBAC permissions, audit logs.
+- Customers gained a sortable numeric ID column, a `studio_name` field, a `lab` customer type, and a debounced search combobox also reused by the Add Order page to find/prefill a customer.
+- Expense forms now use a local-filter category combobox and a server-search vendor combobox instead of plain `<select>` elements.
 - Inventory v1 features (soft archive, audit logs, stock movements, reorder levels) are part of the consolidated migrations.
 - Shared dashboard table/filter primitives are now used by the newer inventory pricing and expense category screens too.
 
@@ -175,16 +180,36 @@ Role-based access is defined in `lib/auth/permissions.ts`. Every guarded action 
 - `/dashboard/customers` lists customers with create, edit, deactivate, and restore actions.
 - Mutations in `lib/customers/mutations.ts` enforce RBAC and branch access.
 - Deactivate is soft (sets `is_active = false`); hard deletes are not supported.
+- `customer_type` enum: `studio`, `amateur`, `other`, `employee`, `lab`.
+- The customer table has a sortable numeric ID column; search matches name, phone, code, numeric ID, and `studio_name`.
+- The Add Order page reuses this same debounced customer search to find/prefill a customer.
 
 ## Expense categories
 
 - `/dashboard/expenses/categories` lists categories with create, edit, deactivate, and restore actions.
 - All writes are audited in `expense_category_audit_logs`.
+- Expense forms select a category via a local-filter combobox (`components/ui/category-combobox.tsx`) over the page's pre-fetched options.
 
 ## Vendor management
 
 - `/dashboard/vendors` lists vendors with create, edit, deactivate, and restore actions.
-- Mutations in `lib/vendors/mutations.ts` enforce RBAC and audit every change.
+- Mutations in `lib/vendors/mutations.ts` enforce RBAC and audit every change in `vendor_audit_logs`.
+- Vendors have a `businessName` field alongside `name`; both are searchable.
+- `components/ui/vendor-combobox.tsx` does a debounced (300ms) server-side search against `GET /api/vendors/search`, used wherever a form needs to pick a vendor (e.g. expense forms) instead of a plain `<select>`.
+
+## Offer management
+
+- `/dashboard/offers` lists offers with create, edit, deactivate, and restore actions.
+- Mutations in `lib/offers/mutations.ts` enforce RBAC and audit every change in `offer_audit_logs`.
+- Offer types: `percentage`, `flat`, `buy_x_get_y`. An offer can target multiple customer types via a multi-select `customerTypes` array (stored as a GIN-indexed Postgres array column); empty means "all customer types". Redemptions are tracked in `order_applied_offers`.
+- This is a separate concept from the older `offer_items` / `order_offer_items` tables (bundled deal items referenced on orders) — both exist in the schema.
+
+## User management
+
+- `/dashboard/users`, `/dashboard/users/new`, and `/dashboard/users/[id]/edit` are admin-only; `/dashboard/active-users` (live sessions) is admin/manager.
+- Mutations in `lib/users/mutations.ts` (`createUser`, `updateUser`, `updateUserStatus`, `toggleUserLock`, `resetUserPassword`) audit every change in `user_audit_logs`.
+- `lib/users/role-rules.ts` → `requiresBranch(role)` is the single source of truth for whether a role must have a branch assigned.
+- User creation goes through the DB function `create_user_with_auth`.
 
 ## Branch management
 
@@ -195,6 +220,8 @@ Role-based access is defined in `lib/auth/permissions.ts`. Every guarded action 
 ## Order management
 
 - `/dashboard/orders/new` creates orders with customer, items, offers, payment, vendor, and summary sections.
+- The Add Order form includes a debounced (300ms) customer search to find and prefill an existing customer's details.
+- `/dashboard/orders` has a collapsible, debounced (400ms) Order ID quick-search box beside the "Add Order" button, bound to the same order-code filter used by the filter drawer.
 - `/dashboard/orders/[id]` shows order summary, customer payments, vendor expenses, refunds, and audit/history.
 - Customer payments use `payments`; vendor payments use `branch_expenses` linked to `order_vendor_id`.
 - Orders breadcrumbs use `Home > Sales > Orders`, including Add/Edit/Detail routes.
@@ -207,9 +234,13 @@ Role-based access is defined in `lib/auth/permissions.ts`. Every guarded action 
 
 A minimal `ToastProvider` / `useToast()` lives in `lib/ui/toast-context.tsx`, mirroring the `GlobalLoaderContext` pattern. `ToastContainer` (fixed bottom-right) and `ToastItem` (glass card with variant icon) are in `components/ui/toast.tsx`. Both are wired up in `GlobalUiProvider`.
 
+## Combobox pattern
+
+`components/ui/combobox.tsx` is a generic search + dropdown base. Two flavors are built on it: a **server-search** combobox (`vendor-combobox.tsx`, debounced 300ms, hits `/api/vendors/search`) for large/unbounded option sets, and a **local-filter** combobox (`category-combobox.tsx`) that filters a small, already-loaded options list client-side with no network call per keystroke.
+
 ## Dashboard frontend architecture
 
-All list pages (orders, customers, inventory, inventory-pricing, employee-expenses, business-expenses, expense-categories, active-users, users, branches) share a common set of primitives:
+All list pages (orders, customers, inventory, inventory-pricing, offers, vendors, employee-expenses, business-expenses, expense-categories, active-users, users, branches) share a common set of primitives:
 
 **`lib/dashboard/`**
 

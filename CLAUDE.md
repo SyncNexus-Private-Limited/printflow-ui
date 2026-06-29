@@ -47,17 +47,21 @@ app/
     auth/login/         # POST — authenticate_user(), create session
     auth/logout/        # POST — revoke session
     auth/heartbeat/     # POST — touch session last_seen_at
-    expenses/           # POST — create branch/employee expense; [id]/ edit/delete
+    auth/clear/         # POST — clears a stale/invalid session cookie
+    expenses/           # POST — create branch/employee expense; business/[id], employee/[id] edit/delete
     expense-categories/ # POST create; [id]/ PATCH (edit/deactivate/restore)
     branches/           # POST create; [id]/ GET detail, PATCH (edit/deactivate/restore)
     inventory/          # POST create; [id]/ GET item+vendors, PATCH (update/archive/restore/toggle-active/adjust-stock)
     inventory-pricing/  # POST create; [id]/ GET detail, PATCH (update/close)
     customers/          # POST create; [id]/ GET detail, PATCH (update/deactivate/restore)
     orders/             # POST create; [id]/ PATCH (update/status/cancel/delete); [id]/payments POST; [id]/refunds/[refundId] PATCH (refund status); [id]/vendors, [id]/vendors/[orderVendorId]/payments
+    offers/             # POST create; [id]/ PATCH (edit/deactivate/restore)
+    vendors/            # POST create; [id]/ GET detail, PATCH (edit/deactivate/restore); search/ GET — debounced name search for comboboxes
     users/              # POST create; [id]/ PATCH (edit/deactivate/lock/reset-password)
   dashboard/            # Protected dashboard pages (Server Components)
     customers/          # Customer list page
     customers/new/      # Add Customer page
+    customers/[id]/     # Customer detail page (metrics, refunds/credits, audit history)
     branches/           # Branch list page
     branches/new/       # Add Branch page
     inventory/          # Inventory list page
@@ -65,22 +69,40 @@ app/
     inventory/[id]/edit/ # Edit Item page
     inventory/pricing/  # Inventory Pricing list page
     inventory/pricing/new/ # Add Pricing page
+    orders/             # Orders list page
+    orders/new/         # Add Order page
+    orders/[id]/        # Order detail page
+    orders/[id]/edit/   # Edit Order page
+    offers/             # Offers list page
+    offers/new/         # Add Offer page
+    vendors/            # Vendors list page
+    vendors/new/        # Add Vendor page
     expenses/categories/ # Expense Categories list page
     expenses/categories/new/ # Add Expense Category page
+    expenses/new/       # Add Expense page (business/employee)
+    employee-expenses/  # Employee expenses list page
+    business-expenses/  # Business expenses list page
+    users/              # Users list page (admin-only)
+    users/new/          # Add User page (admin-only)
+    users/[id]/edit/    # Edit User page (admin-only)
+    active-users/       # Active sessions list page (admin/manager)
   globals.css           # Tailwind 4 import + CSS variable tokens (light + dark)
 
 components/
   auth/                 # LoginForm, LogoutButton
   branches/             # branch-form.tsx, branch-edit-dialog.tsx
-  customers/            # customer-form.tsx, customer-edit-dialog.tsx
+  customers/            # customer-form.tsx, customer-edit-dialog.tsx, customer-detail-actions.tsx
   dashboard/            # Shell, header, sidebar, data tables, list controls
   expense-categories/   # expense-category-form.tsx, expense-category-edit-dialog.tsx
   expenses/             # Expense form fields, edit/delete dialogs
   orders/               # order-form.tsx, order-edit-form.tsx, order-detail-actions.tsx, order-status-dialog.tsx, cancel-order-dialog.tsx, delete-order-dialog.tsx, refund-decision-fields.tsx, refund-status-dialog.tsx, refunds-section.tsx, order-vendor-dialog.tsx, order-vendor-payment-dialog.tsx, add-payment-dialog.tsx
+  offers/               # offer-form.tsx, offer-edit-dialog.tsx
+  vendors/              # vendor-form.tsx, vendor-edit-dialog.tsx
+  users/                # staff-account-form.tsx, edit-user-form.tsx, user-edit-dialog.tsx, user-role-switch.tsx
   inventory/            # inventory-form.tsx, edit-inventory-form.tsx, edit-inventory-dialog.tsx, adjust-stock-dialog.tsx, inventory-table-with-actions.tsx
   inventory-pricing/    # inventory-pricing-form.tsx, inventory-pricing-dialog.tsx, inventory-pricing-data-table.tsx, inventory-pricing-table-with-actions.tsx
   providers/            # GlobalUiProvider
-  ui/                   # Button, Input, Select, Textarea, Spinner, GlobalLoader, Toast (ToastItem, ToastContainer)
+  ui/                   # Button, Input, Select, Textarea, Spinner, GlobalLoader, Toast (ToastItem, ToastContainer), Dialog, ConfirmDialog, RouteLoading, Combobox (generic base), VendorCombobox (server-search), CategoryCombobox (local-filter)
 
 lib/
   auth/
@@ -96,6 +118,11 @@ lib/
   orders/
     schema.ts / types.ts / queries.ts / mutations.ts / guards.ts
     refund-calc.ts      # percent/amount clamping + conversion shared by cancel/delete dialogs and the apply-credits field
+    form-validation.ts  # Add Order page field-level validation helpers
+  offers/
+    schema.ts / types.ts / queries.ts / mutations.ts
+  vendors/
+    schema.ts / types.ts / queries.ts / mutations.ts
   dashboard/
     queries.ts          # All dashboard DB queries (server-only, parameterized SQL)
     types.ts            # Shared row types
@@ -122,15 +149,16 @@ lib/
   validations/
     auth.ts             # loginSchema
     dashboard.ts        # branchFilterSchema
+    common-validators.ts # shared field-level Zod validators reused across schemas
   ui/                   # GlobalLoaderContext, ToastContext (ToastProvider, useToast), client-preferences
   theme/                # ThemeContext
   utils/                # cn(), format()
 
 db/
-  migrations/           # SQL migration files — baseline, expense schema hardening, expense/user audit logs,
-                        # inventory_v1 (soft-delete, audit logs, stock movements),
-                        # expense_categories_management, expense_category_audit_logs,
-                        # inventory_pricing_audit_logs, customer_management, branches_management
+  migrations/           # 7 consolidated production migrations (20260410_000001-000007: foundation,
+                        # operational entities, inventory, orders, expenses, audit logs, offers/admin),
+                        # plus point migrations added since: add_labs_customer_type, add_vendor_business_name,
+                        # offer_customer_types_array, order_cancellation_refunds_credits
   seeds/dev_seed.sql
   reset/dev_reset.sql
 
@@ -203,9 +231,11 @@ npm run db:reset:dev -- --confirm printflow_dev
 
 ## DB Schema
 
-**Core tables:** `branches`, `branch_audit_logs`, `users`, `user_auth`, `app_sessions`, `customers`, `vendors`, `inventory`, `inventory_pricing`, `inventory_audit_logs`, `inventory_pricing_audit_logs`, `inventory_stock_movements`, `orders`, `order_items`, `payments`, `order_vendors`, `offer_items`, `order_offer_items`, `order_refunds`, `customer_credit_transactions`, `branch_expenses`, `employee_expenses`, `expense_categories`, `expense_category_audit_logs`, `expense_attachments`, `order_sequences`
+**Core tables:** `branches`, `branch_audit_logs`, `users`, `user_audit_logs`, `user_auth`, `app_sessions`, `customers`, `customer_audit_logs`, `vendors`, `vendor_audit_logs`, `inventory`, `inventory_pricing`, `inventory_audit_logs`, `inventory_pricing_audit_logs`, `inventory_stock_movements`, `orders`, `order_items`, `order_audit_logs`, `payments`, `order_vendors`, `offers`, `offer_audit_logs`, `order_applied_offers`, `offer_items`, `order_offer_items`, `order_refunds`, `customer_credit_transactions`, `branch_expenses`, `employee_expenses`, `business_expense_audit_logs`, `employee_expense_audit_logs`, `expense_categories`, `expense_category_audit_logs`, `expense_attachments`, `order_sequences`
 
-**Enums:** `user_role` (admin/manager/operator/staff), `order_status`, `payment_mode`, `payment_status`, `refund_status_value` (pending/processing/completed/failed), `inventory_unit`, `customer_type`
+Note: `offers` (promotional discounts: percentage/flat/buy_x_get_y, targeted via `customer_types`) and `order_applied_offers` are a separate feature from the older `offer_items`/`order_offer_items` (bundled deal items referenced on orders) — both exist and are unrelated.
+
+**Enums:** `user_role` (admin/manager/operator/staff), `order_status`, `payment_mode`, `payment_status`, `refund_status_value` (pending/processing/completed/failed), `inventory_unit`, `customer_type` (studio/amateur/other/employee/lab — `lab` added via a later migration with `ALTER TYPE ... ADD VALUE`)
 
 **Key DB functions:**
 
@@ -259,21 +289,28 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 | `branches:view / create / edit / deactivate / restore` | admin only | - | - | - |
 | `branches:select_all` | ✓ | — | — | — |
 | `users:view` | ✓ | ✓ | — | — |
-| `users:create` | ✓ | — | — | — |
-| `users:edit / deactivate / lock / reset_password` | ✓ | — | — | — |
+| `users:create / edit / deactivate / lock / reset_password` | admin only | - | - | - |
+| `orders:create / view / add_payment` | ✓ | ✓ | ✓ | ✓ |
+| `orders:edit / update_status / cancel / edit_vendor / add_vendor_payment` | ✓ | ✓ | ✓ | — |
+| `orders:apply_discount` | ✓ | ✓ | ✓ | — |
+| `orders:apply_high_discount` | ✓ | ✓ | — | — |
+| `orders:delete` | admin only | - | - | - |
 | `expenses:view` | ✓ | ✓ | ✓ | ✓ |
 | `expenses:create / edit` | ✓ | ✓ | ✓ | ✓ |
 | `expenses:delete` | ✓ | ✓ | ✓ | — |
 | `expense-categories:view` | ✓ | ✓ | ✓ | ✓ |
 | `expense-categories:create / edit` | ✓ | ✓ | — | — |
 | `expense-categories:deactivate / restore` | ✓ | ✓ | — | — |
+| `vendors:view` | ✓ | ✓ | ✓ | ✓ |
+| `vendors:create / edit / deactivate / restore` | ✓ | ✓ | — | — |
+| `offers:view` | ✓ | ✓ | ✓ | ✓ |
+| `offers:create / edit / deactivate / restore` | ✓ | ✓ | — | — |
 | `inventory:view` | ✓ | ✓ | ✓ | ✓ |
 | `inventory:create / edit` | ✓ | ✓ | ✓ | — |
 | `inventory:archive / restore` | ✓ | ✓ | — | — |
 | `customers:view` | ✓ | ✓ | ✓ | ✓ |
 | `customers:create / edit` | ✓ | ✓ | ✓ | — |
 | `customers:deactivate / restore` | ✓ | ✓ | — | — |
-| `orders:delete` | admin only | - | - | - |
 
 **To add a permission:** (1) add to `Permission` union in `permissions.ts`, (2) grant to appropriate roles in `ROLE_PERMISSIONS`, (3) enforce in the relevant server mutation / API handler / page.
 
@@ -313,6 +350,31 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 - Use `lib/customers/schema.ts` for validation and `lib/customers/mutations.ts` for all writes.
 - Enforce `assertPermission` + `canAccessBranch` for all customer mutations.
 - Deactivate is soft — sets `is_active = false`; restore re-activates. Do not hard-delete customers.
+- `customer_type` enum values: `studio`, `amateur`, `other`, `employee`, `lab`.
+- `customer-data-table.tsx` includes a sortable numeric ID column (`customer_numeric_id`); list/search also matches on `customer_numeric_id::text` and `studio_name` alongside name/phone/code (`/api/customers` route, `lib/dashboard/customer-page-filters.ts`).
+- The Add Order page (`order-form.tsx`) reuses the same customer search (debounced, hits `/api/customers?q=`) to find/prefill a customer when creating an order — do not duplicate the matching logic.
+
+## Vendor Management Rules
+
+- `/dashboard/vendors` lists vendors with create, edit, deactivate, and restore actions; admin/manager can mutate, all roles can view (`vendors:view`).
+- Use `lib/vendors/schema.ts` for validation and `lib/vendors/mutations.ts` for all writes. All writes are audited in `vendor_audit_logs`.
+- Vendors have a `businessName` field alongside `name` (`lib/vendors/types.ts`); both are searchable.
+- `components/ui/vendor-combobox.tsx` wraps the generic `Combobox` (see UI Rules → Combobox pattern) for server-side debounced (300ms) vendor search against `GET /api/vendors/search?q=`, gated by `vendors:view`. Used wherever a form needs to pick a vendor (e.g. expense forms) instead of a plain `<Select>`.
+
+## Offers Management Rules
+
+- `/dashboard/offers` lists offers with create, edit, deactivate, and restore actions; admin/manager can mutate, all roles can view (`offers:view`).
+- Use `lib/offers/schema.ts` for validation and `lib/offers/mutations.ts` for all writes. All writes are audited in `offer_audit_logs`.
+- `offerTypeValues`: `percentage`, `flat`, `buy_x_get_y` (`lib/offers/types.ts`).
+- An offer can target multiple customer types via `customerTypes: OfferCustomerType[]` (multi-select chips in `offer-form.tsx`), stored as the `offers.customer_types` array column (GIN-indexed); `null`/empty means "all customer types". Redemptions are tracked in `order_applied_offers`.
+
+## User Management Rules
+
+- User administration is admin-only: `/dashboard/users`, `/dashboard/users/new`, `/dashboard/users/[id]/edit`, and `/api/users/**`. Admins can also view (not administer) via `users:view` (also granted to manager).
+- `/dashboard/active-users` lists live sessions (admin/manager).
+- Use `lib/users/schema.ts` for validation and `lib/users/mutations.ts` (`createUser`, `updateUser`, `updateUserStatus`, `toggleUserLock`, `resetUserPassword`) for all writes. All writes are audited in `user_audit_logs`.
+- `lib/users/role-rules.ts` → `requiresBranch(role)` is the single source of truth for whether a role must have a `branchId` — do not inline role/branch checks elsewhere.
+- User creation goes through the DB function `create_user_with_auth` (admin-only, enforced in DB).
 
 ## Branch Management Rules
 
@@ -324,6 +386,8 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 ## Order Management Rules
 
 - Add Order lives at `/dashboard/orders/new` and uses `components/orders/order-form.tsx`.
+- `order-form.tsx` includes a debounced (300ms) customer search (hits `/api/customers?q=`) to find and prefill an existing customer's details when creating an order; field-level validation for the form lives in `lib/orders/form-validation.ts`.
+- `/dashboard/orders` has a collapsible, debounced (400ms) Order ID quick-search box beside the "Add Order" button (`order-list-controls.tsx`), bound to the same `orderCode` filter used by the filter drawer's "Order code" field — no separate query path.
 - Order detail at `/dashboard/orders/[id]` separates customer payments (`payments`) from vendor payments (`branch_expenses` linked to `order_vendor_id`).
 - Order breadcrumbs follow `Home > Sales > Orders`, including Add/Edit/Detail routes.
 - Cancel (`orders:cancel`) requires a mandatory free-text reason and a refund decision (amount + mode); `cancelOrder`/`deleteOrder` live in `lib/orders/mutations.ts`, validated by `cancelOrderSchema`/`deleteOrderSchema` in `lib/orders/schema.ts`.
@@ -358,9 +422,17 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 - `components/dashboard/forbidden-toast.tsx` — one-shot component; reads `window.location.search` directly (not `useSearchParams()`) to detect `?forbidden=1`, calls `showToast`, clears param via `window.history.replaceState`. Uses `[]` dep array so it fires exactly once on mount.
 - **Do not use `useSearchParams()`** for one-shot URL-param detection in components rendered from async server component boundaries without an explicit `<Suspense>` wrapper — the hook may return stale/empty values during hydration. Use `window.location.search` instead.
 
+### Combobox pattern
+
+- `components/ui/combobox.tsx` is the generic base: search input + dropdown list, `getOptionLabel`/`getOptionDescription`, `onQueryChange`, `isLoading`, and a `disableLocalFilter` prop.
+- Two flavors built on it:
+  - **Server-search** (`components/ui/vendor-combobox.tsx`): sets `disableLocalFilter`, debounces `onQueryChange` (300ms via inline `setTimeout`, no shared debounce hook) and fetches `GET /api/vendors/search?q=`.
+  - **Local-filter** (`components/ui/category-combobox.tsx`): no `disableLocalFilter` — filters a pre-fetched options list client-side, no network call per keystroke.
+- Pick server-search when the full option set is large/unbounded (vendors); pick local-filter when the page already loaded a small bounded list (expense categories).
+
 ### Dashboard list page conventions
 
-All list pages (orders, customers, inventory, inventory-pricing, employee-expenses, business-expenses, expense-categories, active-users, users, branches) share a common structure:
+All list pages (orders, customers, inventory, inventory-pricing, offers, vendors, employee-expenses, business-expenses, expense-categories, active-users, users, branches) share a common structure:
 
 **Filter controls (`*-list-controls.tsx`)**
 
@@ -409,18 +481,24 @@ All list pages (orders, customers, inventory, inventory-pricing, employee-expens
 
 - Inventory pricing now has dashboard list/create pages, API routes, `lib/inventory-pricing` schemas/mutations/types, overlap-safe DB enforcement, close/update flows, and `inventory_pricing_audit_logs`.
 - Expense categories now have dashboard list/create pages, API routes, `lib/expense-categories` logic, active/inactive/restore handling, RBAC permissions, and `expense_category_audit_logs`.
-- Vendors now have dashboard list/create pages, API routes, `lib/vendors` logic, edit modal, soft deactivate/restore, RBAC permissions, `vendor_audit_logs`.
+- Vendors now have dashboard list/create pages, API routes, `lib/vendors` logic, edit modal, soft deactivate/restore, RBAC permissions, `vendor_audit_logs`, a `businessName` field, and a debounced server-search `VendorCombobox` (`/api/vendors/search`) reused in expense and order forms.
 - Branches now have admin-only dashboard list/create pages, API routes, `lib/branches` logic, edit modal, soft deactivate/restore, RBAC permissions, `branch_audit_logs`.
-- Orders now have Add Order, detail/edit, status, customer payment, vendor assignment/payment, and audit history flows.
+- Orders now have Add Order (with debounced customer search/prefill), detail/edit, status, customer payment, vendor assignment/payment, and audit history flows, plus an Order ID quick-search box on the list page.
 - Orders now also have reasoned cancel/soft-delete with refund tracking (`order_refunds`, independently updatable refund status) and a customer store-credit ledger (`customer_credit_transactions`) that can be issued on refund and spent on a future order, capped at `min(balance, payable)`. `orders:delete` is a new admin-only permission, only usable on already-cancelled orders.
-- Migrations were consolidated from 18 dev migrations into 7 production migrations (`20260410_000001` – `20260410_000007`). Old files are archived in `db/migrations_dev/` — do not run them.
-- Shared dashboard list/table/filter primitives also support the newer inventory pricing and expense category pages.
+- Offers now have dashboard list/create pages, API routes, `lib/offers` logic, multi-customer-type targeting (`customer_types` array), RBAC permissions, `offer_audit_logs`, and redemption tracking via `order_applied_offers`.
+- User management now has admin-only dashboard list/create/edit pages and an Active Users session list, API routes, `lib/users` logic (`role-rules.ts` → `requiresBranch`), RBAC permissions, `user_audit_logs`.
+- Customers now have a sortable numeric ID column, a `studio_name` field, a `lab` customer type, and a debounced customer-search combobox reused by the order form.
+- Expense forms now use `CategoryCombobox` (local-filter) for category selection and `VendorCombobox` (server-search) for vendor selection, replacing plain `<Select>` elements.
+- The 18 original dev migrations were consolidated into 7 production migrations (`20260410_000001` – `20260410_000007`); old files are archived in `db/migrations_dev/` — do not run them. Several point migrations have since been added on top of that baseline (lab customer type, vendor business name, offer customer-types array, order cancellation/refunds/credits) — see `db/migrations/`.
+- Shared dashboard list/table/filter primitives also support the newer inventory pricing, expense category, offers, vendors, and user-management pages.
 - Keep using `assertPermission` plus `canAccessBranch` for these flows; inventory pricing reuses inventory create/edit permissions.
 
 ### Sidebar navigation (`components/dashboard/dashboard-navigation.tsx`)
 
 - Inventory is a `type: "group"` with two children: Inventory (`/dashboard/inventory`) and Inventory Pricing (`/dashboard/inventory/pricing`).
 - Sales is a `type: "group"` with listing children only: Orders, Customers, and Offers.
+- Expenses is a `type: "group"` with listing children only: Employee Expenses, Business Expenses, and Expense Categories.
+- Users is a `type: "group"` with listing children only: Users and Active Users.
 - Vendors is a listing link only.
 - Branches is an admin-only listing link only.
 - No add-action links in the sidebar — creation is always via the top-nav Create menu or page-level Add buttons.

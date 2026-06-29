@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { ChevronDown, Plus } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { ChevronDown, Plus, Search, X } from "lucide-react";
 import {
   AppliedFilterPills,
   type AppliedFilterSummaryItem,
@@ -262,7 +263,13 @@ export function OrderListControls({
   selectedBranchName,
   canCreate,
 }: OrderListControlsProps) {
+  const router = useRouter();
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(!!currentFilters.orderCode);
+  const [searchValue, setSearchValue] = useState(currentFilters.orderCode ?? "");
+  const [, startSearchTransition] = useTransition();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentHref = useMemo(
     () => buildOrderPageHref(currentPath, currentFilters),
@@ -394,7 +401,47 @@ export function OrderListControls({
       outstandingMax: null,
     }));
 
+    setSearchValue("");
     navigateToHref(nextHref);
+  };
+
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    const trimmed = searchValue.trim();
+    const current = currentFilters.orderCode ?? "";
+    if (trimmed === current) return;
+    searchDebounceRef.current = setTimeout(() => {
+      const nextHref = buildOrderPageHref(currentPath, currentFilters, {
+        orderCode: trimmed.length > 0 ? trimmed : null,
+        page: 1,
+      });
+      startSearchTransition(() => {
+        router.push(nextHref, { scroll: false });
+      });
+    }, 400);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchValue]);
+
+  const handleSearchOpen = () => {
+    setIsSearchOpen(true);
+    setTimeout(() => searchInputRef.current?.focus(), 0);
+  };
+
+  const handleSearchClear = () => {
+    setSearchValue("");
+    setIsSearchOpen(false);
+    if (currentFilters.orderCode) {
+      const nextHref = buildOrderPageHref(currentPath, currentFilters, {
+        orderCode: null,
+        page: 1,
+      });
+      startSearchTransition(() => {
+        router.push(nextHref, { scroll: false });
+      });
+    }
   };
 
   return (
@@ -410,6 +457,41 @@ export function OrderListControls({
           </div>
 
           <div className="flex shrink-0 items-center gap-2 self-start">
+            {isSearchOpen ? (
+              <div className="flex items-center gap-1 overflow-hidden rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--background))] px-3 shadow-sm focus-within:ring-2 focus-within:ring-[rgb(var(--primary)/0.35)]">
+                <Search
+                  className="h-4 w-4 shrink-0 text-[rgb(var(--muted-foreground))]"
+                  strokeWidth={1.9}
+                  aria-hidden="true"
+                />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  placeholder="Search by Order ID"
+                  className="h-10 w-48 min-w-0 bg-transparent text-sm text-[rgb(var(--foreground))] placeholder:text-[rgb(var(--muted-foreground))] focus:outline-none sm:w-56"
+                  aria-label="Search orders"
+                />
+                <button
+                  type="button"
+                  onClick={handleSearchClear}
+                  className="ml-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[rgb(var(--muted-foreground))] hover:text-[rgb(var(--foreground))] focus-visible:outline-none"
+                  aria-label="Clear search"
+                >
+                  <X className="h-3.5 w-3.5" strokeWidth={2} aria-hidden="true" />
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSearchOpen}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))] text-[rgb(var(--muted-foreground))] shadow-sm transition-colors hover:bg-[rgb(var(--muted)/0.5)] hover:text-[rgb(var(--foreground))] focus-visible:ring-2 focus-visible:ring-[rgb(var(--primary)/0.35)] focus-visible:ring-offset-2 focus-visible:outline-none"
+                aria-label="Search orders"
+              >
+                <Search className="h-4 w-4" strokeWidth={1.9} aria-hidden="true" />
+              </button>
+            )}
             {canCreate ? (
               <Link
                 href="/dashboard/orders/new"

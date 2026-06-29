@@ -28,7 +28,8 @@
       "Bash(git stash *)",
       "Bash(cat .prettierrc*)",
       "Bash(cat prettier.config.*)",
-      "Bash(grep -A5 '\"prettier\"' package.json)"
+      "Bash(grep -A5 '\"prettier\"' package.json)",
+      "Bash(npm install *)"
     ],
     "additionalDirectories": [
       "D:\\projects\\codex-PrintFlow\\printflow-ui\\app\\api\\orders\\[id]\\refunds"

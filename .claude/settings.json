@@ -46,7 +46,25 @@
       "Bash(curl -s -o /dev/null -w \"login: %{http_code}\\\\n\" http://localhost:3000/login)",
       "Bash(curl -s -o /dev/null -w \"orders \\(no auth\\): %{http_code}\\\\n\" -D - http://localhost:3000/dashboard/orders)",
       "Bash(echo \"exit: $?\")",
-      "Bash(git show *)"
+      "Bash(git show *)",
+      "Bash(node \"C:\\\\Users\\\\PATTAB~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--projects-codex-PrintFlow-printflow-ui\\\\0e2a4a44-e86e-4f22-94c4-053db6aec83e\\\\scratchpad\\\\verify_cancel_trigger.mjs\")",
+      "Bash(curl -s -i http://localhost:3000 --max-time 3)",
+      "Bash(node \"C:\\\\Users\\\\PATTAB~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\d--projects-codex-PrintFlow-printflow-ui\\\\0e2a4a44-e86e-4f22-94c4-053db6aec83e\\\\scratchpad\\\\setup_verify_fixtures.mjs\")",
+      "Read(//d/tmp/**)",
+      "Bash(rm -f cookies.txt)",
+      "Bash(curl -s -i -c cookies.txt -X POST http://localhost:3000/api/auth/login -H 'Content-Type: application/json' -d '{\"username\":\"verify_admin\",\"password\":\"VerifyTest@12345\"}')",
+      "Bash(curl -s -i -c /tmp/cookies.txt -X POST http://localhost:3000/api/auth/login -H \"Content-Type: application/json\" -d '{\"username\":\"verify_admin\",\"password\":\"VerifyTest@12345\"}')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3000 --max-time 3)",
+      "Bash(curl -s -i -X POST http://localhost:3000/api/auth/login -H \"Content-Type: application/json\" -d '{\"username\":\"verify_admin\",\"password\":\"VerifyTest@12345\"}' --max-time 5)",
+      "Bash(powershell -NoProfile -Command \"Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | Select-Object State,OwningProcess\")",
+      "Bash(powershell -NoProfile -Command \"Get-Process node -ErrorAction SilentlyContinue | Select-Object Id,ProcessName,StartTime\")",
+      "Bash(curl -s -i -b /tmp/cookies.txt -X POST http://localhost:3000/api/orders -H 'Content-Type: application/json' -d '{ *)",
+      "Bash(curl -s -i -b /tmp/cookies.txt -X POST http://localhost:3000/api/orders/__TRACKED_VAR__/payments -H 'Content-Type: application/json' -d '{\"amount\":\"300\",\"paymentMode\":\"cash\"}')",
+      "Bash(curl -s -b /tmp/cookies.txt http://localhost:3000/dashboard/orders/__TRACKED_VAR__ -o /tmp/order_before.html)",
+      "Bash(cd \"d:/projects/codex-PrintFlow/printflow-ui\" && grep -oE '\"payableAmount\\\\\\\\\":[0-9.]*|\"paidAmount\\\\\\\\\":[0-9.]*|\"paymentStatus\\\\\\\\\":\\\\\\\\\"[a-z]*|\"status\\\\\\\\\":\\\\\\\\\"[a-z]*' /tmp/order_before.html | sort -u | head -20)",
+      "Bash(cd \"d:/projects/codex-PrintFlow/printflow-ui\" && grep -oE 'payableAmount[^,]{0,20}|paymentStatus[^,]{0,25}' /tmp/order_before.html | sort -u)",
+      "Bash(python3 -c ' *)",
+      "Bash(curl -s -i -b /tmp/cookies.txt http://localhost:3000/dashboard/orders/__TRACKED_VAR__)"
     ],
     "additionalDirectories": [
       "D:\\projects\\codex-PrintFlow\\printflow-ui\\app\\api\\orders\\[id]\\refunds"

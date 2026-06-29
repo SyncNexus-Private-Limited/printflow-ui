@@ -40,7 +40,8 @@
       "Bash(rm -f /tmp/cookies.txt)",
       "Bash(curl -s -c /tmp/cookies.txt -X POST http://localhost:3001/api/auth/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"admin123\"}' -w \"\\\\nHTTP:%{http_code}\\\\n\")",
       "Bash(curl -s -i -X POST http://localhost:3001/api/auth/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"admin123\"}')",
-      "Bash(taskkill //F //PID 30624)"
+      "Bash(taskkill //F //PID 30624)",
+      "Bash(taskkill //F //PID 5296)"
     ],
     "additionalDirectories": [
       "D:\\projects\\codex-PrintFlow\\printflow-ui\\app\\api\\orders\\[id]\\refunds"

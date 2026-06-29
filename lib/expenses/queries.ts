@@ -115,14 +115,19 @@ export async function getExpenseEmployees(
   return rows;
 }
 
-export async function getExpenseVendors(db?: Queryable): Promise<ExpenseVendorOption[]> {
+export async function getExpenseVendors(
+  limit: number | null = null,
+  db?: Queryable,
+): Promise<ExpenseVendorOption[]> {
   const { rows } = await getQueryable(db).query<ExpenseVendorOption>(
     `
       SELECT id::text AS id, name
       FROM vendors
       WHERE is_active = true
       ORDER BY name ASC
+      LIMIT $1
     `,
+    [limit],
   );
 
   return rows;
@@ -199,7 +204,7 @@ export async function getExpenseFormPageData(
       type === "employee"
         ? getExpenseEmployees(branchId, db)
         : Promise.resolve<ExpenseEmployeeOption[]>([]),
-      type === "business" ? getExpenseVendors(db) : Promise.resolve<ExpenseVendorOption[]>([]),
+      type === "business" ? getExpenseVendors(5, db) : Promise.resolve<ExpenseVendorOption[]>([]),
       type === "employee"
         ? getExpenseOrders(branchId, db)
         : Promise.resolve<ExpenseOrderOption[]>([]),

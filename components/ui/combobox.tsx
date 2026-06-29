@@ -18,6 +18,12 @@ type ComboboxProps<TOption extends { id: string }> = {
   searchAriaLabel?: string;
   listAriaLabel?: string;
   emptyMessage?: string;
+  /** Fired on every search-input keystroke (and with "" on close/select), for server-driven search. */
+  onQueryChange?: (query: string) => void;
+  /** When true, skip the built-in client-side filter — `options` is assumed pre-filtered by the caller. */
+  disableLocalFilter?: boolean;
+  isLoading?: boolean;
+  loadingMessage?: string;
 };
 
 export function Combobox<TOption extends { id: string }>({
@@ -34,6 +40,10 @@ export function Combobox<TOption extends { id: string }>({
   searchAriaLabel = "Search options",
   listAriaLabel = "Options",
   emptyMessage = "No options found.",
+  onQueryChange,
+  disableLocalFilter = false,
+  isLoading = false,
+  loadingMessage = "Searching…",
 }: ComboboxProps<TOption>) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -46,8 +56,9 @@ export function Combobox<TOption extends { id: string }>({
 
   const selectedOption = options.find((o) => o.id === value) ?? null;
 
-  const filteredOptions =
-    query.trim() === ""
+  const filteredOptions = disableLocalFilter
+    ? options
+    : query.trim() === ""
       ? options
       : options.filter((o) => {
           const q = query.toLowerCase();
@@ -97,6 +108,7 @@ export function Combobox<TOption extends { id: string }>({
     setIsOpen(false);
     setQuery("");
     setActiveIndex(-1);
+    onQueryChange?.("");
     onBlur?.();
   }
 
@@ -105,6 +117,7 @@ export function Combobox<TOption extends { id: string }>({
     setIsOpen(false);
     setQuery("");
     setActiveIndex(-1);
+    onQueryChange?.("");
     requestAnimationFrame(() => triggerRef.current?.focus());
   }
 
@@ -199,6 +212,7 @@ export function Combobox<TOption extends { id: string }>({
               onChange={(e) => {
                 setQuery(e.target.value);
                 setActiveIndex(-1);
+                onQueryChange?.(e.target.value);
               }}
               onKeyDown={handleSearchKeyDown}
               placeholder={searchPlaceholder}
@@ -216,7 +230,11 @@ export function Combobox<TOption extends { id: string }>({
             aria-label={listAriaLabel}
             className="max-h-56 overflow-y-auto py-1"
           >
-            {filteredOptions.length === 0 ? (
+            {isLoading ? (
+              <li className="px-3 py-2 text-sm text-[rgb(var(--muted-foreground))]">
+                {loadingMessage}
+              </li>
+            ) : filteredOptions.length === 0 ? (
               <li className="px-3 py-2 text-sm text-[rgb(var(--muted-foreground))]">
                 {emptyMessage}
               </li>

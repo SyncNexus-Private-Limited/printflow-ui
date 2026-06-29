@@ -149,6 +149,7 @@ export type OrderDetailRow = {
   paymentModeSummary: string | null;
   vendorCount: number;
   itemCount: number;
+  refundedAmount: number;
 };
 
 export type CustomerDetailRow = {

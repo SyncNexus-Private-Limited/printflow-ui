@@ -1,0 +1,32 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"main": ".open-next/worker.js",
+	"name": "printflow-ui",
+	"compatibility_date": "2026-05-25",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"hyperdrive": [
+		{
+			"binding": "HYPERDRIVE",
+			"id": "3cc21cae13b048859602fcac1b85210d",
+			"localConnectionString": "postgresql://postgres.ugymdbscnaqpqbvtiups:quxsig-gYjgem-mafry7@aws-1-ap-south-1.pooler.supabase.com:6543/postgres"
+		}
+	],
+	"assets": {
+		"directory": ".open-next/assets",
+		"binding": "ASSETS"
+	},
+	"services": [
+		{
+			"binding": "WORKER_SELF_REFERENCE",
+			"service": "printflow-ui"
+		}
+	],
+	"images": {
+		"binding": "IMAGES"
+	},
+	"observability": {
+		"enabled": true
+	}
+}

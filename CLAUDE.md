@@ -53,6 +53,7 @@ app/
     inventory/          # POST create; [id]/ GET item+vendors, PATCH (update/archive/restore/toggle-active/adjust-stock)
     inventory-pricing/  # POST create; [id]/ GET detail, PATCH (update/close)
     customers/          # POST create; [id]/ GET detail, PATCH (update/deactivate/restore)
+    orders/             # POST create; [id]/ PATCH (update/status/cancel/delete); [id]/payments POST; [id]/refunds/[refundId] PATCH (refund status); [id]/vendors, [id]/vendors/[orderVendorId]/payments
     users/              # POST create; [id]/ PATCH (edit/deactivate/lock/reset-password)
   dashboard/            # Protected dashboard pages (Server Components)
     customers/          # Customer list page
@@ -75,6 +76,7 @@ components/
   dashboard/            # Shell, header, sidebar, data tables, list controls
   expense-categories/   # expense-category-form.tsx, expense-category-edit-dialog.tsx
   expenses/             # Expense form fields, edit/delete dialogs
+  orders/               # order-form.tsx, order-edit-form.tsx, order-detail-actions.tsx, order-status-dialog.tsx, cancel-order-dialog.tsx, delete-order-dialog.tsx, refund-decision-fields.tsx, refund-status-dialog.tsx, refunds-section.tsx, order-vendor-dialog.tsx, order-vendor-payment-dialog.tsx, add-payment-dialog.tsx
   inventory/            # inventory-form.tsx, edit-inventory-form.tsx, edit-inventory-dialog.tsx, adjust-stock-dialog.tsx, inventory-table-with-actions.tsx
   inventory-pricing/    # inventory-pricing-form.tsx, inventory-pricing-dialog.tsx, inventory-pricing-data-table.tsx, inventory-pricing-table-with-actions.tsx
   providers/            # GlobalUiProvider
@@ -91,6 +93,9 @@ lib/
     schema.ts / types.ts / queries.ts / mutations.ts
   branches/
     schema.ts / types.ts / queries.ts / mutations.ts
+  orders/
+    schema.ts / types.ts / queries.ts / mutations.ts / guards.ts
+    refund-calc.ts      # percent/amount clamping + conversion shared by cancel/delete dialogs and the apply-credits field
   dashboard/
     queries.ts          # All dashboard DB queries (server-only, parameterized SQL)
     types.ts            # Shared row types
@@ -198,9 +203,9 @@ npm run db:reset:dev -- --confirm printflow_dev
 
 ## DB Schema
 
-**Core tables:** `branches`, `branch_audit_logs`, `users`, `user_auth`, `app_sessions`, `customers`, `vendors`, `inventory`, `inventory_pricing`, `inventory_audit_logs`, `inventory_pricing_audit_logs`, `inventory_stock_movements`, `orders`, `order_items`, `payments`, `order_vendors`, `offer_items`, `order_offer_items`, `branch_expenses`, `employee_expenses`, `expense_categories`, `expense_category_audit_logs`, `expense_attachments`, `order_sequences`
+**Core tables:** `branches`, `branch_audit_logs`, `users`, `user_auth`, `app_sessions`, `customers`, `vendors`, `inventory`, `inventory_pricing`, `inventory_audit_logs`, `inventory_pricing_audit_logs`, `inventory_stock_movements`, `orders`, `order_items`, `payments`, `order_vendors`, `offer_items`, `order_offer_items`, `order_refunds`, `customer_credit_transactions`, `branch_expenses`, `employee_expenses`, `expense_categories`, `expense_category_audit_logs`, `expense_attachments`, `order_sequences`
 
-**Enums:** `user_role` (admin/manager/operator/staff), `order_status`, `payment_mode`, `payment_status`, `inventory_unit`, `customer_type`
+**Enums:** `user_role` (admin/manager/operator/staff), `order_status`, `payment_mode`, `payment_status`, `refund_status_value` (pending/processing/completed/failed), `inventory_unit`, `customer_type`
 
 **Key DB functions:**
 
@@ -268,6 +273,7 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 | `customers:view` | ✓ | ✓ | ✓ | ✓ |
 | `customers:create / edit` | ✓ | ✓ | ✓ | — |
 | `customers:deactivate / restore` | ✓ | ✓ | — | — |
+| `orders:delete` | admin only | - | - | - |
 
 **To add a permission:** (1) add to `Permission` union in `permissions.ts`, (2) grant to appropriate roles in `ROLE_PERMISSIONS`, (3) enforce in the relevant server mutation / API handler / page.
 
@@ -320,6 +326,16 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 - Add Order lives at `/dashboard/orders/new` and uses `components/orders/order-form.tsx`.
 - Order detail at `/dashboard/orders/[id]` separates customer payments (`payments`) from vendor payments (`branch_expenses` linked to `order_vendor_id`).
 - Order breadcrumbs follow `Home > Sales > Orders`, including Add/Edit/Detail routes.
+- Cancel (`orders:cancel`) requires a mandatory free-text reason and a refund decision (amount + mode); `cancelOrder`/`deleteOrder` live in `lib/orders/mutations.ts`, validated by `cancelOrderSchema`/`deleteOrderSchema` in `lib/orders/schema.ts`.
+- `refund_mode` reuses the `payment_mode` enum (cash/upi/card/credit/other) — `credit` means the refund is added to the customer's store-credit ledger instead of being paid out physically; there is no separate cash/credit split.
+- `trg_restore_inventory_on_cancel` is unchanged and still restores inventory the moment `orders.status` transitions into `'cancelled'`. **Delete** (`orders:delete`, admin-only) is only allowed when `status = 'cancelled'`; it sets `is_deleted = true` without touching `status`, so the trigger never re-fires — inventory is not adjusted a second time.
+- Every cancel/delete inserts an `order_refunds` row (`trigger_action`, `reason`, `refund_basis_amount`, `refund_percent`, `refund_amount`, `refund_mode`, `refund_status`). `refund_percent` is always derived server-side from `refund_amount / refund_basis_amount` — the client only ever sends `refund_amount`.
+- Refund status (`pending` / `processing` / `completed` / `failed`) is updated via `updateOrderRefundStatus` (reuses `orders:cancel`) through `PATCH /api/orders/[id]/refunds/[refundId]`, logged to `order_audit_logs` as `refund_status_updated`. Cancel/delete are logged as `cancelled`/`deleted`.
+- Customer store credit (1 credit = ₹1) is a ledger, not a column: `customer_credit_transactions.amount` is positive for `refund_credit` (issued at cancel/delete) and negative for `applied_to_order` (spent on a new order); balance is always `SUM(amount)` per customer.
+- Applying existing credit to a new order is a normal `payments` row with `mode = 'credit'` (reuses `trg_recalculate_order_after_payments` — no new derived-field logic) plus a paired negative `customer_credit_transactions` row. The applied amount is capped at `min(creditBalance, payableAmount)` client-side (`order-form.tsx`) and server-side (`createOrder`, serialized per customer via `pg_advisory_xact_lock(hashtext(customerId))` to prevent concurrent overspend).
+- `getOrdersPageData` filters `is_deleted = false` by default — a deleted order disappears from `/dashboard/orders` but stays reachable directly at `/dashboard/orders/[id]` with a "Deleted" pill and `deletionReason` shown.
+- Percent/amount sync math used by `cancel-order-dialog.tsx`, `delete-order-dialog.tsx`, and the order-form credits field lives in `lib/orders/refund-calc.ts` (`percentToAmount`, `amountToPercent`, `clampRefundAmount`, `clampRefundPercent`) — reuse it, don't duplicate the clamping inline.
+- Customer detail page (`/dashboard/customers/[id]`) shows `creditBalance`, `cancelledOrders`, `totalRefunded`, and `pendingRefundAmount` metrics plus a "Refunds & Credits" section listing recent `order_refunds` and `customer_credit_transactions` rows — sourced from `getCustomerDetailPageData` in `lib/customers/queries.ts`.
 
 ## UI Rules
 
@@ -396,6 +412,7 @@ All list pages (orders, customers, inventory, inventory-pricing, employee-expens
 - Vendors now have dashboard list/create pages, API routes, `lib/vendors` logic, edit modal, soft deactivate/restore, RBAC permissions, `vendor_audit_logs`.
 - Branches now have admin-only dashboard list/create pages, API routes, `lib/branches` logic, edit modal, soft deactivate/restore, RBAC permissions, `branch_audit_logs`.
 - Orders now have Add Order, detail/edit, status, customer payment, vendor assignment/payment, and audit history flows.
+- Orders now also have reasoned cancel/soft-delete with refund tracking (`order_refunds`, independently updatable refund status) and a customer store-credit ledger (`customer_credit_transactions`) that can be issued on refund and spent on a future order, capped at `min(balance, payable)`. `orders:delete` is a new admin-only permission, only usable on already-cancelled orders.
 - Migrations were consolidated from 18 dev migrations into 7 production migrations (`20260410_000001` – `20260410_000007`). Old files are archived in `db/migrations_dev/` — do not run them.
 - Shared dashboard list/table/filter primitives also support the newer inventory pricing and expense category pages.
 - Keep using `assertPermission` plus `canAccessBranch` for these flows; inventory pricing reuses inventory create/edit permissions.

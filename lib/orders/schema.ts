@@ -6,6 +6,7 @@ import {
   createOrderFieldNames,
   orderVendorStatusValues,
   orderStatusValues,
+  refundStatusValues,
   type CreateOrderFieldName,
 } from "@/lib/orders/types";
 
@@ -83,6 +84,7 @@ export const createOrderSchema = z
       )
       .default([]),
     manualDiscount: optionalAmount("Manual discount"),
+    creditsAppliedAmount: optionalAmount("Credits applied"),
     initialPaymentAmount: optionalAmount("Initial payment"),
     paymentMode: z.enum(paymentModeValues).or(z.literal("")).optional().default(""),
     txnReference: optionalText(120),
@@ -218,6 +220,30 @@ export const updateOrderStatusSchema = z.object({
   status: z.enum(orderStatusValues),
 });
 
+const refundDecisionSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .min(5, "Reason must be at least 5 characters")
+    .max(500, "Reason must be 500 characters or less"),
+  refundAmount: z
+    .string()
+    .trim()
+    .regex(/^\d+(\.\d{1,2})?$/, "Refund amount must be valid")
+    .refine((value) => Number.parseFloat(value) >= 0, "Refund amount cannot be negative"),
+  refundMode: z.enum(paymentModeValues),
+  txnReference: optionalText(120),
+});
+
+export const cancelOrderSchema = refundDecisionSchema;
+
+export const deleteOrderSchema = refundDecisionSchema;
+
+export const updateRefundStatusSchema = z.object({
+  status: z.enum(refundStatusValues),
+  note: optionalText(250),
+});
+
 export const upsertOrderVendorSchema = z.object({
   vendorId: z
     .string()
@@ -293,6 +319,9 @@ export type UpsertOrderVendorInput = z.infer<typeof upsertOrderVendorSchema>;
 export type RecordOrderVendorPaymentInput = z.infer<typeof recordOrderVendorPaymentSchema>;
 export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusSchema>;
 export type UpdateOrderInput = z.infer<typeof updateOrderSchema>;
+export type CancelOrderInput = z.infer<typeof cancelOrderSchema>;
+export type DeleteOrderInput = z.infer<typeof deleteOrderSchema>;
+export type UpdateRefundStatusInput = z.infer<typeof updateRefundStatusSchema>;
 
 export function getCreateOrderFieldErrors(
   error: z.ZodError,

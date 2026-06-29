@@ -36,8 +36,14 @@ export async function GET(request: Request) {
           c.phone,
           c.alternate_phone AS "alternatePhone",
           c.avatar,
-          c.avatar_source AS "avatarSource"
+          c.avatar_source AS "avatarSource",
+          COALESCE(credits.balance, 0)::double precision AS "creditBalance"
         FROM customers c
+        LEFT JOIN LATERAL (
+          SELECT SUM(cct.amount) AS balance
+          FROM customer_credit_transactions cct
+          WHERE cct.customer_id = c.id
+        ) credits ON true
         WHERE c.is_active = true
           AND (
             $1 = ''

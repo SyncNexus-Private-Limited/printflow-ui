@@ -163,6 +163,36 @@ function summarizeChangedFields(changedFields: Record<string, unknown> | null): 
   return `Changed: ${keys.map(formatEnumLabel).join(", ")}`;
 }
 
+function getRefundStatusTone(status: string) {
+  switch (status) {
+    case "completed":
+      return "emerald" as const;
+    case "processing":
+      return "blue" as const;
+    case "failed":
+      return "rose" as const;
+    default:
+      return "amber" as const;
+  }
+}
+
+function getRefundModeLabel(mode: string) {
+  return mode === "credit" ? "Customer credits" : getPaymentModeLabel(mode);
+}
+
+function getCreditTransactionTypeLabel(type: string) {
+  switch (type) {
+    case "refund_credit":
+      return "Refund credited";
+    case "applied_to_order":
+      return "Applied to order";
+    case "manual_adjustment":
+      return "Manual adjustment";
+    default:
+      return formatEnumLabel(type);
+  }
+}
+
 // ─── page ─────────────────────────────────────────────────────────────────────
 
 export default async function CustomerDetailPage({ params }: CustomerDetailPageProps) {
@@ -177,7 +207,15 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
   const pageData = await getCustomerDetailPageData(id);
   if (!pageData) notFound();
 
-  const { customer, metrics, recentOrders, recentPayments, auditLogs } = pageData;
+  const {
+    customer,
+    metrics,
+    recentOrders,
+    recentPayments,
+    recentRefunds,
+    recentCreditTransactions,
+    auditLogs,
+  } = pageData;
   const statusLabel = customer.isActive ? "active" : "inactive";
   const avatarUrl = resolveAvatarUrl(customer.avatar, customer.avatarSource);
   const maskedAadhaar = maskAadhaar(customer.aadhaarNumber);
@@ -261,6 +299,29 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
             label="Outstanding"
             value={formatCurrency(metrics.totalOutstanding)}
             tone={outstandingTone}
+          />
+          <MetricCard
+            label="Credit Balance"
+            value={formatCurrency(metrics.creditBalance)}
+            tone="emerald"
+          />
+          <MetricCard
+            label="Cancelled Orders"
+            value={formatCompactNumber(metrics.cancelledOrders)}
+            tone={metrics.cancelledOrders > 0 ? "rose" : undefined}
+          />
+          <MetricCard
+            label="Refunded Amount"
+            value={
+              <>
+                {formatCurrency(metrics.totalRefunded)}
+                {metrics.pendingRefundAmount > 0 ? (
+                  <span className="ml-1.5 text-[11px] font-semibold text-[rgb(var(--metric-amber-ink))]">
+                    +{formatCurrency(metrics.pendingRefundAmount)} pending
+                  </span>
+                ) : null}
+              </>
+            }
           />
         </div>
 
@@ -475,6 +536,120 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
               </div>
             </div>
           )}
+        </SectionCard>
+
+        {/* ── 4b. Refunds & Credits ────────────────────────────────────────── */}
+        <SectionCard
+          title="Refunds & Credits"
+          description={`Credit balance: ${formatCurrency(metrics.creditBalance)}`}
+        >
+          <div className="space-y-5">
+            <div>
+              <p className="mb-2.5 text-[13px] font-semibold text-[rgb(var(--card-foreground))]">
+                Refunds
+              </p>
+              {recentRefunds.length === 0 ? (
+                <EmptyState>No refunds recorded.</EmptyState>
+              ) : (
+                <div className="overflow-hidden rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", minWidth: 560, borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr>
+                          <TableHeader label="Order" />
+                          <TableHeader label="Action" />
+                          <TableHeader label="Amount" align="right" />
+                          <TableHeader label="Mode" />
+                          <TableHeader label="Status" />
+                          <TableHeader label="Date" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {recentRefunds.map((refund) => (
+                          <tr key={refund.id}>
+                            <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5">
+                              <Link
+                                href={`/dashboard/orders/${refund.orderId}`}
+                                className="font-mono text-[12.5px] font-medium text-[rgb(var(--primary))] hover:underline"
+                              >
+                                {refund.orderCode}
+                              </Link>
+                            </td>
+                            <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 text-[13px]">
+                              {formatEnumLabel(refund.triggerAction)}
+                            </td>
+                            <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 text-right font-mono text-[13px] font-semibold text-[rgb(var(--card-foreground))]">
+                              {formatCurrency(refund.refundAmount)}
+                            </td>
+                            <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 text-[13px]">
+                              {getRefundModeLabel(refund.refundMode)}
+                            </td>
+                            <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5">
+                              <DataPill tone={getRefundStatusTone(refund.refundStatus)}>
+                                {formatEnumLabel(refund.refundStatus)}
+                              </DataPill>
+                            </td>
+                            <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 text-[12.5px] text-[rgb(var(--muted-foreground))]">
+                              {formatDateTime(refund.createdAt)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <p className="mb-2.5 text-[13px] font-semibold text-[rgb(var(--card-foreground))]">
+                Credit transactions
+              </p>
+              {recentCreditTransactions.length === 0 ? (
+                <EmptyState>No credit transactions recorded.</EmptyState>
+              ) : (
+                <div className="overflow-hidden rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--card))]">
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", minWidth: 480, borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr>
+                          <TableHeader label="Type" />
+                          <TableHeader label="Amount" align="right" />
+                          <TableHeader label="Related order" />
+                          <TableHeader label="Date" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {recentCreditTransactions.map((tx) => (
+                          <tr key={tx.id}>
+                            <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 text-[13px]">
+                              {getCreditTransactionTypeLabel(tx.transactionType)}
+                            </td>
+                            <td
+                              className={`border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 text-right font-mono text-[13px] font-semibold ${
+                                tx.amount >= 0
+                                  ? "text-[rgb(var(--metric-emerald-ink))]"
+                                  : "text-[rgb(var(--danger))]"
+                              }`}
+                            >
+                              {tx.amount >= 0 ? "+" : ""}
+                              {formatCurrency(tx.amount)}
+                            </td>
+                            <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 font-mono text-[12.5px] text-[rgb(var(--muted-foreground))]">
+                              {tx.relatedOrderCode ?? "—"}
+                            </td>
+                            <td className="border-b border-[rgb(var(--border)/0.7)] px-3 py-2.5 text-[12.5px] text-[rgb(var(--muted-foreground))]">
+                              {formatDateTime(tx.createdAt)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </SectionCard>
 
         {/* ── 5. Customer Activity ─────────────────────────────────────────── */}

@@ -9,6 +9,7 @@ import type {
   OrderDetailData,
   OrderInventoryOption,
   OrderOfferOption,
+  OrderRefund,
   OrderVendorOption,
 } from "@/lib/orders/types";
 import { assertPermission, canAccessBranch, hasPermission } from "@/lib/auth/permissions";
@@ -59,8 +60,14 @@ export async function getAddOrderPageData(
             c.phone,
             c.alternate_phone AS "alternatePhone",
             c.avatar,
-            c.avatar_source AS "avatarSource"
+            c.avatar_source AS "avatarSource",
+            COALESCE(credits.balance, 0)::double precision AS "creditBalance"
           FROM customers c
+          LEFT JOIN LATERAL (
+            SELECT SUM(cct.amount) AS balance
+            FROM customer_credit_transactions cct
+            WHERE cct.customer_id = c.id
+          ) credits ON true
           WHERE c.is_active = true
           ORDER BY c.created_at DESC
           LIMIT 10
@@ -172,8 +179,14 @@ export async function getOrderPrefillCustomer(
         c.phone,
         c.alternate_phone AS "alternatePhone",
         c.avatar,
-        c.avatar_source AS "avatarSource"
+        c.avatar_source AS "avatarSource",
+        COALESCE(credits.balance, 0)::double precision AS "creditBalance"
       FROM customers c
+      LEFT JOIN LATERAL (
+        SELECT SUM(cct.amount) AS balance
+        FROM customer_credit_transactions cct
+        WHERE cct.customer_id = c.id
+      ) credits ON true
       WHERE c.id = $1::uuid
         AND c.is_active = true
       LIMIT 1
@@ -213,7 +226,10 @@ export async function getOrderDetail(
         o.order_date::text AS "orderDate",
         o.created_at::text AS "createdAt",
         o.updated_at::text AS "updatedAt",
-        u.full_name AS "createdByName"
+        u.full_name AS "createdByName",
+        o.is_deleted AS "isDeleted",
+        o.cancellation_reason AS "cancellationReason",
+        o.deletion_reason AS "deletionReason"
       FROM orders o
       JOIN branches b ON b.id = o.branch_id
       JOIN customers c ON c.id = o.customer_id
@@ -234,6 +250,7 @@ export async function getOrderDetail(
     paymentsResult,
     vendorsResult,
     vendorPaymentsResult,
+    refundsResult,
     auditResult,
   ] = await Promise.all([
     db.query<OrderDetailData["items"][number]>(
@@ -335,6 +352,28 @@ export async function getOrderDetail(
         `,
       [orderId],
     ),
+    db.query<OrderRefund>(
+      `
+          SELECT
+            r.id::text AS id,
+            r.trigger_action AS "triggerAction",
+            r.reason,
+            r.refund_basis_amount::double precision AS "refundBasisAmount",
+            r.refund_percent::double precision AS "refundPercent",
+            r.refund_amount::double precision AS "refundAmount",
+            r.refund_mode::text AS "refundMode",
+            r.refund_status::text AS "refundStatus",
+            r.txn_reference AS "txnReference",
+            u.full_name AS "createdByName",
+            r.created_at::text AS "createdAt",
+            r.updated_at::text AS "updatedAt"
+          FROM order_refunds r
+          LEFT JOIN users u ON u.id = r.created_by
+          WHERE r.order_id = $1::uuid
+          ORDER BY r.created_at DESC
+        `,
+      [orderId],
+    ),
     db.query<OrderDetailData["auditLogs"][number]>(
       `
           SELECT
@@ -381,6 +420,7 @@ export async function getOrderDetail(
       ...vendor,
       payments: vendorPaymentsByOrderVendorId.get(vendor.id) ?? [],
     })),
+    refunds: refundsResult.rows,
     auditLogs: auditResult.rows,
   };
 }

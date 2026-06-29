@@ -41,6 +41,7 @@ import type {
   OrderOfferOption,
 } from "@/lib/orders/types";
 import { ORDER_HIGH_DISCOUNT_PERCENT } from "@/lib/orders/types";
+import { amountToPercent, percentToAmount } from "@/lib/orders/refund-calc";
 import { formatCurrency } from "@/lib/utils/format";
 
 type BalanceCardProps = {
@@ -107,6 +108,7 @@ function buildInitialValues(branchId: string, prefillCustomerId?: string): Creat
     items: [{ inventoryId: "", quantity: "1", unitPrice: "" }],
     offerIds: [],
     manualDiscount: "",
+    creditsAppliedAmount: "",
     initialPaymentAmount: "",
     paymentMode: "",
     txnReference: "",
@@ -259,6 +261,7 @@ export function OrderForm(props: AddOrderPageData) {
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<CreateOrderFieldName, string>>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [vendorOpen, setVendorOpenState] = useState(false);
+  const [creditsPercent, setCreditsPercent] = useState("0");
 
   // Track previous customer type so we can detect changes after items are added
   const prevCustomerTypeRef = useRef<string | null>(null);
@@ -380,8 +383,12 @@ export function OrderForm(props: AddOrderPageData) {
   const manualDiscountAmount = parseNumber(values.manualDiscount);
   const totalDiscount = Math.min(offerDiscount + manualDiscountAmount, subtotal);
   const payable = Math.max(0, subtotal - totalDiscount);
+  const availableCreditBalance =
+    values.customerMode === "existing" ? (selectedCustomer?.creditBalance ?? 0) : 0;
+  const creditsBasis = Math.min(availableCreditBalance, payable);
+  const creditsApplied = parseNumber(values.creditsAppliedAmount);
   const initialPayment = parseNumber(values.initialPaymentAmount);
-  const customerBalance = Math.max(0, payable - initialPayment);
+  const customerBalance = Math.max(0, payable - initialPayment - creditsApplied);
   const vendorCharge = parseNumber(values.vendorChargeAmount);
   const vendorPaid = parseNumber(values.vendorPaidAmount);
   const vendorBalance = Math.max(0, vendorCharge - vendorPaid);
@@ -458,6 +465,7 @@ export function OrderForm(props: AddOrderPageData) {
     values.customerMode === "existing" ? values.customerId : values.customerName,
     ...lineItems.filter((i) => i.inventory).map(() => "item" as const),
     values.manualDiscount || null,
+    values.creditsAppliedAmount || null,
     values.initialPaymentAmount || null,
     values.paymentMode || null,
     vendorOpen && values.vendorId ? values.vendorId : null,
@@ -508,6 +516,16 @@ export function OrderForm(props: AddOrderPageData) {
         ? inventory.prices[resolvedCustomerType as OfferCustomerType]
         : undefined;
     updateItem(index, { inventoryId, unitPrice: price === undefined ? "" : String(price) });
+  };
+
+  const handleCreditsAmountChange = (value: string) => {
+    updateValue("creditsAppliedAmount", value);
+    setCreditsPercent(String(amountToPercent(parseNumber(value), creditsBasis)));
+  };
+
+  const handleCreditsPercentChange = (value: string) => {
+    setCreditsPercent(value);
+    updateValue("creditsAppliedAmount", String(percentToAmount(parseNumber(value), creditsBasis)));
   };
 
   const navigateToBranch = (branchId: string) => {
@@ -1182,6 +1200,36 @@ export function OrderForm(props: AddOrderPageData) {
               </div>
             </div>
             <FieldError message={fieldErrors.initialPaymentAmount || fieldErrors.paymentMode} />
+
+            {availableCreditBalance > 0 ? (
+              <div className="mt-4 rounded-xl border border-[rgb(var(--metric-emerald)/0.3)] bg-[rgb(var(--metric-emerald-soft))] p-3.5">
+                <div className="flex items-center justify-between text-[12.5px] font-semibold text-[rgb(var(--metric-emerald-ink))]">
+                  <span>Apply customer credits</span>
+                  <span className="font-mono">{formatCurrency(availableCreditBalance)} available</span>
+                </div>
+                <div className="mt-2.5 grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <FieldLabel htmlFor="order-credits-percent">Credits %</FieldLabel>
+                    <Input
+                      id="order-credits-percent"
+                      value={creditsPercent}
+                      onChange={(e) => handleCreditsPercentChange(e.target.value)}
+                      inputMode="decimal"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <FieldLabel htmlFor="order-credits-amount">Credits amount (₹)</FieldLabel>
+                    <Input
+                      id="order-credits-amount"
+                      value={values.creditsAppliedAmount}
+                      onChange={(e) => handleCreditsAmountChange(e.target.value)}
+                      inputMode="decimal"
+                    />
+                  </div>
+                </div>
+                <FieldError message={fieldErrors.creditsAppliedAmount} />
+              </div>
+            ) : null}
           </OrderSection>
 
           {/* 05 — Vendor / outsource (toggle) */}
@@ -1430,6 +1478,15 @@ export function OrderForm(props: AddOrderPageData) {
                     −{formatCurrency(initialPayment)}
                   </span>
                 </div>
+
+                {creditsApplied > 0 ? (
+                  <div className="flex items-baseline justify-between pb-1.75 text-[13.5px] text-[rgb(var(--muted-foreground))]">
+                    <span>Credits applied</span>
+                    <span className="font-mono font-semibold text-[rgb(var(--metric-emerald-ink))]">
+                      −{formatCurrency(creditsApplied)}
+                    </span>
+                  </div>
+                ) : null}
               </div>
 
               {/* Balance pills */}

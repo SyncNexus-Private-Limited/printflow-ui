@@ -64,6 +64,31 @@ export type CustomerOrderMetrics = {
   totalPayable: number;
   totalPaid: number;
   totalOutstanding: number;
+  cancelledOrders: number;
+  creditBalance: number;
+  totalRefunded: number;
+  pendingRefundAmount: number;
+};
+
+export type CustomerRefundEntry = {
+  id: string;
+  orderId: string;
+  orderCode: string;
+  triggerAction: string;
+  reason: string;
+  refundAmount: number;
+  refundMode: string;
+  refundStatus: string;
+  createdAt: string;
+};
+
+export type CustomerCreditTransactionEntry = {
+  id: string;
+  transactionType: string;
+  amount: number;
+  relatedOrderCode: string | null;
+  note: string | null;
+  createdAt: string;
 };
 
 export type CustomerRecentOrder = {
@@ -102,5 +127,7 @@ export type CustomerDetailPageData = {
   metrics: CustomerOrderMetrics;
   recentOrders: CustomerRecentOrder[];
   recentPayments: CustomerRecentPayment[];
+  recentRefunds: CustomerRefundEntry[];
+  recentCreditTransactions: CustomerCreditTransactionEntry[];
   auditLogs: CustomerAuditLogEntry[];
 };

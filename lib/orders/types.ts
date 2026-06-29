@@ -16,6 +16,7 @@ export type OrderCustomerOption = {
   alternatePhone: string | null;
   avatar: string | null;
   avatarSource: "external" | "uploaded";
+  creditBalance: number;
 };
 
 export type OrderInventoryOption = {
@@ -81,6 +82,7 @@ export type CreateOrderFormValues = {
   }>;
   offerIds: string[];
   manualDiscount: string;
+  creditsAppliedAmount: string;
   initialPaymentAmount: string;
   paymentMode: PaymentMode | "";
   txnReference: string;
@@ -106,6 +108,7 @@ export const createOrderFieldNames = [
   "items",
   "offerIds",
   "manualDiscount",
+  "creditsAppliedAmount",
   "initialPaymentAmount",
   "paymentMode",
   "txnReference",
@@ -145,6 +148,29 @@ export const orderVendorStatusValues = [
 
 export type OrderVendorStatusValue = (typeof orderVendorStatusValues)[number];
 
+export const refundStatusValues = ["pending", "processing", "completed", "failed"] as const;
+
+export type RefundStatusValue = (typeof refundStatusValues)[number];
+
+export const orderRefundTriggerActionValues = ["cancel", "delete"] as const;
+
+export type OrderRefundTriggerAction = (typeof orderRefundTriggerActionValues)[number];
+
+export type OrderRefund = {
+  id: string;
+  triggerAction: OrderRefundTriggerAction;
+  reason: string;
+  refundBasisAmount: number;
+  refundPercent: number;
+  refundAmount: number;
+  refundMode: PaymentMode;
+  refundStatus: RefundStatusValue;
+  txnReference: string | null;
+  createdByName: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type OrderDetailData = {
   order: {
     id: string;
@@ -168,6 +194,9 @@ export type OrderDetailData = {
     createdAt: string;
     updatedAt: string;
     createdByName: string | null;
+    isDeleted: boolean;
+    cancellationReason: string | null;
+    deletionReason: string | null;
   };
   items: Array<{
     id: string;
@@ -216,6 +245,7 @@ export type OrderDetailData = {
       createdAt: string;
     }>;
   }>;
+  refunds: OrderRefund[];
   auditLogs: Array<{
     id: string;
     action: string;

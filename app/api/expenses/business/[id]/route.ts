@@ -40,7 +40,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 
     const [categories, vendors, orderVendors] = await Promise.all([
       getExpenseCategories("business"),
-      getExpenseVendors(expense.branchId),
+      getExpenseVendors(),
       getExpenseOrderVendors(expense.branchId),
     ]);
 

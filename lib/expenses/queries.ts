@@ -115,32 +115,14 @@ export async function getExpenseEmployees(
   return rows;
 }
 
-export async function getExpenseVendors(
-  branchId: string | null,
-  db?: Queryable,
-): Promise<ExpenseVendorOption[]> {
+export async function getExpenseVendors(db?: Queryable): Promise<ExpenseVendorOption[]> {
   const { rows } = await getQueryable(db).query<ExpenseVendorOption>(
     `
-      SELECT DISTINCT
-        v.id::text AS id,
-        v.name
-      FROM vendors v
-      WHERE EXISTS (
-        SELECT 1
-        FROM order_vendors ov
-        JOIN orders o ON o.id = ov.order_id
-        WHERE ov.vendor_id = v.id
-          AND ($1::uuid IS NULL OR o.branch_id = $1::uuid)
-      )
-      OR EXISTS (
-        SELECT 1
-        FROM inventory i
-        WHERE i.last_vendor_id = v.id
-          AND ($1::uuid IS NULL OR i.branch_id = $1::uuid)
-      )
+      SELECT id::text AS id, name
+      FROM vendors
+      WHERE is_active = true
       ORDER BY name ASC
     `,
-    [branchId],
   );
 
   return rows;
@@ -217,9 +199,7 @@ export async function getExpenseFormPageData(
       type === "employee"
         ? getExpenseEmployees(branchId, db)
         : Promise.resolve<ExpenseEmployeeOption[]>([]),
-      type === "business"
-        ? getExpenseVendors(branchId, db)
-        : Promise.resolve<ExpenseVendorOption[]>([]),
+      type === "business" ? getExpenseVendors(db) : Promise.resolve<ExpenseVendorOption[]>([]),
       type === "employee"
         ? getExpenseOrders(branchId, db)
         : Promise.resolve<ExpenseOrderOption[]>([]),

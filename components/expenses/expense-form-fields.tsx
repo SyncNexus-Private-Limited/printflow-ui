@@ -6,6 +6,7 @@ import { CategoryCombobox } from "@/components/ui/category-combobox";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { VendorCombobox } from "@/components/ui/vendor-combobox";
 import type { CreateExpenseFormValues } from "@/lib/expenses/schema";
 import {
   paymentModeLabels,
@@ -189,19 +190,20 @@ export function ExpenseFormFields({
         <section className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <FieldLabel htmlFor="expense-vendor">Vendor</FieldLabel>
-            <Select
-              id="expense-vendor"
-              disabled={isSubmitting || vendorOptions.length === 0}
-              defaultValue=""
-              {...register("vendorId")}
-            >
-              <option value="">No vendor</option>
-              {vendorOptions.map((vendor) => (
-                <option key={vendor.id} value={vendor.id}>
-                  {vendor.name}
-                </option>
-              ))}
-            </Select>
+            <Controller
+              control={control}
+              name="vendorId"
+              render={({ field }) => (
+                <VendorCombobox
+                  id="expense-vendor"
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  options={vendorOptions}
+                  disabled={isSubmitting}
+                />
+              )}
+            />
             <p className="text-sm text-[rgb(var(--muted-foreground))]">
               Use vendor to narrow linked order-vendor records when needed.
             </p>

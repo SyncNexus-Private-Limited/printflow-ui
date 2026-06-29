@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
+import { VendorCombobox } from "@/components/ui/vendor-combobox";
 import { updateBusinessExpenseSchema } from "@/lib/expenses/schema";
 import { paymentModeLabels, paymentModeValues } from "@/lib/expenses/types";
 import type {
@@ -306,18 +307,20 @@ export function BusinessExpenseEditDialog({
 
               <div className="space-y-1.5">
                 <FieldLabel htmlFor="edit-biz-vendor">Vendor</FieldLabel>
-                <Select
-                  id="edit-biz-vendor"
-                  disabled={isSubmitting || (options?.vendors.length ?? 0) === 0}
-                  {...register("vendorId")}
-                >
-                  <option value="">No vendor</option>
-                  {options?.vendors.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name}
-                    </option>
-                  ))}
-                </Select>
+                <Controller
+                  control={control}
+                  name="vendorId"
+                  render={({ field }) => (
+                    <VendorCombobox
+                      id="edit-biz-vendor"
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      options={options?.vendors ?? []}
+                      disabled={isSubmitting}
+                    />
+                  )}
+                />
                 <FieldError message={errors.vendorId?.message} />
               </div>
 

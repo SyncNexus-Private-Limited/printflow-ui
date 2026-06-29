@@ -29,7 +29,19 @@
       "Bash(cat .prettierrc*)",
       "Bash(cat prettier.config.*)",
       "Bash(grep -A5 '\"prettier\"' package.json)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Skill(run)",
+      "Skill(run:*)",
+      "Bash(ls .claude/skills)",
+      "Bash(ls skills *)",
+      "Bash(ls -la .env.local)",
+      "Bash(cat .env.local.example)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:3001/login)",
+      "Bash(rm -f /tmp/cookies.txt)",
+      "Bash(curl -s -c /tmp/cookies.txt -X POST http://localhost:3001/api/auth/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"admin123\"}' -w \"\\\\nHTTP:%{http_code}\\\\n\")",
+      "Bash(curl -s -i -X POST http://localhost:3001/api/auth/login -H \"Content-Type: application/json\" -d '{\"username\":\"admin\",\"password\":\"admin123\"}')",
+      "Bash(taskkill //F //PID 30624)",
+      "Bash(taskkill //F //PID 5296)"
     ],
     "additionalDirectories": [
       "D:\\projects\\codex-PrintFlow\\printflow-ui\\app\\api\\orders\\[id]\\refunds"

@@ -36,7 +36,7 @@ export default async function BusinessExpensesPage({ searchParams }: BusinessExp
     const [pageData, categoryOptions, vendorOptions] = await Promise.all([
       getBusinessExpensesPageData(context.selectedBranchId, currentFilters),
       getExpenseCategories("business"),
-      getExpenseVendors(context.selectedBranchId),
+      getExpenseVendors(),
     ]);
     const branchOptions = buildBranchFilterOptions(context);
     const dateRangeLabel = formatDateRangeLabel(currentFilters.from, currentFilters.to);

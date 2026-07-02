@@ -24,6 +24,10 @@ npm run typecheck
 npm run build
 ```
 
+## Verifying changes
+
+Before treating any code change as done — and before updating this file or CLAUDE.md to describe it — run the checks above (`format:check`, `lint`, `typecheck`, and `build` for anything touching shared/dashboard-wide code), plus a manual browser check for UI-facing changes. The `.claude/skills/verify-and-update-docs/SKILL.md` skill encodes this workflow and gates documentation updates on verification actually passing.
+
 ## Code quality
 
 - `npm run format`: format with Prettier.
@@ -280,3 +284,5 @@ The top nav (`components/dashboard/top-navbar.tsx`) uses a CSS `order` + `flex-w
 `NavActionsOverflow` is a small dropdown (⋯ button) that surfaces Theme toggle and Logout on screens below `md`. It is `md:hidden` and must not be rendered on larger screens.
 
 The Create menu (`components/dashboard/create-menu.tsx`) uses `createPortal` for its mobile bottom sheet. This is required because the nav's `sticky + z-40 + backdrop-filter` combination can create a compositing layer that traps `position: fixed` children relative to the nav rather than the viewport. The portal renders the sheet at `document.body`, guaranteeing correct bottom-of-screen placement at all times.
+
+Sidebar and breadcrumb links only ever carry forward `branchId`/`from`/`to`/`pageSize` values that are already explicitly present in the current URL (`getDashboardNavigationFilterState` in `lib/dashboard/page-filters.ts`). They never invent a default date range, so clicking between filter-aware pages (Orders, Customers, Employee Expenses, Business Expenses, Inventory) from the sidebar or breadcrumbs lands on a clean URL unless the user has actually applied a filter.

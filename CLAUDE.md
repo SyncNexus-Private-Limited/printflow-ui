@@ -530,6 +530,7 @@ All list pages (orders, customers, inventory, inventory-pricing, offers, vendors
 - Branches is an admin-only listing link only.
 - No add-action links in the sidebar — creation is always via the top-nav Create menu or page-level Add buttons.
 - `getDashboardBreadcrumbs` has explicit entries for all `/new` routes and nested pages; add a new entry when adding a new creation page.
+- Sidebar links (`dashboard-sidebar.tsx`) and breadcrumb links (`dashboard-header.tsx`) build their `branchId`/`from`/`to`/`pageSize` query params via `getDashboardNavigationFilterState` (`lib/dashboard/page-filters.ts`), which only carries forward values already explicitly present in the current URL — it never synthesizes a default date range. Do not reintroduce a "current month" default there; that would leak an unrequested filter onto whichever filter-aware page (Orders, Customers, Employee Expenses, Business Expenses, Inventory) the link points to, including re-injecting it into the current page's own link.
 
 ## Development Rules
 
@@ -543,6 +544,7 @@ All list pages (orders, customers, inventory, inventory-pricing, offers, vendors
 - `lib/db/postgres.ts` and `lib/auth/current-user.ts` are `server-only` — do not import from client components
 - Validate after edits: `npm run format:check`, `npm run lint`, `npm run typecheck`; run `npm run build` for broader app changes
 - Use `npm run format` only when intentionally formatting touched files or doing a formatting-only pass
+- Use the `verify-and-update-docs` skill (`.claude/skills/verify-and-update-docs/SKILL.md`) after any code change: it runs the checks above (plus manual/browser verification for UI changes) and only updates CLAUDE.md/README.md once everything passes. Never update either doc off unverified code.
 
 ## Safety Rules
 

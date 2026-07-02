@@ -166,31 +166,12 @@ export function parseDashboardPageFilters(searchParams?: {
   };
 }
 
-export function getDashboardNavigationFilterState(
-  searchParams?: {
-    branchId?: DashboardSearchParam;
-    from?: DashboardSearchParam;
-    to?: DashboardSearchParam;
-    pageSize?: DashboardSearchParam;
-  },
-  options?: { applyDefaultDateRange?: boolean },
-): DashboardNavigationFilterState {
-  if (options?.applyDefaultDateRange) {
-    const filters = parseDashboardPageFilters({
-      branchId: searchParams?.branchId,
-      from: searchParams?.from,
-      to: searchParams?.to,
-      pageSize: searchParams?.pageSize,
-    });
-
-    return {
-      branchId: filters.branchId,
-      from: filters.from,
-      to: filters.to,
-      pageSize: filters.pageSize,
-    };
-  }
-
+export function getDashboardNavigationFilterState(searchParams?: {
+  branchId?: DashboardSearchParam;
+  from?: DashboardSearchParam;
+  to?: DashboardSearchParam;
+  pageSize?: DashboardSearchParam;
+}): DashboardNavigationFilterState {
   const branchId = normalizeDashboardSearchParam(searchParams?.branchId) ?? null;
   const fromValue = normalizeDashboardSearchParam(searchParams?.from);
   const toValue = normalizeDashboardSearchParam(searchParams?.to);

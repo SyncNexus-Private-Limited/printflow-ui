@@ -6,10 +6,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useDashboardChrome } from "@/components/dashboard/dashboard-chrome-context";
 import { getDashboardBreadcrumbs } from "@/components/dashboard/dashboard-navigation";
-import {
-  getDashboardNavigationFilterState,
-  isDashboardFilterAwarePath,
-} from "@/lib/dashboard/page-filters";
+import { getDashboardNavigationFilterState } from "@/lib/dashboard/page-filters";
 
 type DashboardHeaderProps = {
   title: string;
@@ -43,17 +40,12 @@ export function DashboardHeader({
   const searchParams = useSearchParams();
   const { setBranchControl } = useDashboardChrome();
   const isOverviewHeader = pathname === "/dashboard";
-  const navigationFilters = getDashboardNavigationFilterState(
-    {
-      branchId: selectedBranchValue,
-      from: searchParams.get("from") ?? undefined,
-      to: searchParams.get("to") ?? undefined,
-      pageSize: searchParams.get("pageSize") ?? undefined,
-    },
-    {
-      applyDefaultDateRange: isDashboardFilterAwarePath(pathname),
-    },
-  );
+  const navigationFilters = getDashboardNavigationFilterState({
+    branchId: selectedBranchValue,
+    from: searchParams.get("from") ?? undefined,
+    to: searchParams.get("to") ?? undefined,
+    pageSize: searchParams.get("pageSize") ?? undefined,
+  });
   const breadcrumbs = getDashboardBreadcrumbs(pathname, navigationFilters, searchParams);
 
   useLayoutEffect(() => {

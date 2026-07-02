@@ -13,10 +13,7 @@ import {
   isDashboardRouteActive,
 } from "@/components/dashboard/dashboard-navigation";
 import { Button } from "@/components/ui/button";
-import {
-  getDashboardNavigationFilterState,
-  isDashboardFilterAwarePath,
-} from "@/lib/dashboard/page-filters";
+import { getDashboardNavigationFilterState } from "@/lib/dashboard/page-filters";
 import { cn } from "@/lib/utils/cn";
 
 type DashboardSidebarProps = {
@@ -119,17 +116,12 @@ export function DashboardSidebar({
   const [expandedGroups, setExpandedGroups] = useState<string[]>(() =>
     getActiveGroupLabels(pathname),
   );
-  const navigationFilters = getDashboardNavigationFilterState(
-    {
-      branchId: currentBranchId ?? searchParams.get("branchId") ?? undefined,
-      from: searchParams.get("from") ?? undefined,
-      to: searchParams.get("to") ?? undefined,
-      pageSize: searchParams.get("pageSize") ?? undefined,
-    },
-    {
-      applyDefaultDateRange: isDashboardFilterAwarePath(pathname),
-    },
-  );
+  const navigationFilters = getDashboardNavigationFilterState({
+    branchId: currentBranchId ?? searchParams.get("branchId") ?? undefined,
+    from: searchParams.get("from") ?? undefined,
+    to: searchParams.get("to") ?? undefined,
+    pageSize: searchParams.get("pageSize") ?? undefined,
+  });
 
   // Build the visible navigation based on permission flags passed from the server.
   // Filtering here (not in dashboardNavigation) keeps the source array role-agnostic.

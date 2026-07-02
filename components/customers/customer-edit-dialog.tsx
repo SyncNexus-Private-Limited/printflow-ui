@@ -323,14 +323,13 @@ export function CustomerEditDialog({
                 <FieldLabel htmlFor="edit-customer-numeric-id">Customer numeric code</FieldLabel>
                 <Input
                   id="edit-customer-numeric-id"
-                  inputMode="numeric"
-                  disabled={isSubmitting}
-                  {...register("customerNumericId")}
+                  disabled
+                  readOnly
+                  value={readyCustomer ? String(readyCustomer.customerNumericId) : ""}
                 />
                 <p className="text-xs text-[rgb(var(--muted-foreground))]">
-                  Digits only. Must be unique across all customers.
+                  Assigned automatically when the customer was created. Cannot be changed.
                 </p>
-                <FieldError message={getFieldError("customerNumericId")} />
               </div>
 
               <div className="space-y-1.5 sm:col-span-2">

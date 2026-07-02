@@ -157,7 +157,6 @@ function buildUpdateChangedFields(
   const nextAlternatePhone = input.alternatePhone ?? null;
   const nextAddress = input.address ?? null;
   const nextStudioName = input.studioName ?? null;
-  const nextCustomerNumericId = Number.parseInt(input.customerNumericId ?? "", 10);
   // When blank, the Aadhaar field means "keep existing" (not "clear"), so we
   // only track a change when the user explicitly provided a new value.
   const nextAadhaarMasked = input.aadhaarNumber ? "***" : null;
@@ -168,12 +167,6 @@ function buildUpdateChangedFields(
   if (snapshot.name !== input.name) changedFields.name = { from: snapshot.name, to: input.name };
   if (snapshot.phone !== input.phone)
     changedFields.phone = { from: snapshot.phone, to: input.phone };
-  if (snapshot.customerNumericId !== nextCustomerNumericId) {
-    changedFields.customerNumericId = {
-      from: snapshot.customerNumericId,
-      to: nextCustomerNumericId,
-    };
-  }
   if ((snapshot.alternatePhone ?? null) !== nextAlternatePhone) {
     changedFields.alternatePhone = { from: snapshot.alternatePhone, to: nextAlternatePhone };
   }
@@ -321,15 +314,6 @@ export async function updateCustomer(
 ): Promise<void> {
   assertPermission(currentUser, "customers:edit");
 
-  const rawCustomerNumericId = input.customerNumericId?.trim();
-  if (!rawCustomerNumericId) {
-    throw new CustomerMutationError("Numeric code is required.", {
-      status: 400,
-      fieldErrors: { customerNumericId: "Numeric code is required." },
-    });
-  }
-  const nextCustomerNumericId = Number.parseInt(rawCustomerNumericId, 10);
-
   const db = getPool();
   const client = await db.connect();
 
@@ -339,20 +323,6 @@ export async function updateCustomer(
     const snapshot = await fetchCustomerSnapshotForAudit(client, customerId);
     if (!snapshot) {
       throw new CustomerMutationError("Customer not found.", { status: 404 });
-    }
-
-    // Explicit pre-check so a duplicate numeric code surfaces as a friendly
-    // field error before attempting the UPDATE — the UNIQUE constraint
-    // (caught in handleDbError) remains the concurrency backstop.
-    const { rows: dupeRows } = await client.query<{ id: string }>(
-      `SELECT id::text AS id FROM customers WHERE customer_numeric_id = $1 AND id <> $2::uuid LIMIT 1`,
-      [nextCustomerNumericId, customerId],
-    );
-    if (dupeRows.length > 0) {
-      throw new CustomerMutationError("This numeric code is already in use.", {
-        status: 409,
-        fieldErrors: { customerNumericId: "This numeric code is already in use." },
-      });
     }
 
     const changedFields = buildUpdateChangedFields(snapshot, input);
@@ -370,13 +340,12 @@ export async function updateCustomer(
           alternate_phone = $5,
           address = $6,
           studio_name = $7,
-          customer_numeric_id = $8,
-          aadhaar_number = CASE WHEN $9::text IS NOT NULL THEN $9::text ELSE aadhaar_number END,
-          studio_association_name = $10,
-          studio_association_id_number = $11,
-          avatar = $12,
-          avatar_source = $13,
-          updated_by = $14::uuid
+          aadhaar_number = CASE WHEN $8::text IS NOT NULL THEN $8::text ELSE aadhaar_number END,
+          studio_association_name = $9,
+          studio_association_id_number = $10,
+          avatar = $11,
+          avatar_source = $12,
+          updated_by = $13::uuid
         WHERE id = $1::uuid
       `,
       [
@@ -387,7 +356,6 @@ export async function updateCustomer(
         input.alternatePhone ?? null,
         input.address ?? null,
         input.type === "studio" ? (input.studioName ?? null) : null,
-        nextCustomerNumericId,
         input.aadhaarNumber ?? null,
         input.type === "studio" ? (input.studioAssociationName ?? null) : null,
         input.type === "studio" ? (input.studioAssociationIdNumber ?? null) : null,

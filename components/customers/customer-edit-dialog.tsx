@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type Resolver } from "react-hook-form";
 import { Dialog } from "@/components/ui/dialog";
@@ -9,13 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { CustomerAvatar } from "@/components/customers/customer-avatar";
-import { customerSchema } from "@/lib/customers/schema";
+import { buildCustomerSchema } from "@/lib/customers/schema";
 import { maskAadhaar } from "@/lib/utils/mask-aadhaar";
 import { resolveAvatarUrl } from "@/lib/utils/resolve-avatar-url";
 import {
   type CustomerFieldName,
   type CustomerFormValues,
   type CustomerMutationResponse,
+  type CustomerTypeOption,
   type EditCustomerRow,
 } from "@/lib/customers/types";
 import { formatDateTime } from "@/lib/utils/format";
@@ -34,6 +35,7 @@ type CustomerEditDialogProps = {
   customerId: string | null;
   onClose: () => void;
   onSuccess: () => void;
+  customerTypeOptions: CustomerTypeOption[];
 };
 
 function FieldLabel({
@@ -81,11 +83,20 @@ function buildDefaultValues(customer: EditCustomerRow): CustomerFormValues {
   };
 }
 
-export function CustomerEditDialog({ customerId, onClose, onSuccess }: CustomerEditDialogProps) {
+export function CustomerEditDialog({
+  customerId,
+  onClose,
+  onSuccess,
+  customerTypeOptions,
+}: CustomerEditDialogProps) {
   const isOpen = customerId !== null;
   const [loadState, setLoadState] = useState<LoadState>({ status: "idle" });
   const [serverError, setServerError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const schema = useMemo(
+    () => buildCustomerSchema(customerTypeOptions.map((option) => option.value)),
+    [customerTypeOptions],
+  );
   const {
     register,
     handleSubmit,
@@ -96,7 +107,7 @@ export function CustomerEditDialog({ customerId, onClose, onSuccess }: CustomerE
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<CustomerFormValues>({
-    resolver: zodResolver(customerSchema) as unknown as Resolver<CustomerFormValues>,
+    resolver: zodResolver(schema) as unknown as Resolver<CustomerFormValues>,
     defaultValues: {
       type: "",
       name: "",
@@ -263,11 +274,11 @@ export function CustomerEditDialog({ customerId, onClose, onSuccess }: CustomerE
                   }}
                 >
                   <option value="">Select type</option>
-                  <option value="studio">Studio</option>
-                  <option value="amateur">Amateur</option>
-                  <option value="other">Other</option>
-                  <option value="employee">Employee</option>
-                  <option value="lab">Lab</option>
+                  {customerTypeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </Select>
                 <FieldError message={getFieldError("type")} />
               </div>

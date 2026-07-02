@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { PermissionError } from "@/lib/auth/permissions";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { getCustomerTypeValues } from "@/lib/customers/queries";
 import { OrderMutationError, createOrder } from "@/lib/orders/mutations";
-import { createOrderSchema, getCreateOrderFieldErrors } from "@/lib/orders/schema";
+import { buildCreateOrderSchema, getCreateOrderFieldErrors } from "@/lib/orders/schema";
 
 export const runtime = "nodejs";
 
@@ -17,7 +18,8 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const parsed = createOrderSchema.safeParse(body);
+    const validCustomerTypes = await getCustomerTypeValues();
+    const parsed = buildCreateOrderSchema(validCustomerTypes).safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(

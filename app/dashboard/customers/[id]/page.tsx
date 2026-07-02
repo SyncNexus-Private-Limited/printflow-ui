@@ -17,7 +17,7 @@ import { SectionCard } from "@/components/dashboard/section-card";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasPermission } from "@/lib/auth/permissions";
 import { getPaymentModeLabel } from "@/lib/expenses/types";
-import { getCustomerDetailPageData } from "@/lib/customers/queries";
+import { getCustomerDetailPageData, getCustomerTypeOptions } from "@/lib/customers/queries";
 import { resolveAvatarUrl } from "@/lib/utils/resolve-avatar-url";
 import { maskAadhaar } from "@/lib/utils/mask-aadhaar";
 import {
@@ -206,6 +206,7 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
   const { id } = await params;
   const pageData = await getCustomerDetailPageData(id);
   if (!pageData) notFound();
+  const customerTypeOptions = await getCustomerTypeOptions();
 
   const {
     customer,
@@ -283,6 +284,7 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
             canDeactivate={hasPermission(currentUser, "customers:deactivate")}
             canRestore={hasPermission(currentUser, "customers:restore")}
             canCreateOrder={hasPermission(currentUser, "orders:create")}
+            customerTypeOptions={customerTypeOptions}
           />
         </div>
 

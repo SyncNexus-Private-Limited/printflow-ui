@@ -23,6 +23,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useDashboardChrome } from "@/components/dashboard/dashboard-chrome-context";
+import { getCustomerTypeBadgeClasses } from "@/components/dashboard/data-pill";
 import { CustomerAvatar } from "@/components/customers/customer-avatar";
 import { resolveAvatarUrl } from "@/lib/utils/resolve-avatar-url";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,7 @@ import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { paymentModeLabels, paymentModeValues } from "@/lib/expenses/types";
-import { customerTypeLabels, customerTypeValues, type OfferCustomerType } from "@/lib/offers/types";
+import type { CustomerTypeOption } from "@/lib/customers/types";
 import type {
   AddOrderPageData,
   CreateOrderApiResponse,
@@ -42,7 +43,7 @@ import type {
 } from "@/lib/orders/types";
 import { ORDER_HIGH_DISCOUNT_PERCENT } from "@/lib/orders/types";
 import { amountToPercent, percentToAmount } from "@/lib/orders/refund-calc";
-import { formatCurrency } from "@/lib/utils/format";
+import { formatCurrency, formatEnumLabel } from "@/lib/utils/format";
 
 type BalanceCardProps = {
   label: string;
@@ -172,19 +173,20 @@ function getInitials(name: string): string {
     .join("");
 }
 
-function CustomerTypeBadge({ type }: { type: OfferCustomerType }) {
-  const toneClasses: Record<OfferCustomerType, string> = {
-    studio: "bg-[rgb(var(--metric-violet-soft))] text-[rgb(var(--metric-violet-ink))]",
-    amateur: "bg-[rgb(var(--metric-emerald-soft))] text-[rgb(var(--metric-emerald-ink))]",
-    employee: "bg-[rgb(var(--metric-amber-soft))] text-[rgb(var(--metric-amber-ink))]",
-    other: "bg-[rgb(var(--muted))] text-[rgb(var(--muted-foreground))]",
-    lab: "bg-[rgb(var(--metric-orange-soft))] text-[rgb(var(--metric-orange-ink))]",
-  };
+function CustomerTypeBadge({
+  type,
+  customerTypeOptions,
+}: {
+  type: string;
+  customerTypeOptions: CustomerTypeOption[];
+}) {
+  const label =
+    customerTypeOptions.find((option) => option.value === type)?.label ?? formatEnumLabel(type);
   return (
     <span
-      className={`shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${toneClasses[type]}`}
+      className={`shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${getCustomerTypeBadgeClasses(type)}`}
     >
-      {customerTypeLabels[type]}
+      {label}
     </span>
   );
 }
@@ -241,6 +243,7 @@ export function OrderForm(props: AddOrderPageData) {
     vendors,
     prefillCustomer,
     prefillError,
+    customerTypeOptions,
   } = props;
 
   const router = useRouter();
@@ -349,7 +352,7 @@ export function OrderForm(props: AddOrderPageData) {
       items: current.items.map((item) => {
         if (!item.inventoryId) return item;
         const inventory = inventoryItems.find((opt) => opt.id === item.inventoryId);
-        const price = inventory?.prices[resolvedCustomerType as OfferCustomerType];
+        const price = inventory?.prices[resolvedCustomerType];
         return { ...item, unitPrice: price === undefined ? "" : String(price) };
       }),
     }));
@@ -367,8 +370,7 @@ export function OrderForm(props: AddOrderPageData) {
     if (
       offer.customerTypes &&
       offer.customerTypes.length > 0 &&
-      (!resolvedCustomerType ||
-        !offer.customerTypes.includes(resolvedCustomerType as OfferCustomerType))
+      (!resolvedCustomerType || !offer.customerTypes.includes(resolvedCustomerType))
     )
       return false;
     if (offer.minimumOrderValue !== null && subtotal < offer.minimumOrderValue) return false;
@@ -410,11 +412,12 @@ export function OrderForm(props: AddOrderPageData) {
     if (
       offer.customerTypes &&
       offer.customerTypes.length > 0 &&
-      (!resolvedCustomerType ||
-        !offer.customerTypes.includes(resolvedCustomerType as OfferCustomerType))
+      (!resolvedCustomerType || !offer.customerTypes.includes(resolvedCustomerType))
     ) {
       reasons.push(
-        `for ${offer.customerTypes.map((t) => customerTypeLabels[t]).join(", ")} only`,
+        `for ${offer.customerTypes
+          .map((t) => customerTypeOptions.find((option) => option.value === t)?.label ?? t)
+          .join(", ")} only`,
       );
     }
     if (offer.minimumOrderValue !== null && subtotal < offer.minimumOrderValue) {
@@ -475,7 +478,8 @@ export function OrderForm(props: AddOrderPageData) {
   const summaryName =
     values.customerMode === "existing" ? (selectedCustomer?.name ?? "") : values.customerName;
   const summaryType = resolvedCustomerType
-    ? customerTypeLabels[resolvedCustomerType as OfferCustomerType]
+    ? (customerTypeOptions.find((option) => option.value === resolvedCustomerType)?.label ??
+      formatEnumLabel(resolvedCustomerType))
     : "";
   const summaryPhone =
     values.customerMode === "existing" ? (selectedCustomer?.phone ?? "") : values.customerPhone;
@@ -512,9 +516,7 @@ export function OrderForm(props: AddOrderPageData) {
   const applyInventoryPrice = (index: number, inventoryId: string) => {
     const inventory = inventoryItems.find((item) => item.id === inventoryId);
     const price =
-      resolvedCustomerType && inventory
-        ? inventory.prices[resolvedCustomerType as OfferCustomerType]
-        : undefined;
+      resolvedCustomerType && inventory ? inventory.prices[resolvedCustomerType] : undefined;
     updateItem(index, { inventoryId, unitPrice: price === undefined ? "" : String(price) });
   };
 
@@ -670,9 +672,9 @@ export function OrderForm(props: AddOrderPageData) {
                       }
                     >
                       <option value="">Select type</option>
-                      {customerTypeValues.map((type) => (
-                        <option key={type} value={type}>
-                          {customerTypeLabels[type]}
+                      {customerTypeOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
                         </option>
                       ))}
                     </Select>
@@ -681,7 +683,8 @@ export function OrderForm(props: AddOrderPageData) {
                 ) : (
                   <div className="flex h-11 items-center rounded-xl border border-[rgb(var(--border))] bg-[rgb(var(--muted)/0.5)] px-3 text-sm font-medium text-[rgb(var(--muted-foreground))]">
                     {resolvedCustomerType ? (
-                      customerTypeLabels[resolvedCustomerType as OfferCustomerType]
+                      (customerTypeOptions.find((option) => option.value === resolvedCustomerType)
+                        ?.label ?? formatEnumLabel(resolvedCustomerType))
                     ) : (
                       <span className="opacity-60">— from selection</span>
                     )}
@@ -697,7 +700,10 @@ export function OrderForm(props: AddOrderPageData) {
                   <div className="flex items-center gap-3 px-3.5 py-3">
                     <CustomerAvatar
                       name={prefillCustomer.name}
-                      avatarUrl={resolveAvatarUrl(prefillCustomer.avatar, prefillCustomer.avatarSource)}
+                      avatarUrl={resolveAvatarUrl(
+                        prefillCustomer.avatar,
+                        prefillCustomer.avatarSource,
+                      )}
                       sizeClass="h-9 w-9 shrink-0"
                     />
                     <div className="min-w-0 flex-1">
@@ -705,7 +711,10 @@ export function OrderForm(props: AddOrderPageData) {
                         <span className="text-[14px] font-semibold text-[rgb(var(--primary-soft-foreground))]">
                           {prefillCustomer.name}
                         </span>
-                        <CustomerTypeBadge type={prefillCustomer.type} />
+                        <CustomerTypeBadge
+                          type={prefillCustomer.type}
+                          customerTypeOptions={customerTypeOptions}
+                        />
                       </div>
                       <div className="mt-0.5 font-mono text-[11.5px] text-[rgb(var(--primary-soft-foreground)/0.8)]">
                         {[
@@ -798,7 +807,10 @@ export function OrderForm(props: AddOrderPageData) {
                                 </div>
                               )}
                             </div>
-                            <CustomerTypeBadge type={customer.type} />
+                            <CustomerTypeBadge
+                              type={customer.type}
+                              customerTypeOptions={customerTypeOptions}
+                            />
                           </button>
                         );
                       })
@@ -1014,11 +1026,9 @@ export function OrderForm(props: AddOrderPageData) {
                                     <>
                                       {" "}
                                       · auto-priced for{" "}
-                                      {
-                                        customerTypeLabels[
-                                          resolvedCustomerType as OfferCustomerType
-                                        ]
-                                      }
+                                      {customerTypeOptions.find(
+                                        (option) => option.value === resolvedCustomerType,
+                                      )?.label ?? formatEnumLabel(resolvedCustomerType)}
                                     </>
                                   ) : null}
                                 </div>
@@ -1205,7 +1215,9 @@ export function OrderForm(props: AddOrderPageData) {
               <div className="mt-4 rounded-xl border border-[rgb(var(--metric-emerald)/0.3)] bg-[rgb(var(--metric-emerald-soft))] p-3.5">
                 <div className="flex items-center justify-between text-[12.5px] font-semibold text-[rgb(var(--metric-emerald-ink))]">
                   <span>Apply customer credits</span>
-                  <span className="font-mono">{formatCurrency(availableCreditBalance)} available</span>
+                  <span className="font-mono">
+                    {formatCurrency(availableCreditBalance)} available
+                  </span>
                 </div>
                 <div className="mt-2.5 grid grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1.5">

@@ -158,6 +158,21 @@ export function getCustomerTypeTone(type: string): DataPillTone {
   }
 }
 
+export function getCustomerTypeBadgeClasses(type: string): string {
+  switch (type) {
+    case "studio":
+      return "bg-[rgb(var(--metric-violet-soft))] text-[rgb(var(--metric-violet-ink))]";
+    case "amateur":
+      return "bg-[rgb(var(--metric-emerald-soft))] text-[rgb(var(--metric-emerald-ink))]";
+    case "employee":
+      return "bg-[rgb(var(--metric-amber-soft))] text-[rgb(var(--metric-amber-ink))]";
+    case "lab":
+      return "bg-[rgb(var(--metric-orange-soft))] text-[rgb(var(--metric-orange-ink))]";
+    default:
+      return "bg-[rgb(var(--muted))] text-[rgb(var(--muted-foreground))]";
+  }
+}
+
 export function getExpensePaymentModeTone(value: string): DataPillTone {
   switch (value) {
     case "cash":

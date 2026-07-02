@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Plus } from "lucide-react";
+import type { CustomerTypeOption } from "@/lib/customers/types";
 import {
   buildInventoryPricingPageHref,
   type InventoryPricingPageFilterState,
@@ -30,6 +31,7 @@ type InventoryPricingListControlsProps = {
   canCreate: boolean;
   addPricingDisabled: boolean;
   addPricingHref: string;
+  customerTypeOptions: CustomerTypeOption[];
 };
 
 function getPricingStatusTone(status: InventoryPricingStatus): DataPillTone {
@@ -106,6 +108,7 @@ export function InventoryPricingListControls({
   canCreate,
   addPricingDisabled,
   addPricingHref,
+  customerTypeOptions,
 }: InventoryPricingListControlsProps) {
   const currentHref = useMemo(
     () => buildInventoryPricingPageHref(currentPath, currentFilters),
@@ -356,24 +359,21 @@ export function InventoryPricingListControls({
                 onChange={(event) =>
                   updateDraftFilters((current) => ({
                     ...current,
-                    customerType:
-                      event.target.value === "studio" ||
-                      event.target.value === "amateur" ||
-                      event.target.value === "other" ||
-                      event.target.value === "employee" ||
-                      event.target.value === "lab"
-                        ? event.target.value
-                        : null,
+                    customerType: customerTypeOptions.some(
+                      (option) => option.value === event.target.value,
+                    )
+                      ? event.target.value
+                      : null,
                   }))
                 }
                 className="h-11 rounded-2xl bg-[rgb(var(--background))]"
               >
                 <option value="">All customer types</option>
-                <option value="studio">Studio</option>
-                <option value="amateur">Amateur</option>
-                <option value="other">Other</option>
-                <option value="employee">Employee</option>
-                <option value="lab">Lab</option>
+                {customerTypeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </Select>
             </label>
 

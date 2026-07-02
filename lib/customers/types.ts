@@ -1,5 +1,7 @@
 export type AvatarSource = "external" | "uploaded";
 
+export type CustomerTypeOption = { value: string; label: string };
+
 export const customerFieldNames = [
   "type",
   "name",

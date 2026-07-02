@@ -4,6 +4,7 @@ import { SectionCard } from "@/components/dashboard/section-card";
 import { InventoryPricingForm } from "@/components/inventory-pricing/inventory-pricing-form";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasPermission } from "@/lib/auth/permissions";
+import { getCustomerTypeOptions } from "@/lib/customers/queries";
 import { buildBranchFilterOptions } from "@/lib/dashboard/helpers";
 import { getDashboardContext, getInventoryPricingInventoryOptions } from "@/lib/dashboard/queries";
 
@@ -39,6 +40,7 @@ export default async function AddInventoryPricingPage({
     const context = await getDashboardContext(currentUser, requestedBranchId);
     const branchOptions = buildBranchFilterOptions(context);
     const inventoryOptions = await getInventoryPricingInventoryOptions(context.selectedBranchId);
+    const customerTypeOptions = await getCustomerTypeOptions();
     const redirectTo =
       context.selectedBranchId === null
         ? "/dashboard/inventory/pricing"
@@ -68,6 +70,7 @@ export default async function AddInventoryPricingPage({
               selectedBranchName={context.selectedBranchName}
               redirectTo={redirectTo}
               initialInventoryId={requestedInventoryId}
+              customerTypeOptions={customerTypeOptions}
             />
           </SectionCard>
         </div>

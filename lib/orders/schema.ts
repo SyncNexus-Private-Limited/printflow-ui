@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { normalizePhone } from "@/lib/validations/common-validators";
 import { paymentModeValues } from "@/lib/expenses/types";
-import { customerTypeValues } from "@/lib/offers/types";
 import {
   createOrderFieldNames,
   orderVendorStatusValues,
@@ -35,176 +34,189 @@ function optionalAmount(label: string) {
     );
 }
 
-export const createOrderSchema = z
-  .object({
-    branchId: z
-      .string()
-      .trim()
-      .refine((value) => uuidPattern.test(value), "Select a valid branch"),
-    customerMode: z.enum(["existing", "new"]),
-    customerId: z.string().trim().optional().default(""),
-    customerType: z.enum(customerTypeValues).or(z.literal("")).optional().default(""),
-    customerName: z.string().trim().optional().default(""),
-    customerPhone: z.string().trim().optional().default(""),
-    customerCode: optionalText(25).refine(
-      (value) => value === undefined || ENTITY_CODE_RE.test(value.toUpperCase()),
-      "Code must be 4–25 uppercase letters, numbers, or hyphens",
-    ),
-    customerNumericId: z
-      .string()
-      .trim()
-      .optional()
-      .transform((value) => (value && value.length > 0 ? value : undefined))
-      .refine((value) => value === undefined || /^\d+$/.test(value), "Numeric ID must be a number"),
-    studioName: optionalText(120),
-    alternatePhone: optionalText(40),
-    customerAddress: optionalText(250),
-    items: z
-      .array(
-        z.object({
-          inventoryId: z
-            .string()
-            .trim()
-            .refine((value) => uuidPattern.test(value), "Select an item"),
-          quantity: z
-            .string()
-            .trim()
-            .regex(/^\d+(\.\d{1,3})?$/, "Quantity must be valid")
-            .refine((value) => Number.parseFloat(value) > 0, "Quantity is required"),
-          unitPrice: z.string().trim().optional().default(""),
-        }),
-      )
-      .min(1, "Add at least one order item"),
-    offerIds: z
-      .array(
-        z
-          .string()
-          .trim()
-          .refine((value) => uuidPattern.test(value)),
-      )
-      .default([]),
-    manualDiscount: optionalAmount("Manual discount"),
-    creditsAppliedAmount: optionalAmount("Credits applied"),
-    initialPaymentAmount: optionalAmount("Initial payment"),
-    paymentMode: z.enum(paymentModeValues).or(z.literal("")).optional().default(""),
-    txnReference: optionalText(120),
-    vendorId: z.string().trim().optional().default(""),
-    vendorChargeAmount: optionalAmount("Vendor charge"),
-    vendorPaidAmount: optionalAmount("Vendor paid amount"),
-    vendorExpectedDeliveryDate: z
-      .string()
-      .trim()
-      .optional()
-      .transform((value) => (value && value.length > 0 ? value : undefined))
-      .refine(
-        (value) => value === undefined || /^\d{4}-\d{2}-\d{2}$/.test(value),
-        "Expected delivery must be a valid date",
+export function buildCreateOrderSchema(validCustomerTypes: readonly string[]) {
+  return z
+    .object({
+      branchId: z
+        .string()
+        .trim()
+        .refine((value) => uuidPattern.test(value), "Select a valid branch"),
+      customerMode: z.enum(["existing", "new"]),
+      customerId: z.string().trim().optional().default(""),
+      customerType: z
+        .enum(validCustomerTypes as [string, ...string[]])
+        .or(z.literal(""))
+        .optional()
+        .default(""),
+      customerName: z.string().trim().optional().default(""),
+      customerPhone: z.string().trim().optional().default(""),
+      customerCode: optionalText(25).refine(
+        (value) => value === undefined || ENTITY_CODE_RE.test(value.toUpperCase()),
+        "Code must be 4–25 uppercase letters, numbers, or hyphens",
       ),
-    vendorNotes: optionalText(250),
-  })
-  .superRefine((value, ctx) => {
-    if (value.customerMode === "existing") {
-      if (!uuidPattern.test(value.customerId)) {
-        ctx.addIssue({ code: "custom", path: ["customerId"], message: "Select a customer" });
-      }
-    } else {
-      const trimmedName = value.customerName.trim();
-      if (!trimmedName) {
-        ctx.addIssue({ code: "custom", path: ["customerName"], message: "Name is required" });
-      } else if (trimmedName.length < 2) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["customerName"],
-          message: "Name must be at least 2 characters",
-        });
-      } else if (trimmedName.length > 120) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["customerName"],
-          message: "Name must be 120 characters or less",
-        });
-      }
+      customerNumericId: z
+        .string()
+        .trim()
+        .optional()
+        .transform((value) => (value && value.length > 0 ? value : undefined))
+        .refine(
+          (value) => value === undefined || /^\d+$/.test(value),
+          "Numeric ID must be a number",
+        ),
+      studioName: optionalText(120),
+      alternatePhone: optionalText(40),
+      customerAddress: optionalText(250),
+      items: z
+        .array(
+          z.object({
+            inventoryId: z
+              .string()
+              .trim()
+              .refine((value) => uuidPattern.test(value), "Select an item"),
+            quantity: z
+              .string()
+              .trim()
+              .regex(/^\d+(\.\d{1,3})?$/, "Quantity must be valid")
+              .refine((value) => Number.parseFloat(value) > 0, "Quantity is required"),
+            unitPrice: z.string().trim().optional().default(""),
+          }),
+        )
+        .min(1, "Add at least one order item"),
+      offerIds: z
+        .array(
+          z
+            .string()
+            .trim()
+            .refine((value) => uuidPattern.test(value)),
+        )
+        .default([]),
+      manualDiscount: optionalAmount("Manual discount"),
+      creditsAppliedAmount: optionalAmount("Credits applied"),
+      initialPaymentAmount: optionalAmount("Initial payment"),
+      paymentMode: z.enum(paymentModeValues).or(z.literal("")).optional().default(""),
+      txnReference: optionalText(120),
+      vendorId: z.string().trim().optional().default(""),
+      vendorChargeAmount: optionalAmount("Vendor charge"),
+      vendorPaidAmount: optionalAmount("Vendor paid amount"),
+      vendorExpectedDeliveryDate: z
+        .string()
+        .trim()
+        .optional()
+        .transform((value) => (value && value.length > 0 ? value : undefined))
+        .refine(
+          (value) => value === undefined || /^\d{4}-\d{2}-\d{2}$/.test(value),
+          "Expected delivery must be a valid date",
+        ),
+      vendorNotes: optionalText(250),
+    })
+    .superRefine((value, ctx) => {
+      if (value.customerMode === "existing") {
+        if (!uuidPattern.test(value.customerId)) {
+          ctx.addIssue({ code: "custom", path: ["customerId"], message: "Select a customer" });
+        }
+      } else {
+        const trimmedName = value.customerName.trim();
+        if (!trimmedName) {
+          ctx.addIssue({ code: "custom", path: ["customerName"], message: "Name is required" });
+        } else if (trimmedName.length < 2) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["customerName"],
+            message: "Name must be at least 2 characters",
+          });
+        } else if (trimmedName.length > 120) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["customerName"],
+            message: "Name must be 120 characters or less",
+          });
+        }
 
-      const normalizedPhone = normalizePhone(value.customerPhone);
-      if (typeof normalizedPhone !== "string" || !normalizedPhone) {
-        ctx.addIssue({ code: "custom", path: ["customerPhone"], message: "Phone is required" });
-      } else if (!INDIAN_PHONE_RE.test(normalizedPhone)) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["customerPhone"],
-          message: "Enter a valid 10-digit Indian mobile number (must start with 6, 7, 8, or 9)",
-        });
-      }
+        const normalizedPhone = normalizePhone(value.customerPhone);
+        if (typeof normalizedPhone !== "string" || !normalizedPhone) {
+          ctx.addIssue({ code: "custom", path: ["customerPhone"], message: "Phone is required" });
+        } else if (!INDIAN_PHONE_RE.test(normalizedPhone)) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["customerPhone"],
+            message: "Enter a valid 10-digit Indian mobile number (must start with 6, 7, 8, or 9)",
+          });
+        }
 
-      if (!value.customerType) {
-        ctx.addIssue({
-          code: "custom",
-          path: ["customerType"],
-          message: "Customer type is required",
-        });
-      }
+        if (!value.customerType) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["customerType"],
+            message: "Customer type is required",
+          });
+        }
 
-      if (value.alternatePhone) {
-        const normalizedAlt = normalizePhone(value.alternatePhone);
-        if (typeof normalizedAlt === "string" && normalizedAlt.length > 0) {
-          if (!INDIAN_PHONE_RE.test(normalizedAlt)) {
-            ctx.addIssue({
-              code: "custom",
-              path: ["alternatePhone"],
-              message:
-                "Enter a valid 10-digit Indian mobile number (must start with 6, 7, 8, or 9)",
-            });
-          } else if (
-            normalizedAlt ===
-            (typeof normalizePhone(value.customerPhone) === "string"
-              ? normalizePhone(value.customerPhone)
-              : "")
-          ) {
-            ctx.addIssue({
-              code: "custom",
-              path: ["alternatePhone"],
-              message: "Alternate phone must be different from the primary phone",
-            });
+        if (value.alternatePhone) {
+          const normalizedAlt = normalizePhone(value.alternatePhone);
+          if (typeof normalizedAlt === "string" && normalizedAlt.length > 0) {
+            if (!INDIAN_PHONE_RE.test(normalizedAlt)) {
+              ctx.addIssue({
+                code: "custom",
+                path: ["alternatePhone"],
+                message:
+                  "Enter a valid 10-digit Indian mobile number (must start with 6, 7, 8, or 9)",
+              });
+            } else if (
+              normalizedAlt ===
+              (typeof normalizePhone(value.customerPhone) === "string"
+                ? normalizePhone(value.customerPhone)
+                : "")
+            ) {
+              ctx.addIssue({
+                code: "custom",
+                path: ["alternatePhone"],
+                message: "Alternate phone must be different from the primary phone",
+              });
+            }
           }
         }
       }
-    }
 
-    if (value.initialPaymentAmount && !value.paymentMode) {
-      ctx.addIssue({ code: "custom", path: ["paymentMode"], message: "Payment mode is required" });
-    }
+      if (value.initialPaymentAmount && !value.paymentMode) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["paymentMode"],
+          message: "Payment mode is required",
+        });
+      }
 
-    const hasVendor = value.vendorId.length > 0;
-    if (hasVendor && !uuidPattern.test(value.vendorId)) {
-      ctx.addIssue({ code: "custom", path: ["vendorId"], message: "Select a valid vendor" });
-    }
-    if (
-      (value.vendorChargeAmount || value.vendorPaidAmount || value.vendorExpectedDeliveryDate) &&
-      !hasVendor
-    ) {
-      ctx.addIssue({ code: "custom", path: ["vendorId"], message: "Select a vendor" });
-    }
-    if (value.vendorPaidAmount && !value.vendorChargeAmount) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["vendorChargeAmount"],
-        message: "Vendor charge is required",
-      });
-    }
-    if (
-      value.vendorPaidAmount &&
-      value.vendorChargeAmount &&
-      Number.parseFloat(value.vendorPaidAmount) > Number.parseFloat(value.vendorChargeAmount)
-    ) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["vendorPaidAmount"],
-        message: "Vendor paid amount cannot exceed vendor charge",
-      });
-    }
-  });
+      const hasVendor = value.vendorId.length > 0;
+      if (hasVendor && !uuidPattern.test(value.vendorId)) {
+        ctx.addIssue({ code: "custom", path: ["vendorId"], message: "Select a valid vendor" });
+      }
+      if (
+        (value.vendorChargeAmount || value.vendorPaidAmount || value.vendorExpectedDeliveryDate) &&
+        !hasVendor
+      ) {
+        ctx.addIssue({ code: "custom", path: ["vendorId"], message: "Select a vendor" });
+      }
+      if (value.vendorPaidAmount && !value.vendorChargeAmount) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["vendorChargeAmount"],
+          message: "Vendor charge is required",
+        });
+      }
+      if (
+        value.vendorPaidAmount &&
+        value.vendorChargeAmount &&
+        Number.parseFloat(value.vendorPaidAmount) > Number.parseFloat(value.vendorChargeAmount)
+      ) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["vendorPaidAmount"],
+          message: "Vendor paid amount cannot exceed vendor charge",
+        });
+      }
+    });
+}
 
-export type CreateOrderInput = z.infer<typeof createOrderSchema>;
+export type CreateOrderInput = z.infer<ReturnType<typeof buildCreateOrderSchema>>;
 
 export const addOrderPaymentSchema = z.object({
   amount: z

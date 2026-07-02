@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasPermission } from "@/lib/auth/permissions";
+import { getCustomerTypeValues } from "@/lib/customers/queries";
 import { getDashboardContext } from "@/lib/dashboard/queries";
 import { parseOffersPageFilters } from "@/lib/dashboard/offers-page-filters";
 import { OfferMutationError, createOffer } from "@/lib/offers/mutations";
 import { getOffersPageData } from "@/lib/offers/queries";
-import { getOfferFieldErrors, offerSchema } from "@/lib/offers/schema";
+import { buildOfferSchema, getOfferFieldErrors } from "@/lib/offers/schema";
 
 export const runtime = "nodejs";
 
@@ -39,7 +40,8 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const parsed = offerSchema.safeParse(body);
+    const validCustomerTypes = await getCustomerTypeValues();
+    const parsed = buildOfferSchema(validCustomerTypes).safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(

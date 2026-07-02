@@ -9,10 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { inventoryPricingSchema } from "@/lib/inventory-pricing/schema";
+import type { CustomerTypeOption } from "@/lib/customers/types";
+import { buildInventoryPricingSchema } from "@/lib/inventory-pricing/schema";
 import {
-  inventoryPricingCustomerTypeLabels,
-  inventoryPricingCustomerTypeValues,
   type InventoryPricingFieldName,
   type InventoryPricingFormValues,
   type InventoryPricingMutationResponse,
@@ -27,6 +26,7 @@ type InventoryPricingDialogProps = {
   inventoryOptions: InventoryPricingInventoryOption[];
   onClose: () => void;
   onSaved: () => void;
+  customerTypeOptions: CustomerTypeOption[];
 };
 
 function FieldLabel({
@@ -72,9 +72,14 @@ export function InventoryPricingDialog({
   inventoryOptions,
   onClose,
   onSaved,
+  customerTypeOptions,
 }: InventoryPricingDialogProps) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const schema = useMemo(
+    () => buildInventoryPricingSchema(customerTypeOptions.map((option) => option.value)),
+    [customerTypeOptions],
+  );
   const {
     register,
     handleSubmit,
@@ -85,9 +90,7 @@ export function InventoryPricingDialog({
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<InventoryPricingFormValues>({
-    resolver: zodResolver(
-      inventoryPricingSchema,
-    ) as unknown as Resolver<InventoryPricingFormValues>,
+    resolver: zodResolver(schema) as unknown as Resolver<InventoryPricingFormValues>,
     defaultValues: buildDefaultValues(pricing),
   });
 
@@ -215,9 +218,9 @@ export function InventoryPricingDialog({
                 }
               >
                 <option value="">Select type</option>
-                {inventoryPricingCustomerTypeValues.map((type) => (
-                  <option key={type} value={type}>
-                    {inventoryPricingCustomerTypeLabels[type]}
+                {customerTypeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
                   </option>
                 ))}
               </Select>

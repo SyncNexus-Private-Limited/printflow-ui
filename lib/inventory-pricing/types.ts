@@ -1,24 +1,6 @@
-import type { InventoryPricingCustomerType } from "@/lib/dashboard/inventory-pricing-page-filters";
-
-export const inventoryPricingCustomerTypeValues = [
-  "studio",
-  "amateur",
-  "other",
-  "employee",
-  "lab",
-] as const;
-
-export const inventoryPricingCustomerTypeLabels: Record<InventoryPricingCustomerType, string> = {
-  studio: "Studio",
-  amateur: "Amateur",
-  other: "Other",
-  employee: "Employee",
-  lab: "Lab",
-};
-
 export type InventoryPricingFormValues = {
   inventoryId: string;
-  customerType: InventoryPricingCustomerType | "";
+  customerType: string;
   sellingRate: string;
   effectiveFrom: string;
   effectiveTo: string;

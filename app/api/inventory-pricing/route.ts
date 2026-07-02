@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { getCustomerTypeValues } from "@/lib/customers/queries";
 import {
   InventoryPricingMutationError,
   createInventoryPricing,
 } from "@/lib/inventory-pricing/mutations";
 import {
+  buildInventoryPricingSchema,
   getInventoryPricingFieldErrors,
-  inventoryPricingSchema,
 } from "@/lib/inventory-pricing/schema";
 
 export const runtime = "nodejs";
@@ -24,7 +25,8 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const parsed = inventoryPricingSchema.safeParse(body);
+    const validCustomerTypes = await getCustomerTypeValues();
+    const parsed = buildInventoryPricingSchema(validCustomerTypes).safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(

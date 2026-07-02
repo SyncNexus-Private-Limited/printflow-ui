@@ -1,15 +1,16 @@
 "use client";
 
 import { useDashboardChrome } from "@/components/dashboard/dashboard-chrome-context";
+import { getCustomerTypeBadgeClasses } from "@/components/dashboard/data-pill";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { customerTypeLabels, type OfferCustomerType } from "@/lib/offers/types";
+import type { CustomerTypeOption } from "@/lib/customers/types";
 import { validateOrderItems } from "@/lib/orders/form-validation";
 import type { EditOrderPageData, OrderOfferOption } from "@/lib/orders/types";
 import { ORDER_HIGH_DISCOUNT_PERCENT } from "@/lib/orders/types";
-import { formatCurrency } from "@/lib/utils/format";
+import { formatCurrency, formatEnumLabel } from "@/lib/utils/format";
 import {
   AlertCircle,
   ArrowRight,
@@ -60,19 +61,20 @@ function getInitials(name: string): string {
 
 // ─── local UI primitives (mirrors order-form.tsx) ────────────────────────────
 
-function CustomerTypeBadge({ type }: { type: OfferCustomerType }) {
-  const toneClasses: Record<OfferCustomerType, string> = {
-    studio: "bg-[rgb(var(--metric-violet-soft))] text-[rgb(var(--metric-violet-ink))]",
-    amateur: "bg-[rgb(var(--metric-emerald-soft))] text-[rgb(var(--metric-emerald-ink))]",
-    employee: "bg-[rgb(var(--metric-amber-soft))] text-[rgb(var(--metric-amber-ink))]",
-    other: "bg-[rgb(var(--muted))] text-[rgb(var(--muted-foreground))]",
-    lab: "bg-[rgb(var(--metric-orange-soft))] text-[rgb(var(--metric-orange-ink))]",
-  };
+function CustomerTypeBadge({
+  type,
+  customerTypeOptions,
+}: {
+  type: string;
+  customerTypeOptions: CustomerTypeOption[];
+}) {
+  const label =
+    customerTypeOptions.find((option) => option.value === type)?.label ?? formatEnumLabel(type);
   return (
     <span
-      className={`shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${toneClasses[type]}`}
+      className={`shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${getCustomerTypeBadgeClasses(type)}`}
     >
-      {customerTypeLabels[type]}
+      {label}
     </span>
   );
 }
@@ -127,6 +129,7 @@ export function OrderEditForm({
   selectedBranchId,
   canApplyDiscount,
   canApplyHighDiscount,
+  customerTypeOptions,
 }: EditOrderPageData) {
   const router = useRouter();
   const { setBranchControl } = useDashboardChrome();
@@ -177,8 +180,7 @@ export function OrderEditForm({
   // ── derived state ──────────────────────────────────────────────────────────
 
   const selectedCustomer = customers.find((c) => c.id === detail.order.customerId) ?? null;
-  const resolvedCustomerType: OfferCustomerType =
-    selectedCustomer?.type ?? detail.order.customerType;
+  const resolvedCustomerType: string = selectedCustomer?.type ?? detail.order.customerType;
 
   const lineItems = items.map((item) => {
     const inventory = inventoryItems.find((opt) => opt.id === item.inventoryId);
@@ -192,8 +194,7 @@ export function OrderEditForm({
     if (
       offer.customerTypes &&
       offer.customerTypes.length > 0 &&
-      (!resolvedCustomerType ||
-        !offer.customerTypes.includes(resolvedCustomerType as OfferCustomerType))
+      (!resolvedCustomerType || !offer.customerTypes.includes(resolvedCustomerType))
     )
       return false;
     if (offer.minimumOrderValue !== null && subtotal < offer.minimumOrderValue) return false;
@@ -257,11 +258,12 @@ export function OrderEditForm({
     if (
       offer.customerTypes &&
       offer.customerTypes.length > 0 &&
-      (!resolvedCustomerType ||
-        !offer.customerTypes.includes(resolvedCustomerType as OfferCustomerType))
+      (!resolvedCustomerType || !offer.customerTypes.includes(resolvedCustomerType))
     ) {
       reasons.push(
-        `for ${offer.customerTypes.map((t) => customerTypeLabels[t]).join(", ")} only`,
+        `for ${offer.customerTypes
+          .map((t) => customerTypeOptions.find((option) => option.value === t)?.label ?? t)
+          .join(", ")} only`,
       );
     }
     if (offer.minimumOrderValue !== null && subtotal < offer.minimumOrderValue) {
@@ -276,10 +278,13 @@ export function OrderEditForm({
     if (
       offer.customerTypes &&
       offer.customerTypes.length > 0 &&
-      (!resolvedCustomerType ||
-        !offer.customerTypes.includes(resolvedCustomerType as OfferCustomerType))
+      (!resolvedCustomerType || !offer.customerTypes.includes(resolvedCustomerType))
     ) {
-      reasons.push(`${offer.customerTypes.map((t) => customerTypeLabels[t]).join(", ")} only`);
+      reasons.push(
+        `${offer.customerTypes
+          .map((t) => customerTypeOptions.find((option) => option.value === t)?.label ?? t)
+          .join(", ")} only`,
+      );
     }
     if (offer.minimumOrderValue !== null && subtotal < offer.minimumOrderValue) {
       reasons.push(`min ${formatCurrency(offer.minimumOrderValue)}`);
@@ -423,7 +428,10 @@ export function OrderEditForm({
                   <p className="truncate text-[14px] font-bold text-[rgb(var(--card-foreground))]">
                     {summaryName}
                   </p>
-                  <CustomerTypeBadge type={resolvedCustomerType} />
+                  <CustomerTypeBadge
+                    type={resolvedCustomerType}
+                    customerTypeOptions={customerTypeOptions}
+                  />
                 </div>
                 <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[11.5px] text-[rgb(var(--muted-foreground))]">
                   <span>{summaryPhone || "No phone"}</span>
@@ -561,7 +569,10 @@ export function OrderEditForm({
                                   <div className="flex items-center gap-2 font-mono text-[11.5px] text-[rgb(var(--muted-foreground))]">
                                     <Check className="h-2.75 w-2.75 shrink-0" strokeWidth={2.5} />
                                     Available: {li.inventory.quantity} {li.inventory.unit} ·
-                                    auto-priced for {customerTypeLabels[resolvedCustomerType]}
+                                    auto-priced for{" "}
+                                    {customerTypeOptions.find(
+                                      (option) => option.value === resolvedCustomerType,
+                                    )?.label ?? formatEnumLabel(resolvedCustomerType)}
                                   </div>
                                 )}
                               </td>
@@ -760,7 +771,9 @@ export function OrderEditForm({
                   <div className="text-[13.5px] font-bold text-[rgb(var(--primary-soft-foreground))]">
                     {summaryName}
                     <span className="ml-1 font-medium opacity-70">
-                      · {customerTypeLabels[resolvedCustomerType]}
+                      ·{" "}
+                      {customerTypeOptions.find((option) => option.value === resolvedCustomerType)
+                        ?.label ?? formatEnumLabel(resolvedCustomerType)}
                     </span>
                   </div>
                   {summaryPhone || summaryCode ? (

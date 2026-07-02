@@ -8,10 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
-import { inventoryPricingSchema } from "@/lib/inventory-pricing/schema";
+import type { CustomerTypeOption } from "@/lib/customers/types";
+import { buildInventoryPricingSchema } from "@/lib/inventory-pricing/schema";
 import {
-  inventoryPricingCustomerTypeLabels,
-  inventoryPricingCustomerTypeValues,
   type InventoryPricingFieldName,
   type InventoryPricingFormValues,
   type InventoryPricingMutationResponse,
@@ -23,6 +22,7 @@ type InventoryPricingFormProps = {
   selectedBranchName: string;
   redirectTo: string;
   initialInventoryId?: string;
+  customerTypeOptions: CustomerTypeOption[];
 };
 
 function FieldLabel({
@@ -56,6 +56,7 @@ export function InventoryPricingForm({
   selectedBranchName,
   redirectTo,
   initialInventoryId,
+  customerTypeOptions,
 }: InventoryPricingFormProps) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -63,6 +64,11 @@ export function InventoryPricingForm({
   const initialItemAvailable =
     !!initialInventoryId && inventoryOptions.some((opt) => opt.id === initialInventoryId);
   const initialItemUnavailable = !!initialInventoryId && !initialItemAvailable;
+
+  const schema = useMemo(
+    () => buildInventoryPricingSchema(customerTypeOptions.map((option) => option.value)),
+    [customerTypeOptions],
+  );
 
   const {
     register,
@@ -73,9 +79,7 @@ export function InventoryPricingForm({
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<InventoryPricingFormValues>({
-    resolver: zodResolver(
-      inventoryPricingSchema,
-    ) as unknown as Resolver<InventoryPricingFormValues>,
+    resolver: zodResolver(schema) as unknown as Resolver<InventoryPricingFormValues>,
     defaultValues: {
       inventoryId: initialItemAvailable ? initialInventoryId : "",
       customerType: "",
@@ -204,9 +208,9 @@ export function InventoryPricingForm({
             }
           >
             <option value="">Select type</option>
-            {inventoryPricingCustomerTypeValues.map((type) => (
-              <option key={type} value={type}>
-                {inventoryPricingCustomerTypeLabels[type]}
+            {customerTypeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </Select>

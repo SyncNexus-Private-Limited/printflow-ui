@@ -6,6 +6,7 @@ import { ChevronDown, Pencil, PlusCircle, RotateCcw, Trash2 } from "lucide-react
 import { CustomerEditDialog } from "@/components/customers/customer-edit-dialog";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
+import type { CustomerTypeOption } from "@/lib/customers/types";
 
 type CustomerDetailActionsProps = {
   customerId: string;
@@ -16,6 +17,7 @@ type CustomerDetailActionsProps = {
   canDeactivate: boolean;
   canRestore: boolean;
   canCreateOrder: boolean;
+  customerTypeOptions: CustomerTypeOption[];
 };
 
 export function CustomerDetailActions({
@@ -27,6 +29,7 @@ export function CustomerDetailActions({
   canDeactivate,
   canRestore,
   canCreateOrder,
+  customerTypeOptions,
 }: CustomerDetailActionsProps) {
   const router = useRouter();
   const moreRef = useRef<HTMLDivElement>(null);
@@ -191,6 +194,7 @@ export function CustomerDetailActions({
           setShowEdit(false);
           router.refresh();
         }}
+        customerTypeOptions={customerTypeOptions}
       />
 
       <ConfirmDialog

@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { getCustomerTypeValues } from "@/lib/customers/queries";
 import {
   InventoryPricingMutationError,
   closeInventoryPricing,
   updateInventoryPricing,
 } from "@/lib/inventory-pricing/mutations";
 import {
+  buildInventoryPricingSchema,
   getInventoryPricingFieldErrors,
-  inventoryPricingSchema,
 } from "@/lib/inventory-pricing/schema";
 
 export const runtime = "nodejs";
@@ -46,7 +47,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ success: true });
     }
 
-    const updateParsed = inventoryPricingSchema.safeParse(body);
+    const validCustomerTypes = await getCustomerTypeValues();
+    const updateParsed = buildInventoryPricingSchema(validCustomerTypes).safeParse(body);
 
     if (!updateParsed.success) {
       return NextResponse.json(

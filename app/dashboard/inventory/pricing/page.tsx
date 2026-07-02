@@ -5,6 +5,7 @@ import { SectionCard } from "@/components/dashboard/section-card";
 import { InventoryPricingTableWithActions } from "@/components/inventory-pricing/inventory-pricing-table-with-actions";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasPermission } from "@/lib/auth/permissions";
+import { getCustomerTypeOptions } from "@/lib/customers/queries";
 import { buildBranchFilterOptions } from "@/lib/dashboard/helpers";
 import { parseInventoryPricingPageFilters } from "@/lib/dashboard/inventory-pricing-page-filters";
 import { getDashboardContext, getInventoryPricingPageData } from "@/lib/dashboard/queries";
@@ -37,6 +38,7 @@ export default async function InventoryPricingPage({ searchParams }: InventoryPr
       branchId: context.selectedBranchValue,
     };
     const pageData = await getInventoryPricingPageData(context.selectedBranchId, currentFilters);
+    const customerTypeOptions = await getCustomerTypeOptions();
     const branchOptions = buildBranchFilterOptions(context);
     const showBranchColumn = context.selectedBranchId === null;
 
@@ -87,6 +89,7 @@ export default async function InventoryPricingPage({ searchParams }: InventoryPr
             canCreate={canCreate}
             canEdit={canEdit}
             selectedBranchName={context.selectedBranchName}
+            customerTypeOptions={customerTypeOptions}
           />
         </div>
       </main>

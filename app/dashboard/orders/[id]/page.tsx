@@ -331,7 +331,10 @@ export default async function OrderDetailsPage({ params }: OrderDetailsPageProps
           <div className="grid grid-cols-2 gap-x-8 gap-y-4 border-b border-[rgb(var(--border)/0.7)] px-6 py-5 sm:grid-cols-3 lg:grid-cols-4">
             <DetailRow label="Customer" value={order.customerName} />
             <DetailRow label="Phone" value={order.customerPhone} />
-            <DetailRow label="Code" value={order.customerCode ?? "—"} />
+            <DetailRow
+              label="Numeric ID"
+              value={order.customerNumericId != null ? String(order.customerNumericId) : "—"}
+            />
             <DetailRow label="Type" value={formatEnumLabel(order.customerType)} />
             <DetailRow label="Branch" value={order.branchName} />
             <DetailRow label="Created by" value={order.createdByName ?? "System"} />

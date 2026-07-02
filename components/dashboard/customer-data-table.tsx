@@ -319,11 +319,6 @@ export function CustomerDataTable({
                           <p className="leading-6 font-semibold wrap-break-word text-[rgb(var(--card-foreground))]">
                             {customer.name}
                           </p>
-                          {customer.customerCode ? (
-                            <p className="text-xs text-[rgb(var(--muted-foreground))]">
-                              {customer.customerCode}
-                            </p>
-                          ) : null}
                         </div>
                       </div>
                     </td>

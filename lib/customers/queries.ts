@@ -34,8 +34,7 @@ export async function getCustomerTypeValues(): Promise<string[]> {
 
 type EditCustomerDbRow = {
   id: string;
-  customer_numeric_id: number | null;
-  customer_code: string | null;
+  customer_numeric_id: number;
   type: string;
   name: string;
   phone: string;
@@ -61,7 +60,6 @@ export async function getCustomerById(id: string): Promise<EditCustomerRow | nul
       SELECT
         c.id::text AS id,
         c.customer_numeric_id,
-        c.customer_code,
         c.type::text AS type,
         c.name,
         c.phone,
@@ -93,7 +91,6 @@ export async function getCustomerById(id: string): Promise<EditCustomerRow | nul
   return {
     id: row.id,
     customerNumericId: row.customer_numeric_id,
-    customerCode: row.customer_code,
     type: row.type,
     name: row.name,
     phone: row.phone,
@@ -197,7 +194,6 @@ export async function getCustomerDetailPageData(
         SELECT
           c.id::text AS id,
           c.customer_numeric_id,
-          c.customer_code,
           c.type::text AS type,
           c.name,
           c.phone,
@@ -357,7 +353,6 @@ export async function getCustomerDetailPageData(
   const customer: EditCustomerRow = {
     id: customerRow.id,
     customerNumericId: customerRow.customer_numeric_id,
-    customerCode: customerRow.customer_code,
     type: customerRow.type,
     name: customerRow.name,
     phone: customerRow.phone,

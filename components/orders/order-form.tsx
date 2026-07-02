@@ -101,8 +101,6 @@ function buildInitialValues(branchId: string, prefillCustomerId?: string): Creat
     customerType: "",
     customerName: "",
     customerPhone: "",
-    customerCode: "",
-    customerNumericId: "",
     studioName: "",
     alternatePhone: "",
     customerAddress: "",
@@ -483,10 +481,10 @@ export function OrderForm(props: AddOrderPageData) {
     : "";
   const summaryPhone =
     values.customerMode === "existing" ? (selectedCustomer?.phone ?? "") : values.customerPhone;
-  const summaryCode =
-    values.customerMode === "existing"
-      ? (selectedCustomer?.customerCode ?? "")
-      : values.customerCode;
+  const summaryNumericId =
+    values.customerMode === "existing" && selectedCustomer?.customerNumericId != null
+      ? `#${selectedCustomer.customerNumericId}`
+      : "";
 
   // Helper text for summary card
   const activeItemCount = lineItems.filter((i) => i.inventory).length;
@@ -719,7 +717,6 @@ export function OrderForm(props: AddOrderPageData) {
                       <div className="mt-0.5 font-mono text-[11.5px] text-[rgb(var(--primary-soft-foreground)/0.8)]">
                         {[
                           prefillCustomer.phone,
-                          prefillCustomer.customerCode,
                           prefillCustomer.customerNumericId != null
                             ? `#${prefillCustomer.customerNumericId}`
                             : null,
@@ -752,7 +749,7 @@ export function OrderForm(props: AddOrderPageData) {
                       <Input
                         value={customerSearch}
                         onChange={(e) => setCustomerSearch(e.target.value)}
-                        placeholder="Search by mobile, code, numeric ID, or name…"
+                        placeholder="Search by mobile, numeric ID, or name…"
                         className="pl-9"
                       />
                     </div>
@@ -768,7 +765,6 @@ export function OrderForm(props: AddOrderPageData) {
                         const isSelected = values.customerId === customer.id;
                         const metaParts = [
                           customer.phone,
-                          customer.customerCode,
                           customer.customerNumericId != null
                             ? `#${customer.customerNumericId}`
                             : null,
@@ -856,28 +852,6 @@ export function OrderForm(props: AddOrderPageData) {
                     onChange={(e) => updateValue("customerPhone", e.target.value)}
                   />
                   <FieldError message={fieldErrors.customerPhone} />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <FieldLabel htmlFor="new-cust-code" optional>
-                    Code
-                  </FieldLabel>
-                  <Input
-                    id="new-cust-code"
-                    value={values.customerCode}
-                    onChange={(e) => updateValue("customerCode", e.target.value)}
-                  />
-                  <FieldError message={fieldErrors.customerCode} />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <FieldLabel htmlFor="new-cust-numeric" optional>
-                    Numeric ID
-                  </FieldLabel>
-                  <Input
-                    id="new-cust-numeric"
-                    value={values.customerNumericId}
-                    onChange={(e) => updateValue("customerNumericId", e.target.value)}
-                  />
-                  <FieldError message={fieldErrors.customerNumericId} />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <FieldLabel htmlFor="new-cust-studio" optional>
@@ -1385,9 +1359,9 @@ export function OrderForm(props: AddOrderPageData) {
                         <span className="ml-1 font-medium opacity-70"> · {summaryType}</span>
                       ) : null}
                     </div>
-                    {summaryPhone || summaryCode ? (
+                    {summaryPhone || summaryNumericId ? (
                       <div className="mt-0.5 truncate font-mono text-[11px] text-[rgb(var(--primary-soft-foreground)/0.85)]">
-                        {[summaryPhone, summaryCode].filter(Boolean).join(" · ")}
+                        {[summaryPhone, summaryNumericId].filter(Boolean).join(" · ")}
                       </div>
                     ) : null}
                   </div>

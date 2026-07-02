@@ -173,13 +173,13 @@ INSERT INTO user_auth (
 );
 
 -- 4) CUSTOMERS
+-- customer_numeric_id is DB-generated (trigger_set_customer_numeric_id) —
+-- omit it here and let the trigger assign sequential values on insert.
 INSERT INTO customers (
-  id, customer_numeric_id, customer_code, type, name, avatar, studio_name, phone, alternate_phone, address
+  id, type, name, avatar, studio_name, phone, alternate_phone, address
 ) VALUES
 (
   '33333333-3333-4333-8333-333333333333',
-  1001,
-  'CUST-0001',
   'studio',
   'Test Customer',
   NULL,
@@ -190,8 +190,6 @@ INSERT INTO customers (
 ),
 (
   '34343434-3434-4343-8343-343434343434',
-  1002,
-  'CUST-0002',
   'studio',
   'Ravi Photography',
   NULL,
@@ -202,8 +200,6 @@ INSERT INTO customers (
 ),
 (
   '35353535-3535-4353-8353-353535353535',
-  1003,
-  'CUST-0003',
   'amateur',
   'Sneha Reddy',
   NULL,
@@ -214,8 +210,6 @@ INSERT INTO customers (
 ),
 (
   '36363636-3636-4363-8363-363636363636',
-  1004,
-  'CUST-0004',
   'other',
   'ABC Events',
   NULL,
@@ -226,8 +220,6 @@ INSERT INTO customers (
 ),
 (
   '37373737-3737-4373-8373-373737373737',
-  1005,
-  'CUST-0005',
   'employee',
   'Internal Staff Order',
   NULL,
@@ -238,8 +230,6 @@ INSERT INTO customers (
 ),
 (
   '38383838-3838-4383-8383-383838383838',
-  1006,
-  'CUST-0006',
   'studio',
   'Focus Color Lab',
   NULL,

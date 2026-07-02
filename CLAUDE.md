@@ -15,7 +15,7 @@ React UI (Server Components by default)
 - Pages fetch data server-side via `lib/dashboard/queries.ts` (marked `server-only`)
 - Client components scoped to interactive islands (forms, filters, list controls)
 - Route handlers: validate → authorize → call DB → return typed response
-- PostgreSQL is source of truth for all financial totals, inventory counts, and order codes
+- PostgreSQL is source of truth for all financial totals, inventory counts, order codes, and customer numeric codes
 
 ## Stack
 
@@ -161,7 +161,9 @@ db/
                         # operational entities, inventory, orders, expenses, audit logs, offers/admin),
                         # plus point migrations added since: add_labs_customer_type, add_vendor_business_name,
                         # offer_customer_types_array, order_cancellation_refunds_credits,
-                        # order_cancellation_zero_outstanding, add_cc_customer_type
+                        # order_cancellation_zero_outstanding, add_cc_customer_type,
+                        # backfill_and_drop_customer_code, auto_generate_customer_numeric_id,
+                        # allow_customer_numeric_id_edit
   seeds/dev_seed.sql
   reset/dev_reset.sql
 
@@ -234,7 +236,7 @@ npm run db:reset:dev -- --confirm printflow_dev
 
 ## DB Schema
 
-**Core tables:** `branches`, `branch_audit_logs`, `users`, `user_audit_logs`, `user_auth`, `app_sessions`, `customers`, `customer_audit_logs`, `vendors`, `vendor_audit_logs`, `inventory`, `inventory_pricing`, `inventory_audit_logs`, `inventory_pricing_audit_logs`, `inventory_stock_movements`, `orders`, `order_items`, `order_audit_logs`, `payments`, `order_vendors`, `offers`, `offer_audit_logs`, `order_applied_offers`, `offer_items`, `order_offer_items`, `order_refunds`, `customer_credit_transactions`, `branch_expenses`, `employee_expenses`, `business_expense_audit_logs`, `employee_expense_audit_logs`, `expense_categories`, `expense_category_audit_logs`, `expense_attachments`, `order_sequences`
+**Core tables:** `branches`, `branch_audit_logs`, `users`, `user_audit_logs`, `user_auth`, `app_sessions`, `customers`, `customer_audit_logs`, `vendors`, `vendor_audit_logs`, `inventory`, `inventory_pricing`, `inventory_audit_logs`, `inventory_pricing_audit_logs`, `inventory_stock_movements`, `orders`, `order_items`, `order_audit_logs`, `payments`, `order_vendors`, `offers`, `offer_audit_logs`, `order_applied_offers`, `offer_items`, `order_offer_items`, `order_refunds`, `customer_credit_transactions`, `branch_expenses`, `employee_expenses`, `business_expense_audit_logs`, `employee_expense_audit_logs`, `expense_categories`, `expense_category_audit_logs`, `expense_attachments`, `order_sequences`, `customer_sequences`
 
 Note: `offers` (promotional discounts: percentage/flat/buy_x_get_y, targeted via `customer_types`) and `order_applied_offers` are a separate feature from the older `offer_items`/`order_offer_items` (bundled deal items referenced on orders) — both exist and are unrelated.
 
@@ -245,6 +247,7 @@ Note: `offers` (promotional discounts: percentage/flat/buy_x_get_y, targeted via
 - `authenticate_user(username, password)` → `uuid | null`
 - `create_user_with_auth(admin_id, ...)` → `uuid` (admin-only)
 - `generate_order_code(branch_id, order_date)` → `text`
+- `generate_customer_numeric_id()` → `bigint` — atomically increments the single global counter in `customer_sequences` (same `INSERT ... ON CONFLICT DO UPDATE ... RETURNING` idiom as `generate_order_code`, but unscoped since `customers` has no `branch_id`)
 - `recalculate_order_financials(order_id)`
 - `set_updated_at()` — generic trigger
 
@@ -252,6 +255,7 @@ Note: `offers` (promotional discounts: percentage/flat/buy_x_get_y, targeted via
 
 - `trigger_set_order_code` — auto-generates `order_code` on INSERT to `orders`
 - `trg_validate_order_header` — guards immutable fields, branch match, derived field writes
+- `trigger_set_customer_numeric_id` — `BEFORE INSERT` on `customers`; auto-generates `customer_numeric_id` via `generate_customer_numeric_id()` and rejects a manually-supplied value. Unlike `order_code`, it does **not** guard UPDATE — `customer_numeric_id` is editable via Edit Customer (see Customer Management Rules)
 - `trg_apply_order_item_inventory` — deducts/restores inventory on `order_items` changes
 - `trg_recalculate_order_after_items` / `_after_payments` / `_after_discount` — keep totals in sync
 - `trg_restore_inventory_on_cancel` — restores inventory on cancel
@@ -354,8 +358,15 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 - Enforce `assertPermission` + `canAccessBranch` for all customer mutations.
 - Deactivate is soft — sets `is_active = false`; restore re-activates. Do not hard-delete customers.
 - `customer_type` enum values are DB-driven, not hardcoded in TypeScript — see Customer Type Rules below.
-- `customer-data-table.tsx` includes a sortable numeric ID column (`customer_numeric_id`); list/search also matches on `customer_numeric_id::text` and `studio_name` alongside name/phone/code (`/api/customers` route, `lib/dashboard/customer-page-filters.ts`).
+- `customer-data-table.tsx` includes a sortable numeric ID column (`customer_numeric_id`); list/search also matches on `customer_numeric_id::text` and `studio_name` alongside name/phone (`/api/customers` route, `lib/dashboard/customer-page-filters.ts`). There is no `customer_code` column — it was removed; `customer_numeric_id` is the sole customer identifier.
 - The Add Order page (`order-form.tsx`) reuses the same customer search (debounced, hits `/api/customers?q=`) to find/prefill a customer when creating an order — do not duplicate the matching logic.
+
+### `customer_numeric_id` Rules
+
+- `customer_numeric_id` is `bigint NOT NULL UNIQUE` and is DB-generated on creation — mirrors `order_code`'s pattern (trigger + atomic counter table), but as a single global counter (`customer_sequences`) since `customers` has no `branch_id` to scope by.
+- **Add Customer** (`components/customers/customer-form.tsx`): shows a disabled, read-only "Customer numeric code" field (not registered to the form) — the value is assigned automatically after creation. `createCustomer`'s INSERT never supplies the column; `trigger_set_customer_numeric_id` (`BEFORE INSERT`) raises `Manual customer_numeric_id not allowed` if it ever were.
+- **Edit Customer** (`components/customers/customer-edit-dialog.tsx`): shows `customer_numeric_id` as an **editable** field, unlike `order_code`. `updateCustomer` (`lib/customers/mutations.ts`) validates it is non-blank, runs an explicit `SELECT ... WHERE customer_numeric_id = $1 AND id <> $2` duplicate pre-check inside the same transaction before saving, and includes the column in the `UPDATE`. The `customers_customer_numeric_id_key` UNIQUE constraint (caught in `handleDbError`) is the concurrency backstop behind the pre-check.
+- Place Order → "Create New" customer (`lib/orders/mutations.ts` `resolveCustomer`) also never supplies `customer_numeric_id` on INSERT — new customers created from that flow get an auto-assigned value the same way Add Customer does.
 
 ## Customer Type Rules
 
@@ -502,6 +513,7 @@ All list pages (orders, customers, inventory, inventory-pricing, offers, vendors
 - Offers now have dashboard list/create pages, API routes, `lib/offers` logic, multi-customer-type targeting (`customer_types` array), RBAC permissions, `offer_audit_logs`, and redemption tracking via `order_applied_offers`.
 - User management now has admin-only dashboard list/create/edit pages and an Active Users session list, API routes, `lib/users` logic (`role-rules.ts` → `requiresBranch`), RBAC permissions, `user_audit_logs`.
 - Customers now have a sortable numeric ID column, a `studio_name` field, and a debounced customer-search combobox reused by the order form.
+- `customer_code` has been removed entirely (column, constraint, index, and all app code). `customer_numeric_id` is now the sole customer identifier: DB-generated and NOT NULL (`trigger_set_customer_numeric_id` + `generate_customer_numeric_id()` + `customer_sequences`, mirroring `order_code`'s pattern as a global rather than branch-scoped counter), shown read-only on Add Customer, and editable (with app + DB duplicate validation) on Edit Customer only — see `customer_numeric_id` Rules above.
 - Customer type is now a single, live source of truth read from the `customer_type` Postgres enum at request time (`getCustomerTypeOptions`/`getCustomerTypeValues` in `lib/customers/queries.ts`), replacing what used to be 4 duplicated hardcoded TS arrays and ~6 hardcoded `<option>` lists across customers/orders/offers/inventory-pricing — see Customer Type Rules. `lab` and `CC` were both added purely via migration, with zero application code changes required for `CC`.
 - Expense forms now use `CategoryCombobox` (local-filter) for category selection and `VendorCombobox` (server-search) for vendor selection, replacing plain `<Select>` elements.
 - The 18 original dev migrations were consolidated into 7 production migrations (`20260410_000001` – `20260410_000007`); old files are archived in `db/migrations_dev/` — do not run them. Several point migrations have since been added on top of that baseline (lab customer type, vendor business name, offer customer-types array, order cancellation/refunds/credits) — see `db/migrations/`.
@@ -547,6 +559,7 @@ All list pages (orders, customers, inventory, inventory-pricing, offers, vendors
 - Introduce an ORM or global state library
 - Compute pricing or order totals in application code — use the DB
 - Manually set `order_code`, `total_amount`, `payable_amount`, `paid_amount`, or `payment_status` in INSERT/UPDATE — DB-managed
+- Manually set `customer_numeric_id` on customer creation (INSERT) — DB-managed via `trigger_set_customer_numeric_id`; it is only ever changed through `updateCustomer`, which duplicate-checks against the database before saving
 - Rename or edit applied migration files
 - Run destructive DB commands without explicit request + confirmation
 - Leak SQL errors to API clients

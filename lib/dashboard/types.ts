@@ -154,8 +154,7 @@ export type OrderDetailRow = {
 
 export type CustomerDetailRow = {
   id: string;
-  customerNumericId: number | null;
-  customerCode: string | null;
+  customerNumericId: number;
   type: string;
   name: string;
   avatar: string | null;

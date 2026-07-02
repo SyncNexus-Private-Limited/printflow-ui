@@ -20,8 +20,6 @@ export const customerSortValues = [
   "phone-desc",
   "studio-name-asc",
   "studio-name-desc",
-  "customer-code-asc",
-  "customer-code-desc",
   "customer-id-asc",
   "customer-id-desc",
   "order-count-desc",
@@ -59,7 +57,6 @@ export type CustomerPageFilterState = DashboardPageFilterState & {
   name: string | null;
   phone: string | null;
   alternatePhone: string | null;
-  customerCode: string | null;
   customerNumericId: string | null;
   studioName: string | null;
   address: string | null;
@@ -295,9 +292,6 @@ export function parseCustomerPageFilters(
     alternatePhone: normalizeCustomerTextInput(
       normalizeDashboardSearchParam(searchParams?.alternatePhone),
     ),
-    customerCode: normalizeCustomerTextInput(
-      normalizeDashboardSearchParam(searchParams?.customerCode),
-    ),
     customerNumericId: normalizeCustomerTextInput(
       normalizeDashboardSearchParam(searchParams?.customerNumericId),
     ),
@@ -401,10 +395,6 @@ export function buildCustomerPageHref(
 
   if (nextFilters.alternatePhone) {
     searchParams.set("alternatePhone", nextFilters.alternatePhone);
-  }
-
-  if (nextFilters.customerCode) {
-    searchParams.set("customerCode", nextFilters.customerCode);
   }
 
   if (nextFilters.customerNumericId) {

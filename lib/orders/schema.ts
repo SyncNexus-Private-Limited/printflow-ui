@@ -10,7 +10,6 @@ import {
 } from "@/lib/orders/types";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const ENTITY_CODE_RE = /^[A-Z0-9-]{4,25}$/;
 const INDIAN_PHONE_RE = /^[6-9]\d{9}$/;
 
 function optionalText(max: number) {
@@ -50,19 +49,6 @@ export function buildCreateOrderSchema(validCustomerTypes: readonly string[]) {
         .default(""),
       customerName: z.string().trim().optional().default(""),
       customerPhone: z.string().trim().optional().default(""),
-      customerCode: optionalText(25).refine(
-        (value) => value === undefined || ENTITY_CODE_RE.test(value.toUpperCase()),
-        "Code must be 4–25 uppercase letters, numbers, or hyphens",
-      ),
-      customerNumericId: z
-        .string()
-        .trim()
-        .optional()
-        .transform((value) => (value && value.length > 0 ? value : undefined))
-        .refine(
-          (value) => value === undefined || /^\d+$/.test(value),
-          "Numeric ID must be a number",
-        ),
       studioName: optionalText(120),
       alternatePhone: optionalText(40),
       customerAddress: optionalText(250),

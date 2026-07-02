@@ -5,7 +5,7 @@ import {
   indianPhoneSchema,
   makeOptionalTextSchema,
   nameSchema,
-  optionalEntityCodeSchema,
+  optionalNumericIdSchema,
   optionalUrlSchema,
 } from "@/lib/validations/common-validators";
 import {
@@ -23,7 +23,7 @@ export function buildCustomerSchema(validTypes: readonly string[]) {
       alternatePhone: alternatePhoneSchema,
       address: addressSchema,
       studioName: makeOptionalTextSchema(120),
-      customerCode: optionalEntityCodeSchema,
+      customerNumericId: optionalNumericIdSchema,
       aadhaarNumber: z.preprocess(
         (v) => {
           // Normalise: strip spaces and dashes, then treat empty as undefined.

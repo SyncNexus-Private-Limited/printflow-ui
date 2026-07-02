@@ -262,14 +262,9 @@ export default async function CustomerDetailPage({ params }: CustomerDetailPageP
               <h1 className="text-[30px] leading-[1.1] font-extrabold tracking-[-0.022em] text-[rgb(var(--card-foreground))]">
                 {customer.name}
               </h1>
-              {customer.customerCode || customer.customerNumericId ? (
+              {customer.customerNumericId != null ? (
                 <p className="mt-0.5 font-mono text-[13px] text-[rgb(var(--muted-foreground))]">
-                  {[
-                    customer.customerCode,
-                    customer.customerNumericId ? `#${customer.customerNumericId}` : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
+                  {`#${customer.customerNumericId}`}
                 </p>
               ) : null}
             </div>

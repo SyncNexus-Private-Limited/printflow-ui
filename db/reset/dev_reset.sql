@@ -20,6 +20,7 @@ BEGIN
       user_auth,
       users,
       order_sequences,
+      customer_sequences,
       branches
     RESTART IDENTITY CASCADE;
   END IF;

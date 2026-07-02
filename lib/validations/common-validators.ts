@@ -46,6 +46,29 @@ export const optionalEntityCodeSchema = z.preprocess(
 );
 
 // ---------------------------------------------------------------------------
+// Numeric identifier (customer numeric code, etc.)
+// ---------------------------------------------------------------------------
+
+/** Accepted characters for numeric identifiers: digits only. */
+const NUMERIC_ID_RE = /^\d+$/;
+
+/**
+ * Optional numeric identifier — digits only. Input is trimmed before
+ * validation. Blank strings are treated as absent (undefined → null).
+ */
+export const optionalNumericIdSchema = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? undefined : trimmed;
+  },
+  z
+    .string()
+    .refine((v) => NUMERIC_ID_RE.test(v), "Must be a number")
+    .optional(),
+);
+
+// ---------------------------------------------------------------------------
 // Generic entity name
 // ---------------------------------------------------------------------------
 

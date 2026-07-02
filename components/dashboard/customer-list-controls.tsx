@@ -45,6 +45,8 @@ const summaryCurrencyFormatter = new Intl.NumberFormat("en-IN", {
 
 const RESET_CUSTOMER_FILTERS: Partial<CustomerPageFilterState> = {
   page: 1,
+  from: null,
+  to: null,
   dateField: "created",
   status: "all",
   type: null,
@@ -81,8 +83,7 @@ function getActiveFilterCount(filters: CustomerPageFilterState) {
   let count = 0;
 
   if (filters.dateField !== "created") count += 1;
-  if (getCustomerQuickDatePreset({ from: filters.from, to: filters.to }) !== "this-month")
-    count += 1;
+  if (filters.from || filters.to) count += 1;
   if (filters.status !== "all") count += 1;
   if (filters.type) count += 1;
   if (filters.search) count += 1;
@@ -130,6 +131,12 @@ function formatSummaryAmount(value: string | null) {
 }
 
 function buildPrimaryFilterSummary(filters: CustomerPageFilterState) {
+  const dateFieldLabel = filters.dateField === "updated" ? "Updated date" : "Created date";
+
+  if (!filters.from && !filters.to) {
+    return `${dateFieldLabel} · All customers`;
+  }
+
   const preset = getCustomerQuickDatePreset({ from: filters.from, to: filters.to });
   const rangeLabel =
     preset === "this-month"
@@ -138,7 +145,7 @@ function buildPrimaryFilterSummary(filters: CustomerPageFilterState) {
         ? "Last month"
         : formatDateRangeLabel(filters.from, filters.to);
 
-  return `${filters.dateField === "updated" ? "Updated date" : "Created date"} · ${rangeLabel}`;
+  return `${dateFieldLabel} · ${rangeLabel}`;
 }
 
 function capitalizeFirst(value: string) {
@@ -338,6 +345,10 @@ export function CustomerListControls({
     }));
   };
 
+  const handleClearDates = () => {
+    updateDraftFilters((currentValue) => ({ ...currentValue, from: null, to: null }));
+  };
+
   const handleApplyFilters = () => {
     const nextHref = buildCustomerPageHref(currentPath, currentFilters, {
       ...draftFilters,
@@ -481,7 +492,18 @@ export function CustomerListControls({
       >
         <div className="space-y-4">
           <section className="space-y-3">
-            <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">Date range</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-[rgb(var(--card-foreground))]">Date range</p>
+              {(draftFilters.from || draftFilters.to) && (
+                <button
+                  type="button"
+                  onClick={handleClearDates}
+                  className="text-xs text-[rgb(var(--muted-foreground))] underline-offset-2 hover:underline"
+                >
+                  Clear dates
+                </button>
+              )}
+            </div>
 
             <div className="grid grid-cols-3 gap-2">
               {customerQuickDatePresetValues.map((preset) => {

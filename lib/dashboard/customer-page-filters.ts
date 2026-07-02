@@ -1,9 +1,9 @@
 import {
+  DASHBOARD_PAGE_SIZE_OPTIONS,
   DEFAULT_DASHBOARD_PAGE,
   DEFAULT_DASHBOARD_PAGE_SIZE,
   getCurrentMonthDashboardDateRange,
   normalizeDashboardSearchParam,
-  parseDashboardPageFilters,
 } from "@/lib/dashboard/page-filters";
 import type { DashboardDateRange, DashboardPageFilterState } from "@/lib/dashboard/types";
 
@@ -106,6 +106,30 @@ function isValidCustomerStatus(value: string | undefined): value is CustomerStat
   return customerStatusValues.includes(value as CustomerStatusValue);
 }
 
+// Duplicated from page-filters internals to avoid tight coupling — customers
+// have no default date range, unlike page-filters' month-defaulting helper.
+function parsePositiveInteger(value: string | undefined): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return undefined;
+  }
+
+  return parsed;
+}
+
+function normalizeCustomerDateRange(from: string | null, to: string | null): DashboardDateRange {
+  if (from && to && from > to) {
+    return { from: to, to: from };
+  }
+
+  return { from, to };
+}
+
 function isValidDateInput(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return false;
@@ -170,7 +194,11 @@ export function getLastMonthCustomerDateRange(referenceDate = new Date()): Dashb
 export function getCustomerQuickDatePreset(
   dateRange: DashboardDateRange,
   referenceDate = new Date(),
-): CustomerQuickDatePreset {
+): CustomerQuickDatePreset | null {
+  if (!dateRange.from && !dateRange.to) {
+    return null;
+  }
+
   const thisMonthRange = getCurrentMonthDashboardDateRange(referenceDate);
   const lastMonthRange = getLastMonthCustomerDateRange(referenceDate);
 
@@ -188,7 +216,36 @@ export function getCustomerQuickDatePreset(
 export function parseCustomerPageFilters(
   searchParams?: Record<string, string | string[] | undefined>,
 ): CustomerPageFilterState {
-  const baseFilters = parseDashboardPageFilters(searchParams);
+  // Parse pagination + branch separately (no date coercion from base helper) —
+  // customers are a master list, not a transactional log, so there is no
+  // default "this month" date range (see lib/dashboard/inventory-page-filters.ts).
+  const branchId = normalizeDashboardSearchParam(searchParams?.branchId) ?? null;
+  const parsedPage = parsePositiveInteger(normalizeDashboardSearchParam(searchParams?.page));
+  const parsedPageSize = parsePositiveInteger(
+    normalizeDashboardSearchParam(searchParams?.pageSize),
+  );
+  const pageSize =
+    parsedPageSize &&
+    DASHBOARD_PAGE_SIZE_OPTIONS.includes(
+      parsedPageSize as (typeof DASHBOARD_PAGE_SIZE_OPTIONS)[number],
+    )
+      ? parsedPageSize
+      : DEFAULT_DASHBOARD_PAGE_SIZE;
+
+  const fromRaw = normalizeDashboardSearchParam(searchParams?.from);
+  const toRaw = normalizeDashboardSearchParam(searchParams?.to);
+  const dateRange = normalizeCustomerDateRange(
+    fromRaw && isValidDateInput(fromRaw) ? fromRaw : null,
+    toRaw && isValidDateInput(toRaw) ? toRaw : null,
+  );
+
+  const baseFilters = {
+    branchId,
+    from: dateRange.from,
+    to: dateRange.to,
+    page: parsedPage ?? DEFAULT_DASHBOARD_PAGE,
+    pageSize,
+  };
 
   const sortValue = normalizeDashboardSearchParam(searchParams?.sort);
   const dateFieldValue = normalizeDashboardSearchParam(searchParams?.dateField);

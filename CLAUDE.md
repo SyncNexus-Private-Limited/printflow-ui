@@ -113,6 +113,8 @@ lib/
     postgres.ts         # Singleton pg.Pool (server-only, globalThis cache)
   customers/
     schema.ts / types.ts / queries.ts / mutations.ts
+    types.ts also exports `CustomerTypeOption`; queries.ts also exports `getCustomerTypeOptions` /
+    `getCustomerTypeValues` — live, DB-driven customer-type source (see Customer Type Rules)
   branches/
     schema.ts / types.ts / queries.ts / mutations.ts
   orders/
@@ -158,7 +160,8 @@ db/
   migrations/           # 7 consolidated production migrations (20260410_000001-000007: foundation,
                         # operational entities, inventory, orders, expenses, audit logs, offers/admin),
                         # plus point migrations added since: add_labs_customer_type, add_vendor_business_name,
-                        # offer_customer_types_array, order_cancellation_refunds_credits
+                        # offer_customer_types_array, order_cancellation_refunds_credits,
+                        # order_cancellation_zero_outstanding, add_cc_customer_type
   seeds/dev_seed.sql
   reset/dev_reset.sql
 
@@ -235,7 +238,7 @@ npm run db:reset:dev -- --confirm printflow_dev
 
 Note: `offers` (promotional discounts: percentage/flat/buy_x_get_y, targeted via `customer_types`) and `order_applied_offers` are a separate feature from the older `offer_items`/`order_offer_items` (bundled deal items referenced on orders) — both exist and are unrelated.
 
-**Enums:** `user_role` (admin/manager/operator/staff), `order_status`, `payment_mode`, `payment_status`, `refund_status_value` (pending/processing/completed/failed), `inventory_unit`, `customer_type` (studio/amateur/other/employee/lab — `lab` added via a later migration with `ALTER TYPE ... ADD VALUE`)
+**Enums:** `user_role` (admin/manager/operator/staff), `order_status`, `payment_mode`, `payment_status`, `refund_status_value` (pending/processing/completed/failed), `inventory_unit`, `customer_type` (studio/amateur/other/employee/lab/CC — `lab` and `CC` each added via a later migration with `ALTER TYPE ... ADD VALUE`; this enum is the live, single source of truth for customer types across the app — see Customer Type Rules)
 
 **Key DB functions:**
 
@@ -350,9 +353,20 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 - Use `lib/customers/schema.ts` for validation and `lib/customers/mutations.ts` for all writes.
 - Enforce `assertPermission` + `canAccessBranch` for all customer mutations.
 - Deactivate is soft — sets `is_active = false`; restore re-activates. Do not hard-delete customers.
-- `customer_type` enum values: `studio`, `amateur`, `other`, `employee`, `lab`.
+- `customer_type` enum values are DB-driven, not hardcoded in TypeScript — see Customer Type Rules below.
 - `customer-data-table.tsx` includes a sortable numeric ID column (`customer_numeric_id`); list/search also matches on `customer_numeric_id::text` and `studio_name` alongside name/phone/code (`/api/customers` route, `lib/dashboard/customer-page-filters.ts`).
 - The Add Order page (`order-form.tsx`) reuses the same customer search (debounced, hits `/api/customers?q=`) to find/prefill a customer when creating an order — do not duplicate the matching logic.
+
+## Customer Type Rules
+
+`customer_type` is a Postgres enum (`studio`/`amateur`/`other`/`employee`/`lab`/`CC`, extendable via `ALTER TYPE ... ADD VALUE`) and is **read live from the DB at request time** — there is no hardcoded TypeScript array or label map for it anywhere in the app. Adding a new customer type requires only a migration; no application code changes.
+
+- **Single source of truth:** `getCustomerTypeOptions()` in `lib/customers/queries.ts` (`server-only`) queries `pg_enum`/`pg_type` for `customer_type` and returns `{ value, label }[]`, using `formatEnumLabel()` (`lib/utils/format.ts`) to derive the display label from the raw enum value. `getCustomerTypeValues()` is a convenience wrapper returning just the value strings. `CustomerTypeOption` is defined once in `lib/customers/types.ts` and imported wherever needed (orders, offers, inventory-pricing types).
+- **Server Component pages** call `getCustomerTypeOptions()` directly and pass the result down as a `customerTypeOptions` prop — same pattern as `branchOptions`/`getDashboardContext`. Every page/dialog that renders a customer-type `<select>`, filter dropdown, or multi-select chips receives this prop; there are no hardcoded `<option>` lists.
+- **Client-side Zod validation** (`customerSchema`, `offerSchema`, `inventoryPricingSchema`) is built via factory functions — `buildCustomerSchema(validTypes)`, `buildOfferSchema(validCustomerTypes)`, `buildInventoryPricingSchema(validCustomerTypes)` in the respective `lib/*/schema.ts` — parameterized by the live values list. Forms build the schema with `useMemo(() => buildXSchema(customerTypeOptions.map(o => o.value)), [customerTypeOptions])` before passing it to `zodResolver`. `lib/orders/schema.ts`'s `buildCreateOrderSchema(validCustomerTypes)` is server-only (order forms have no `zodResolver`; validation is via server-returned `fieldErrors`).
+- **API routes** (`app/api/customers`, `app/api/offers`, `app/api/inventory-pricing`, `app/api/orders`) fetch `getCustomerTypeValues()` fresh per request, then call the matching `buildXSchema(validTypes)` before `.safeParse(body)`.
+- Because the type list is resolved at runtime, `OfferCustomerType`/`CustomerType`/`InventoryPricingCustomerType` are plain `string`, not TS literal unions — exhaustive `Record<CustomerType, X>` lookups are not type-safe. Use a switch/default fallback function instead (e.g. `getCustomerTypeTone` and `getCustomerTypeBadgeClasses` in `components/dashboard/data-pill.tsx`), never a `Record` keyed by customer type.
+- To add a new customer type: create a migration with `ALTER TYPE customer_type ADD VALUE IF NOT EXISTS '<value>';` (no down path — Postgres cannot remove enum values), mirroring `db/migrations/20260614_193736_add_labs_customer_type.sql` / `20260702_130429_add_cc_customer_type.sql`. No TypeScript changes are needed.
 
 ## Vendor Management Rules
 
@@ -366,7 +380,7 @@ All permission logic lives in `lib/auth/permissions.ts`. This is the single sour
 - `/dashboard/offers` lists offers with create, edit, deactivate, and restore actions; admin/manager can mutate, all roles can view (`offers:view`).
 - Use `lib/offers/schema.ts` for validation and `lib/offers/mutations.ts` for all writes. All writes are audited in `offer_audit_logs`.
 - `offerTypeValues`: `percentage`, `flat`, `buy_x_get_y` (`lib/offers/types.ts`).
-- An offer can target multiple customer types via `customerTypes: OfferCustomerType[]` (multi-select chips in `offer-form.tsx`), stored as the `offers.customer_types` array column (GIN-indexed); `null`/empty means "all customer types". Redemptions are tracked in `order_applied_offers`.
+- An offer can target multiple customer types via `customerTypes: string[]` (multi-select chips in `offer-form.tsx`, built from the live `customerTypeOptions` prop — see Customer Type Rules), stored as the `offers.customer_types` array column (GIN-indexed); `null`/empty means "all customer types". Redemptions are tracked in `order_applied_offers`.
 
 ## User Management Rules
 
@@ -487,7 +501,8 @@ All list pages (orders, customers, inventory, inventory-pricing, offers, vendors
 - Orders now also have reasoned cancel/soft-delete with refund tracking (`order_refunds`, independently updatable refund status) and a customer store-credit ledger (`customer_credit_transactions`) that can be issued on refund and spent on a future order, capped at `min(balance, payable)`. `orders:delete` is a new admin-only permission, only usable on already-cancelled orders.
 - Offers now have dashboard list/create pages, API routes, `lib/offers` logic, multi-customer-type targeting (`customer_types` array), RBAC permissions, `offer_audit_logs`, and redemption tracking via `order_applied_offers`.
 - User management now has admin-only dashboard list/create/edit pages and an Active Users session list, API routes, `lib/users` logic (`role-rules.ts` → `requiresBranch`), RBAC permissions, `user_audit_logs`.
-- Customers now have a sortable numeric ID column, a `studio_name` field, a `lab` customer type, and a debounced customer-search combobox reused by the order form.
+- Customers now have a sortable numeric ID column, a `studio_name` field, and a debounced customer-search combobox reused by the order form.
+- Customer type is now a single, live source of truth read from the `customer_type` Postgres enum at request time (`getCustomerTypeOptions`/`getCustomerTypeValues` in `lib/customers/queries.ts`), replacing what used to be 4 duplicated hardcoded TS arrays and ~6 hardcoded `<option>` lists across customers/orders/offers/inventory-pricing — see Customer Type Rules. `lab` and `CC` were both added purely via migration, with zero application code changes required for `CC`.
 - Expense forms now use `CategoryCombobox` (local-filter) for category selection and `VendorCombobox` (server-search) for vendor selection, replacing plain `<Select>` elements.
 - The 18 original dev migrations were consolidated into 7 production migrations (`20260410_000001` – `20260410_000007`); old files are archived in `db/migrations_dev/` — do not run them. Several point migrations have since been added on top of that baseline (lab customer type, vendor business name, offer customer-types array, order cancellation/refunds/credits) — see `db/migrations/`.
 - Shared dashboard list/table/filter primitives also support the newer inventory pricing, expense category, offers, vendors, and user-management pages.

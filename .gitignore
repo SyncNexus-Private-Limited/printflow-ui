@@ -11,3 +11,16 @@ pnpm-debug.log*
 .history/
 
 !.env.example
+
+# Supabase
+.branches
+.temp
+supabase/*
+
+# dotenvx
+.env.keys
+.env.local
+.env.*.local
+
+#backup files
+*.dump

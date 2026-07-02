@@ -1,23 +1,14 @@
+import type { CustomerTypeOption } from "@/lib/customers/types";
 import type { BranchOption } from "@/lib/dashboard/types";
 
 export const offerTypeValues = ["percentage", "flat", "buy_x_get_y"] as const;
-export const customerTypeValues = ["studio", "amateur", "other", "employee", "lab"] as const;
 
 export type OfferType = (typeof offerTypeValues)[number];
-export type OfferCustomerType = (typeof customerTypeValues)[number];
 
 export const offerTypeLabels: Record<OfferType, string> = {
   percentage: "Percentage",
   flat: "Flat",
   buy_x_get_y: "Buy X Get Y",
-};
-
-export const customerTypeLabels: Record<OfferCustomerType, string> = {
-  studio: "Studio",
-  amateur: "Amateur",
-  other: "Other",
-  employee: "Employee",
-  lab: "Lab",
 };
 
 export type OfferFormValues = {
@@ -30,7 +21,7 @@ export type OfferFormValues = {
   buyQuantity: string;
   getQuantity: string;
   minimumOrderValue: string;
-  customerTypes: OfferCustomerType[];
+  customerTypes: string[];
   startsAt: string;
   endsAt: string;
   isActive: boolean;
@@ -67,6 +58,7 @@ export type OfferFormPageData = {
   selectedBranchId: string;
   canSelectBranch: boolean;
   noBranchAssigned: boolean;
+  customerTypeOptions: CustomerTypeOption[];
 };
 
 export type EditOfferRow = {
@@ -81,7 +73,7 @@ export type EditOfferRow = {
   buyQuantity: number | null;
   getQuantity: number | null;
   minimumOrderValue: number | null;
-  customerTypes: OfferCustomerType[] | null;
+  customerTypes: string[] | null;
   startsAt: string;
   endsAt: string | null;
   isActive: boolean;

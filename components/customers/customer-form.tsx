@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type Resolver } from "react-hook-form";
 import { useRouter } from "next/navigation";
@@ -9,15 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { CustomerAvatar } from "@/components/customers/customer-avatar";
-import { customerSchema } from "@/lib/customers/schema";
+import { buildCustomerSchema } from "@/lib/customers/schema";
 import {
   type CustomerFieldName,
   type CustomerFormValues,
   type CustomerMutationResponse,
+  type CustomerTypeOption,
 } from "@/lib/customers/types";
 
 type CustomerFormProps = {
   redirectTo: string;
+  customerTypeOptions: CustomerTypeOption[];
 };
 
 function FieldLabel({
@@ -46,9 +48,13 @@ function FieldError({ message }: { message?: string }) {
   return message ? <p className="text-xs text-[rgb(var(--danger))]">{message}</p> : null;
 }
 
-export function CustomerForm({ redirectTo }: CustomerFormProps) {
+export function CustomerForm({ redirectTo, customerTypeOptions }: CustomerFormProps) {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
+  const schema = useMemo(
+    () => buildCustomerSchema(customerTypeOptions.map((option) => option.value)),
+    [customerTypeOptions],
+  );
   const {
     register,
     handleSubmit,
@@ -58,7 +64,7 @@ export function CustomerForm({ redirectTo }: CustomerFormProps) {
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<CustomerFormValues>({
-    resolver: zodResolver(customerSchema) as unknown as Resolver<CustomerFormValues>,
+    resolver: zodResolver(schema) as unknown as Resolver<CustomerFormValues>,
     defaultValues: {
       type: "",
       name: "",
@@ -142,11 +148,11 @@ export function CustomerForm({ redirectTo }: CustomerFormProps) {
             }}
           >
             <option value="">Select type</option>
-            <option value="studio">Studio</option>
-            <option value="amateur">Amateur</option>
-            <option value="other">Other</option>
-            <option value="employee">Employee</option>
-            <option value="lab">Lab</option>
+            {customerTypeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </Select>
           <FieldError message={getFieldError("type")} />
         </div>

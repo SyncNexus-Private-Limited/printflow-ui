@@ -7,8 +7,6 @@ import {
 } from "@/lib/dashboard/page-filters";
 import type { DashboardDateRange, DashboardPageFilterState } from "@/lib/dashboard/types";
 
-export const customerTypeValues = ["studio", "amateur", "other", "employee", "lab"] as const;
-
 export const customerSortValues = [
   "created-desc",
   "created-asc",
@@ -44,7 +42,7 @@ export const customerStatusValues = ["all", "active", "inactive"] as const;
 
 export const DEFAULT_CUSTOMER_SORT: CustomerSortValue = "created-desc";
 
-export type CustomerType = (typeof customerTypeValues)[number];
+export type CustomerType = string;
 export type CustomerSortValue = (typeof customerSortValues)[number];
 export type CustomerDateField = (typeof customerDateFieldValues)[number];
 export type CustomerQuickDatePreset = (typeof customerQuickDatePresetValues)[number];
@@ -83,7 +81,7 @@ export type CustomerPageFilterState = DashboardPageFilterState & {
 };
 
 function isValidCustomerType(value: string | undefined): value is CustomerType {
-  return customerTypeValues.includes(value as CustomerType);
+  return typeof value === "string" && value.trim().length > 0;
 }
 
 function isValidCustomerSort(value: string | undefined): value is CustomerSortValue {

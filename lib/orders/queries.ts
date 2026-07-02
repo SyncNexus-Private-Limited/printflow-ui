@@ -1,5 +1,6 @@
 import "server-only";
 import type { AuthenticatedUser } from "@/lib/auth/current-user";
+import { getCustomerTypeOptions } from "@/lib/customers/queries";
 import { getDashboardContext, NO_BRANCH_SCOPE_ID } from "@/lib/dashboard/queries";
 import { getPool } from "@/lib/db/postgres";
 import type {
@@ -26,6 +27,7 @@ export async function getAddOrderPageData(
 
   const canApplyDiscount = hasPermission(currentUser, "orders:apply_discount");
   const canApplyHighDiscount = hasPermission(currentUser, "orders:apply_high_discount");
+  const customerTypeOptions = await getCustomerTypeOptions();
 
   if (!branchId || noBranchAssigned) {
     return {
@@ -42,6 +44,7 @@ export async function getAddOrderPageData(
       vendors: [],
       prefillCustomer: null,
       prefillError: null,
+      customerTypeOptions,
     };
   }
 
@@ -160,6 +163,7 @@ export async function getAddOrderPageData(
     vendors: vendorsResult.rows,
     prefillCustomer: null,
     prefillError: null,
+    customerTypeOptions,
   };
 }
 

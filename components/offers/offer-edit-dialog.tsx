@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, type Resolver } from "react-hook-form";
 import { Dialog } from "@/components/ui/dialog";
@@ -9,14 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
-import { offerSchema } from "@/lib/offers/schema";
+import type { CustomerTypeOption } from "@/lib/customers/types";
+import { buildOfferSchema } from "@/lib/offers/schema";
 import {
-  customerTypeLabels,
-  customerTypeValues,
   offerTypeLabels,
   offerTypeValues,
   type EditOfferRow,
-  type OfferCustomerType,
   type OfferFieldName,
   type OfferFormValues,
   type OfferMutationResponse,
@@ -41,6 +39,7 @@ type OfferEditDialogProps = {
   canSelectBranch: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  customerTypeOptions: CustomerTypeOption[];
 };
 
 function FieldLabel({
@@ -80,7 +79,7 @@ function buildDefaultValues(offer: EditOfferRow): OfferFormValues {
     buyQuantity: offer.buyQuantity === null ? "" : String(offer.buyQuantity),
     getQuantity: offer.getQuantity === null ? "" : String(offer.getQuantity),
     minimumOrderValue: offer.minimumOrderValue === null ? "" : String(offer.minimumOrderValue),
-    customerTypes: (offer.customerTypes as OfferCustomerType[]) ?? [],
+    customerTypes: offer.customerTypes ?? [],
     startsAt: offer.startsAt,
     endsAt: offer.endsAt ?? "",
     isActive: offer.isActive,
@@ -93,11 +92,16 @@ export function OfferEditDialog({
   canSelectBranch,
   onClose,
   onSuccess,
+  customerTypeOptions,
 }: OfferEditDialogProps) {
   const isOpen = offerId !== null;
   const [loadState, setLoadState] = useState<LoadState>({ status: "idle" });
   const [serverError, setServerError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const schema = useMemo(
+    () => buildOfferSchema(customerTypeOptions.map((option) => option.value)),
+    [customerTypeOptions],
+  );
   const {
     register,
     handleSubmit,
@@ -108,7 +112,7 @@ export function OfferEditDialog({
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<OfferFormValues>({
-    resolver: zodResolver(offerSchema) as unknown as Resolver<OfferFormValues>,
+    resolver: zodResolver(schema) as unknown as Resolver<OfferFormValues>,
     defaultValues: {
       branchId: "",
       code: "",
@@ -167,7 +171,7 @@ export function OfferEditDialog({
     return typeof err.message === "string" ? err.message : undefined;
   }
 
-  function toggleCustomerType(type: OfferCustomerType) {
+  function toggleCustomerType(type: string) {
     const current = selectedCustomerTypes ?? [];
     const next = current.includes(type) ? current.filter((t) => t !== type) : [...current, type];
     setValue("customerTypes", next, { shouldValidate: true });
@@ -349,14 +353,14 @@ export function OfferEditDialog({
               <div className="space-y-1.5">
                 <FieldLabel optional>Customer type</FieldLabel>
                 <div className="flex flex-wrap gap-2 pt-0.5">
-                  {customerTypeValues.map((type) => {
-                    const isSelected = selectedCustomerTypes.includes(type);
+                  {customerTypeOptions.map((option) => {
+                    const isSelected = selectedCustomerTypes.includes(option.value);
                     return (
                       <button
-                        key={type}
+                        key={option.value}
                         type="button"
                         disabled={isSubmitting}
-                        onClick={() => toggleCustomerType(type)}
+                        onClick={() => toggleCustomerType(option.value)}
                         className={cn(
                           "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
                           isSelected
@@ -365,7 +369,7 @@ export function OfferEditDialog({
                           isSubmitting && "cursor-not-allowed opacity-50",
                         )}
                       >
-                        {customerTypeLabels[type]}
+                        {option.label}
                       </button>
                     );
                   })}
@@ -373,7 +377,12 @@ export function OfferEditDialog({
                 <p className="text-xs text-[rgb(var(--muted-foreground))]">
                   {selectedCustomerTypes.length === 0
                     ? "No selection — applies to all customer types."
-                    : `Applies to: ${selectedCustomerTypes.map((t) => customerTypeLabels[t]).join(", ")}.`}
+                    : `Applies to: ${selectedCustomerTypes
+                        .map(
+                          (t) =>
+                            customerTypeOptions.find((option) => option.value === t)?.label ?? t,
+                        )
+                        .join(", ")}.`}
                 </p>
                 <FieldError message={getFieldError("customerTypes")} />
               </div>

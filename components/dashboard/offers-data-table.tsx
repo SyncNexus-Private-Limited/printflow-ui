@@ -12,6 +12,7 @@ import { TableEmptyState } from "@/components/dashboard/table-empty-state";
 import { TableScrollArea } from "@/components/dashboard/table-scroll-area";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { OfferEditDialog } from "@/components/offers/offer-edit-dialog";
+import type { CustomerTypeOption } from "@/lib/customers/types";
 import {
   buildOffersPageHref,
   type OfferSortDirection,
@@ -49,6 +50,7 @@ type OffersDataTableProps = {
   canEdit: boolean;
   canDeactivate: boolean;
   canRestore: boolean;
+  customerTypeOptions: CustomerTypeOption[];
 };
 
 type HeaderConfig = {
@@ -115,6 +117,7 @@ export function OffersDataTable({
   canEdit,
   canDeactivate,
   canRestore,
+  customerTypeOptions,
 }: OffersDataTableProps) {
   const router = useRouter();
   const [localItems, setLocalItems] = useState(items);
@@ -372,6 +375,7 @@ export function OffersDataTable({
           setEditingId(null);
           startTransition(() => router.refresh());
         }}
+        customerTypeOptions={customerTypeOptions}
       />
     </>
   );

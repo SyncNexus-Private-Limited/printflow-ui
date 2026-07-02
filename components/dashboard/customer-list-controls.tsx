@@ -15,6 +15,7 @@ import { UserRoundPlus } from "lucide-react";
 import { getCustomerTypeTone } from "@/components/dashboard/data-pill";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import type { CustomerTypeOption } from "@/lib/customers/types";
 import {
   buildCustomerPageHref,
   customerQuickDatePresetValues,
@@ -34,6 +35,7 @@ type CustomerListControlsProps = {
   currentFilters: CustomerPageFilterState;
   selectedBranchName: string;
   canCreate?: boolean;
+  customerTypeOptions: CustomerTypeOption[];
 };
 
 const summaryCurrencyFormatter = new Intl.NumberFormat("en-IN", {
@@ -266,6 +268,7 @@ export function CustomerListControls({
   currentFilters,
   selectedBranchName,
   canCreate = false,
+  customerTypeOptions,
 }: CustomerListControlsProps) {
   const router = useRouter();
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
@@ -600,11 +603,11 @@ export function CustomerListControls({
                   className="h-11 rounded-2xl bg-[rgb(var(--background))]"
                 >
                   <option value="">All types</option>
-                  <option value="studio">Studio</option>
-                  <option value="amateur">Amateur</option>
-                  <option value="other">Other</option>
-                  <option value="employee">Employee</option>
-                  <option value="lab">Lab</option>
+                  {customerTypeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </Select>
               </label>
 

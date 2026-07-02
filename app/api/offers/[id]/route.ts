@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { canAccessBranch, hasPermission } from "@/lib/auth/permissions";
+import { getCustomerTypeValues } from "@/lib/customers/queries";
 import {
   OfferMutationError,
   deactivateOffer,
@@ -9,7 +10,7 @@ import {
   updateOffer,
 } from "@/lib/offers/mutations";
 import { getOfferById } from "@/lib/offers/queries";
-import { getOfferFieldErrors, offerSchema } from "@/lib/offers/schema";
+import { buildOfferSchema, getOfferFieldErrors } from "@/lib/offers/schema";
 
 export const runtime = "nodejs";
 
@@ -71,7 +72,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ success: true, message: "Offer restored." });
     }
 
-    const updateParsed = offerSchema.safeParse(body);
+    const validCustomerTypes = await getCustomerTypeValues();
+    const updateParsed = buildOfferSchema(validCustomerTypes).safeParse(body);
 
     if (!updateParsed.success) {
       return NextResponse.json(

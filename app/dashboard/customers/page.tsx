@@ -6,6 +6,7 @@ import { ListStatCard } from "@/components/dashboard/list-stat-card";
 import { SectionCard } from "@/components/dashboard/section-card";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasPermission } from "@/lib/auth/permissions";
+import { getCustomerTypeOptions } from "@/lib/customers/queries";
 import { parseCustomerPageFilters } from "@/lib/dashboard/customer-page-filters";
 import { buildBranchFilterOptions } from "@/lib/dashboard/helpers";
 import { getCustomersPageData, getDashboardContext } from "@/lib/dashboard/queries";
@@ -36,6 +37,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
       branchId: context.selectedBranchValue,
     };
     const pageData = await getCustomersPageData(context.selectedBranchId, currentFilters);
+    const customerTypeOptions = await getCustomerTypeOptions();
     const branchOptions = buildBranchFilterOptions(context);
 
     return (
@@ -80,6 +82,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
             currentFilters={currentFilters}
             selectedBranchName={context.selectedBranchName}
             canCreate={hasPermission(currentUser, "customers:create")}
+            customerTypeOptions={customerTypeOptions}
           />
 
           <CustomerDataTable
@@ -91,6 +94,7 @@ export default async function CustomersPage({ searchParams }: CustomersPageProps
             canEdit={hasPermission(currentUser, "customers:edit")}
             canDeactivate={hasPermission(currentUser, "customers:deactivate")}
             canRestore={hasPermission(currentUser, "customers:restore")}
+            customerTypeOptions={customerTypeOptions}
           />
         </div>
       </main>

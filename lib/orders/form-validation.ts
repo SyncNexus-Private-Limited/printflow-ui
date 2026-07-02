@@ -1,5 +1,4 @@
-import { customerTypeLabels, type OfferCustomerType } from "@/lib/offers/types";
-import { formatCurrency } from "@/lib/utils/format";
+import { formatCurrency, formatEnumLabel } from "@/lib/utils/format";
 
 // ─── Item validation ──────────────────────────────────────────────────────────
 
@@ -41,7 +40,7 @@ export type OfferValidationError = {
 type ValidatableOffer = {
   id: string;
   name: string;
-  customerType: OfferCustomerType | null;
+  customerType: string | null;
   minimumOrderValue: number | null;
 };
 
@@ -57,7 +56,7 @@ export function validateOffers(
     if (!offer) continue;
     const reasons: string[] = [];
     if (offer.customerType && offer.customerType !== customerType) {
-      reasons.push(`${customerTypeLabels[offer.customerType]} customers only`);
+      reasons.push(`${formatEnumLabel(offer.customerType)} customers only`);
     }
     if (offer.minimumOrderValue !== null && subtotal < offer.minimumOrderValue) {
       reasons.push(

@@ -18,6 +18,7 @@ import { TableEmptyState } from "@/components/dashboard/table-empty-state";
 import { TableScrollArea } from "@/components/dashboard/table-scroll-area";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { CustomerEditDialog } from "@/components/customers/customer-edit-dialog";
+import type { CustomerTypeOption } from "@/lib/customers/types";
 import {
   buildCustomerPageHref,
   type CustomerPageFilterState,
@@ -52,6 +53,7 @@ type CustomerDataTableProps = {
   canEdit: boolean;
   canDeactivate: boolean;
   canRestore: boolean;
+  customerTypeOptions: CustomerTypeOption[];
 };
 
 type HeaderConfig = {
@@ -139,6 +141,7 @@ export function CustomerDataTable({
   canEdit,
   canDeactivate,
   canRestore,
+  customerTypeOptions,
 }: CustomerDataTableProps) {
   const router = useRouter();
   const [localItems, setLocalItems] = useState(items);
@@ -328,7 +331,7 @@ export function CustomerDataTable({
                       className={cn(TABLE_BODY_CELL_CLASS, getStickyBodyCellClass(stickySpecs[1]))}
                       style={getStickyBodyCellStyle(stickySpecs[1])}
                     >
-                      <p className="whitespace-nowrap tabular-nums text-[rgb(var(--muted-foreground))]">
+                      <p className="whitespace-nowrap text-[rgb(var(--muted-foreground))] tabular-nums">
                         {customer.customerNumericId != null ? customer.customerNumericId : "—"}
                       </p>
                     </td>
@@ -447,6 +450,7 @@ export function CustomerDataTable({
           setEditingId(null);
           startTransition(() => router.refresh());
         }}
+        customerTypeOptions={customerTypeOptions}
       />
     </>
   );

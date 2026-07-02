@@ -6,6 +6,7 @@ import { OffersListControls } from "@/components/dashboard/offers-list-controls"
 import { SectionCard } from "@/components/dashboard/section-card";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasPermission } from "@/lib/auth/permissions";
+import { getCustomerTypeOptions } from "@/lib/customers/queries";
 import { buildBranchFilterOptions } from "@/lib/dashboard/helpers";
 import { parseOffersPageFilters } from "@/lib/dashboard/offers-page-filters";
 import { getDashboardContext } from "@/lib/dashboard/queries";
@@ -33,6 +34,7 @@ export default async function OffersPage({ searchParams }: OffersPageProps) {
     const context = await getDashboardContext(currentUser, filters.branchId ?? undefined);
     const currentFilters = { ...filters, branchId: context.selectedBranchValue };
     const pageData = await getOffersPageData(context.selectedBranchId, currentFilters);
+    const customerTypeOptions = await getCustomerTypeOptions();
     const branchOptions = buildBranchFilterOptions(context);
     const formBranchOptions = context.branches;
     const showBranchColumn = context.selectedBranchId === null;
@@ -93,6 +95,7 @@ export default async function OffersPage({ searchParams }: OffersPageProps) {
             canEdit={canEdit}
             canDeactivate={canDeactivate}
             canRestore={canRestore}
+            customerTypeOptions={customerTypeOptions}
           />
         </div>
       </main>

@@ -8,7 +8,6 @@ import type { DashboardDateRange, DashboardPageFilterState } from "@/lib/dashboa
 
 export const PRICE_EXPIRING_SOON_DAYS = 7;
 
-const customerTypeValues = ["studio", "amateur", "other", "employee", "lab"] as const;
 const pricingStatusValues = ["all", "current", "upcoming", "expired", "expiring-soon"] as const;
 const inventoryPricingSortValues = [
   "item-asc",
@@ -31,7 +30,7 @@ const inventoryPricingSortValues = [
   "updated-at-desc",
 ] as const;
 
-export type InventoryPricingCustomerType = (typeof customerTypeValues)[number];
+export type InventoryPricingCustomerType = string;
 export type InventoryPricingStatus = Exclude<(typeof pricingStatusValues)[number], "all">;
 export type InventoryPricingStatusFilter = (typeof pricingStatusValues)[number];
 export type InventoryPricingSortValue = (typeof inventoryPricingSortValues)[number];
@@ -68,7 +67,7 @@ function normalizeTextSearch(value: string | undefined): string | null {
 }
 
 function isCustomerType(value: string | undefined): value is InventoryPricingCustomerType {
-  return customerTypeValues.includes(value as InventoryPricingCustomerType);
+  return typeof value === "string" && value.trim().length > 0;
 }
 
 function isPricingStatus(value: string | undefined): value is InventoryPricingStatusFilter {

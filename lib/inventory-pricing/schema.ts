@@ -1,6 +1,5 @@
 import { z } from "zod";
 import {
-  inventoryPricingCustomerTypeValues,
   inventoryPricingFieldNames,
   type InventoryPricingFieldName,
 } from "@/lib/inventory-pricing/types";
@@ -23,41 +22,43 @@ function dateField(label: string) {
     });
 }
 
-export const inventoryPricingSchema = z
-  .object({
-    inventoryId: z
-      .string()
-      .trim()
-      .min(1, "Item is required")
-      .refine((v) => uuidPattern.test(v), "Select a valid item"),
-    customerType: z.enum(inventoryPricingCustomerTypeValues, {
-      error: "Customer type is required",
-    }),
-    sellingRate: z
-      .preprocess(trimString, z.string().min(1, "Selling rate is required"))
-      .refine((v) => moneyPattern.test(v), "Enter a valid selling rate")
-      .refine((v) => parseFloat(v) >= 0, "Selling rate cannot be negative"),
-    effectiveFrom: dateField("Effective from"),
-    effectiveTo: z.preprocess(
-      (v) => {
-        const trimmed = trimString(v);
-        return typeof trimmed === "string" && trimmed.length === 0 ? undefined : trimmed;
-      },
-      z
+export function buildInventoryPricingSchema(validCustomerTypes: readonly string[]) {
+  return z
+    .object({
+      inventoryId: z
         .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a valid effective to date")
-        .refine((v) => !Number.isNaN(Date.parse(`${v}T00:00:00Z`)), {
-          message: "Enter a valid effective to date",
-        })
-        .optional(),
-    ),
-  })
-  .refine((values) => !values.effectiveTo || values.effectiveTo >= values.effectiveFrom, {
-    path: ["effectiveTo"],
-    message: "Effective to must be on or after effective from",
-  });
+        .trim()
+        .min(1, "Item is required")
+        .refine((v) => uuidPattern.test(v), "Select a valid item"),
+      customerType: z.enum(validCustomerTypes as [string, ...string[]], {
+        error: "Customer type is required",
+      }),
+      sellingRate: z
+        .preprocess(trimString, z.string().min(1, "Selling rate is required"))
+        .refine((v) => moneyPattern.test(v), "Enter a valid selling rate")
+        .refine((v) => parseFloat(v) >= 0, "Selling rate cannot be negative"),
+      effectiveFrom: dateField("Effective from"),
+      effectiveTo: z.preprocess(
+        (v) => {
+          const trimmed = trimString(v);
+          return typeof trimmed === "string" && trimmed.length === 0 ? undefined : trimmed;
+        },
+        z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a valid effective to date")
+          .refine((v) => !Number.isNaN(Date.parse(`${v}T00:00:00Z`)), {
+            message: "Enter a valid effective to date",
+          })
+          .optional(),
+      ),
+    })
+    .refine((values) => !values.effectiveTo || values.effectiveTo >= values.effectiveFrom, {
+      path: ["effectiveTo"],
+      message: "Effective to must be on or after effective from",
+    });
+}
 
-export type InventoryPricingInput = z.infer<typeof inventoryPricingSchema>;
+export type InventoryPricingInput = z.infer<ReturnType<typeof buildInventoryPricingSchema>>;
 
 export function getInventoryPricingFieldErrors(
   error: z.ZodError,

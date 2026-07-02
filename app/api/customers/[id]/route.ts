@@ -2,14 +2,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasPermission } from "@/lib/auth/permissions";
-import { getCustomerById } from "@/lib/customers/queries";
+import { getCustomerById, getCustomerTypeValues } from "@/lib/customers/queries";
 import {
   CustomerMutationError,
   deactivateCustomer,
   restoreCustomer,
   updateCustomer,
 } from "@/lib/customers/mutations";
-import { customerSchema, getCustomerFieldErrors } from "@/lib/customers/schema";
+import { buildCustomerSchema, getCustomerFieldErrors } from "@/lib/customers/schema";
 
 export const runtime = "nodejs";
 
@@ -67,7 +67,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ success: true, message: "Customer restored." });
     }
 
-    const updateParsed = customerSchema.safeParse(body);
+    const validTypes = await getCustomerTypeValues();
+    const updateParsed = buildCustomerSchema(validTypes).safeParse(body);
 
     if (!updateParsed.success) {
       return NextResponse.json(

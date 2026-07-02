@@ -8,8 +8,29 @@ import type {
   CustomerRecentOrder,
   CustomerRecentPayment,
   CustomerRefundEntry,
+  CustomerTypeOption,
   EditCustomerRow,
 } from "@/lib/customers/types";
+import { formatEnumLabel } from "@/lib/utils/format";
+
+export async function getCustomerTypeOptions(): Promise<CustomerTypeOption[]> {
+  const db = getPool();
+  const { rows } = await db.query<{ value: string }>(
+    `
+      SELECT enumlabel AS value
+      FROM pg_enum
+      WHERE enumtypid = 'customer_type'::regtype
+      ORDER BY enumsortorder
+    `,
+  );
+
+  return rows.map((row) => ({ value: row.value, label: formatEnumLabel(row.value) }));
+}
+
+export async function getCustomerTypeValues(): Promise<string[]> {
+  const options = await getCustomerTypeOptions();
+  return options.map((option) => option.value);
+}
 
 type EditCustomerDbRow = {
   id: string;
@@ -171,8 +192,8 @@ export async function getCustomerDetailPageData(
     recentCreditTransactionsResult,
     auditLogsResult,
   ] = await Promise.all([
-      db.query<EditCustomerDbRow>(
-        `
+    db.query<EditCustomerDbRow>(
+      `
         SELECT
           c.id::text AS id,
           c.customer_numeric_id,
@@ -199,11 +220,11 @@ export async function getCustomerDetailPageData(
         WHERE c.id = $1::uuid
         LIMIT 1
       `,
-        [id],
-      ),
+      [id],
+    ),
 
-      db.query<CustomerMetricsDbRow>(
-        `
+    db.query<CustomerMetricsDbRow>(
+      `
         SELECT
           COUNT(o.id)::int AS total_orders,
           COALESCE(SUM(o.payable_amount), 0)::double precision AS total_payable,
@@ -226,11 +247,11 @@ export async function getCustomerDetailPageData(
         FROM orders o
         WHERE o.customer_id = $1::uuid
       `,
-        [id],
-      ),
+      [id],
+    ),
 
-      db.query<CustomerRecentOrderDbRow>(
-        `
+    db.query<CustomerRecentOrderDbRow>(
+      `
         SELECT
           o.id::text AS id,
           o.order_code,
@@ -247,11 +268,11 @@ export async function getCustomerDetailPageData(
         ORDER BY o.created_at DESC
         LIMIT 10
       `,
-        [id],
-      ),
+      [id],
+    ),
 
-      db.query<CustomerRecentPaymentDbRow>(
-        `
+    db.query<CustomerRecentPaymentDbRow>(
+      `
         SELECT
           p.id::text AS id,
           o.id::text AS order_id,
@@ -268,11 +289,11 @@ export async function getCustomerDetailPageData(
         ORDER BY p.created_at DESC
         LIMIT 10
       `,
-        [id],
-      ),
+      [id],
+    ),
 
-      db.query<CustomerRefundDbRow>(
-        `
+    db.query<CustomerRefundDbRow>(
+      `
         SELECT
           r.id::text AS id,
           r.order_id::text AS order_id,
@@ -289,11 +310,11 @@ export async function getCustomerDetailPageData(
         ORDER BY r.created_at DESC
         LIMIT 10
       `,
-        [id],
-      ),
+      [id],
+    ),
 
-      db.query<CustomerCreditTransactionDbRow>(
-        `
+    db.query<CustomerCreditTransactionDbRow>(
+      `
         SELECT
           cct.id::text AS id,
           cct.transaction_type,
@@ -307,11 +328,11 @@ export async function getCustomerDetailPageData(
         ORDER BY cct.created_at DESC
         LIMIT 10
       `,
-        [id],
-      ),
+      [id],
+    ),
 
-      db.query<CustomerAuditLogDbRow>(
-        `
+    db.query<CustomerAuditLogDbRow>(
+      `
         SELECT
           cal.id::text AS id,
           cal.action,
@@ -324,9 +345,9 @@ export async function getCustomerDetailPageData(
         ORDER BY cal.created_at DESC
         LIMIT 10
       `,
-        [id],
-      ),
-    ]);
+      [id],
+    ),
+  ]);
 
   const customerRow = customerResult.rows[0];
   if (!customerRow) return null;

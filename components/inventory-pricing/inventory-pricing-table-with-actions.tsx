@@ -4,6 +4,7 @@ import { useState } from "react";
 import { InventoryPricingListControls } from "@/components/dashboard/inventory-pricing-list-controls";
 import { InventoryPricingDataTable } from "@/components/inventory-pricing/inventory-pricing-data-table";
 import { InventoryPricingDialog } from "@/components/inventory-pricing/inventory-pricing-dialog";
+import type { CustomerTypeOption } from "@/lib/customers/types";
 import type {
   DashboardPaginationState,
   InventoryPricingInventoryOption,
@@ -21,6 +22,7 @@ type InventoryPricingTableWithActionsProps = {
   canCreate: boolean;
   canEdit: boolean;
   selectedBranchName: string;
+  customerTypeOptions: CustomerTypeOption[];
 };
 
 export function InventoryPricingTableWithActions({
@@ -33,6 +35,7 @@ export function InventoryPricingTableWithActions({
   canCreate,
   canEdit,
   selectedBranchName,
+  customerTypeOptions,
 }: InventoryPricingTableWithActionsProps) {
   const [editRow, setEditRow] = useState<InventoryPricingRow | null>(null);
   const addPricingDisabled = inventoryOptions.length === 0;
@@ -50,6 +53,7 @@ export function InventoryPricingTableWithActions({
         canCreate={canCreate}
         addPricingDisabled={addPricingDisabled}
         addPricingHref={addPricingHref}
+        customerTypeOptions={customerTypeOptions}
       />
 
       <InventoryPricingDataTable
@@ -70,6 +74,7 @@ export function InventoryPricingTableWithActions({
         inventoryOptions={inventoryOptions}
         onClose={() => setEditRow(null)}
         onSaved={() => setEditRow(null)}
+        customerTypeOptions={customerTypeOptions}
       />
     </>
   );

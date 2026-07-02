@@ -1,5 +1,6 @@
 import "server-only";
 import type { AuthenticatedUser } from "@/lib/auth/current-user";
+import { getCustomerTypeOptions } from "@/lib/customers/queries";
 import { getPool } from "@/lib/db/postgres";
 import { getDashboardContext, NO_BRANCH_SCOPE_ID } from "@/lib/dashboard/queries";
 import type {
@@ -35,6 +36,7 @@ export async function getOfferFormPageData(
   const selectedBranchName =
     branchOptions.find((branch) => branch.id === selectedBranchId)?.name ??
     context.selectedBranchName;
+  const customerTypeOptions = await getCustomerTypeOptions();
 
   return {
     branchOptions,
@@ -42,6 +44,7 @@ export async function getOfferFormPageData(
     selectedBranchName,
     canSelectBranch: context.canSelectAll,
     noBranchAssigned,
+    customerTypeOptions,
   };
 }
 

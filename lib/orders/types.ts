@@ -1,6 +1,7 @@
+import type { CustomerTypeOption } from "@/lib/customers/types";
 import type { BranchOption } from "@/lib/dashboard/types";
 import type { PaymentMode } from "@/lib/expenses/types";
-import type { OfferCustomerType, OfferType } from "@/lib/offers/types";
+import type { OfferType } from "@/lib/offers/types";
 
 // Percentage of subtotal above which orders:apply_high_discount is required.
 export const ORDER_HIGH_DISCOUNT_PERCENT = 10;
@@ -9,7 +10,7 @@ export type OrderCustomerOption = {
   id: string;
   customerNumericId: number | null;
   customerCode: string | null;
-  type: OfferCustomerType;
+  type: string;
   name: string;
   studioName: string | null;
   phone: string;
@@ -25,7 +26,7 @@ export type OrderInventoryOption = {
   sku: string;
   quantity: number;
   unit: string;
-  prices: Partial<Record<OfferCustomerType, number>>;
+  prices: Partial<Record<string, number>>;
 };
 
 export type OrderOfferOption = {
@@ -37,7 +38,7 @@ export type OrderOfferOption = {
   buyQuantity: number | null;
   getQuantity: number | null;
   minimumOrderValue: number | null;
-  customerTypes: OfferCustomerType[] | null;
+  customerTypes: string[] | null;
   startsAt: string;
   endsAt: string | null;
 };
@@ -61,13 +62,14 @@ export type AddOrderPageData = {
   vendors: OrderVendorOption[];
   prefillCustomer: OrderCustomerOption | null;
   prefillError: string | null;
+  customerTypeOptions: CustomerTypeOption[];
 };
 
 export type CreateOrderFormValues = {
   branchId: string;
   customerMode: "existing" | "new";
   customerId: string;
-  customerType: OfferCustomerType | "";
+  customerType: string;
   customerName: string;
   customerPhone: string;
   customerCode: string;
@@ -181,7 +183,7 @@ export type OrderDetailData = {
     customerName: string;
     customerPhone: string;
     customerCode: string | null;
-    customerType: OfferCustomerType;
+    customerType: string;
     status: OrderStatusValue;
     totalAmount: number;
     discountAmount: number;

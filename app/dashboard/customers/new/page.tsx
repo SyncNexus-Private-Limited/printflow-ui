@@ -4,6 +4,7 @@ import { SectionCard } from "@/components/dashboard/section-card";
 import { CustomerForm } from "@/components/customers/customer-form";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasPermission } from "@/lib/auth/permissions";
+import { getCustomerTypeOptions } from "@/lib/customers/queries";
 
 export default async function AddCustomerPage() {
   const currentUser = await getCurrentUser({ touchSession: true });
@@ -12,6 +13,8 @@ export default async function AddCustomerPage() {
   if (!hasPermission(currentUser, "customers:create")) {
     redirect("/dashboard?forbidden=1");
   }
+
+  const customerTypeOptions = await getCustomerTypeOptions();
 
   return (
     <main className="min-h-screen px-4 py-8">
@@ -29,7 +32,10 @@ export default async function AddCustomerPage() {
           title="New customer"
           description="Add a new customer to the system. They can be linked to orders after creation."
         >
-          <CustomerForm redirectTo="/dashboard/customers" />
+          <CustomerForm
+            redirectTo="/dashboard/customers"
+            customerTypeOptions={customerTypeOptions}
+          />
         </SectionCard>
       </div>
     </main>

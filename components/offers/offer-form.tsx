@@ -9,13 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
-import { offerSchema } from "@/lib/offers/schema";
+import { buildOfferSchema } from "@/lib/offers/schema";
 import {
-  customerTypeLabels,
-  customerTypeValues,
   offerTypeLabels,
   offerTypeValues,
-  type OfferCustomerType,
   type OfferFieldName,
   type OfferFormPageData,
   type OfferFormValues,
@@ -67,13 +64,22 @@ function FieldError({ message }: { message?: string }) {
   return message ? <p className="text-xs text-[rgb(var(--danger))]">{message}</p> : null;
 }
 
-export function OfferForm({ branchOptions, selectedBranchId, canSelectBranch }: OfferFormPageData) {
+export function OfferForm({
+  branchOptions,
+  selectedBranchId,
+  canSelectBranch,
+  customerTypeOptions,
+}: OfferFormPageData) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [, startNavTransition] = useTransition();
   const [serverError, setServerError] = useState<string | null>(null);
   const defaultValues = useMemo(() => buildDefaultValues(selectedBranchId), [selectedBranchId]);
+  const schema = useMemo(
+    () => buildOfferSchema(customerTypeOptions.map((option) => option.value)),
+    [customerTypeOptions],
+  );
   const {
     register,
     handleSubmit,
@@ -84,7 +90,7 @@ export function OfferForm({ branchOptions, selectedBranchId, canSelectBranch }: 
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<OfferFormValues>({
-    resolver: zodResolver(offerSchema) as unknown as Resolver<OfferFormValues>,
+    resolver: zodResolver(schema) as unknown as Resolver<OfferFormValues>,
     defaultValues,
   });
 
@@ -103,7 +109,7 @@ export function OfferForm({ branchOptions, selectedBranchId, canSelectBranch }: 
     return typeof err.message === "string" ? err.message : undefined;
   }
 
-  function toggleCustomerType(type: OfferCustomerType) {
+  function toggleCustomerType(type: string) {
     const current = selectedCustomerTypes ?? [];
     const next = current.includes(type) ? current.filter((t) => t !== type) : [...current, type];
     setValue("customerTypes", next, { shouldValidate: true });
@@ -271,14 +277,14 @@ export function OfferForm({ branchOptions, selectedBranchId, canSelectBranch }: 
         <div className="space-y-1.5">
           <FieldLabel optional>Customer type</FieldLabel>
           <div className="flex flex-wrap gap-2 pt-0.5">
-            {customerTypeValues.map((type) => {
-              const isSelected = selectedCustomerTypes.includes(type);
+            {customerTypeOptions.map((option) => {
+              const isSelected = selectedCustomerTypes.includes(option.value);
               return (
                 <button
-                  key={type}
+                  key={option.value}
                   type="button"
                   disabled={isSubmitting}
-                  onClick={() => toggleCustomerType(type)}
+                  onClick={() => toggleCustomerType(option.value)}
                   className={cn(
                     "rounded-full border px-3 py-1 text-xs font-medium transition-colors",
                     isSelected
@@ -287,7 +293,7 @@ export function OfferForm({ branchOptions, selectedBranchId, canSelectBranch }: 
                     isSubmitting && "cursor-not-allowed opacity-50",
                   )}
                 >
-                  {customerTypeLabels[type]}
+                  {option.label}
                 </button>
               );
             })}
@@ -295,7 +301,9 @@ export function OfferForm({ branchOptions, selectedBranchId, canSelectBranch }: 
           <p className="text-xs text-[rgb(var(--muted-foreground))]">
             {selectedCustomerTypes.length === 0
               ? "No selection — applies to all customer types."
-              : `Applies to: ${selectedCustomerTypes.map((t) => customerTypeLabels[t]).join(", ")}.`}
+              : `Applies to: ${selectedCustomerTypes
+                  .map((t) => customerTypeOptions.find((option) => option.value === t)?.label ?? t)
+                  .join(", ")}.`}
           </p>
           <FieldError message={getFieldError("customerTypes")} />
         </div>

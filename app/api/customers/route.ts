@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { hasPermission } from "@/lib/auth/permissions";
 import { CustomerMutationError, createCustomer } from "@/lib/customers/mutations";
-import { customerSchema, getCustomerFieldErrors } from "@/lib/customers/schema";
+import { getCustomerTypeValues } from "@/lib/customers/queries";
+import { buildCustomerSchema, getCustomerFieldErrors } from "@/lib/customers/schema";
 import { getPool } from "@/lib/db/postgres";
 import type { OrderCustomerOption } from "@/lib/orders/types";
 
@@ -79,7 +80,8 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const parsed = customerSchema.safeParse(body);
+    const validTypes = await getCustomerTypeValues();
+    const parsed = buildCustomerSchema(validTypes).safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(

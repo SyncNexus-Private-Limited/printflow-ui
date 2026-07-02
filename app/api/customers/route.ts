@@ -30,7 +30,6 @@ export async function GET(request: Request) {
         SELECT
           c.id::text AS id,
           c.customer_numeric_id AS "customerNumericId",
-          c.customer_code AS "customerCode",
           c.type::text AS type,
           c.name,
           c.studio_name AS "studioName",
@@ -50,7 +49,6 @@ export async function GET(request: Request) {
             $1 = ''
             OR c.name ILIKE '%' || $1 || '%'
             OR c.phone ILIKE '%' || $1 || '%'
-            OR c.customer_code ILIKE '%' || $1 || '%'
             OR c.customer_numeric_id::text ILIKE '%' || $1 || '%'
             OR c.studio_name ILIKE '%' || $1 || '%'
           )

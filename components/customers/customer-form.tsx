@@ -72,7 +72,7 @@ export function CustomerForm({ redirectTo, customerTypeOptions }: CustomerFormPr
       alternatePhone: "",
       address: "",
       studioName: "",
-      customerCode: "",
+      customerNumericId: "",
       aadhaarNumber: "",
       studioAssociationName: "",
       studioAssociationIdNumber: "",
@@ -201,22 +201,17 @@ export function CustomerForm({ redirectTo, customerTypeOptions }: CustomerFormPr
         </div>
 
         <div className="space-y-1.5">
-          <FieldLabel htmlFor="customer-code" optional>
-            Customer code
-          </FieldLabel>
+          <FieldLabel htmlFor="customer-numeric-id">Customer numeric code</FieldLabel>
           <Input
-            id="customer-code"
-            placeholder="e.g. CUST-001"
-            disabled={isSubmitting}
-            {...register("customerCode")}
-            onChange={(e) =>
-              setValue("customerCode", e.target.value.toUpperCase(), { shouldDirty: true })
-            }
+            id="customer-numeric-id"
+            placeholder="Assigned automatically after creation"
+            disabled
+            readOnly
+            value=""
           />
           <p className="text-xs text-[rgb(var(--muted-foreground))]">
-            4–25 characters. Uppercase letters, numbers, and hyphens only.
+            A unique numeric code is assigned automatically when the customer is created.
           </p>
-          <FieldError message={getFieldError("customerCode")} />
         </div>
 
         <div className="space-y-1.5 sm:col-span-2">

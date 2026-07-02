@@ -249,7 +249,8 @@ export function OrderEditForm({
 
   const summaryName = selectedCustomer?.name ?? detail.order.customerName;
   const summaryPhone = selectedCustomer?.phone ?? detail.order.customerPhone;
-  const summaryCode = selectedCustomer?.customerCode ?? detail.order.customerCode ?? "";
+  const rawSummaryNumericId = selectedCustomer?.customerNumericId ?? detail.order.customerNumericId;
+  const summaryNumericId = rawSummaryNumericId != null ? `#${rawSummaryNumericId}` : "";
 
   // ── helpers (close over derived state) ────────────────────────────────────
 
@@ -435,7 +436,7 @@ export function OrderEditForm({
                 </div>
                 <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[11.5px] text-[rgb(var(--muted-foreground))]">
                   <span>{summaryPhone || "No phone"}</span>
-                  {summaryCode ? <span>{summaryCode}</span> : null}
+                  {summaryNumericId ? <span>{summaryNumericId}</span> : null}
                   <span>{detail.order.branchName}</span>
                 </div>
               </div>
@@ -776,9 +777,9 @@ export function OrderEditForm({
                         ?.label ?? formatEnumLabel(resolvedCustomerType)}
                     </span>
                   </div>
-                  {summaryPhone || summaryCode ? (
+                  {summaryPhone || summaryNumericId ? (
                     <div className="mt-0.5 truncate font-mono text-[11px] text-[rgb(var(--primary-soft-foreground)/0.85)]">
-                      {[summaryPhone, summaryCode].filter(Boolean).join(" · ")}
+                      {[summaryPhone, summaryNumericId].filter(Boolean).join(" · ")}
                     </div>
                   ) : null}
                 </div>

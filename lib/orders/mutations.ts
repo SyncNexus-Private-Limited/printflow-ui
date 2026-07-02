@@ -129,16 +129,14 @@ async function resolveCustomer(client: PoolClient, input: CreateOrderInput): Pro
     `
       INSERT INTO customers
         (
-          customer_numeric_id, customer_code, type, name, studio_name,
+          type, name, studio_name,
           phone, alternate_phone, address
         )
       VALUES
-        ($1, $2, $3::customer_type, $4, $5, $6, $7, $8)
+        ($1::customer_type, $2, $3, $4, $5, $6)
       RETURNING id::text AS id, type::text AS type
     `,
     [
-      input.customerNumericId ? Number.parseInt(input.customerNumericId, 10) : null,
-      normalizeOptional(input.customerCode),
       input.customerType,
       input.customerName,
       normalizeOptional(input.studioName),
@@ -805,18 +803,6 @@ export async function createOrder(
     if (error instanceof OrderMutationError) throw error;
 
     const message = error instanceof Error ? error.message : "";
-    if (message.includes("customers_customer_code_key")) {
-      throw new OrderMutationError("A customer with this code already exists.", {
-        status: 409,
-        fieldErrors: { customerCode: "This code is already in use." },
-      });
-    }
-    if (message.includes("customers_customer_numeric_id_key")) {
-      throw new OrderMutationError("A customer with this numeric ID already exists.", {
-        status: 409,
-        fieldErrors: { customerNumericId: "This numeric ID is already in use." },
-      });
-    }
     if (message.includes("customers_phone")) {
       throw new OrderMutationError("A customer with this phone already exists.", {
         status: 409,

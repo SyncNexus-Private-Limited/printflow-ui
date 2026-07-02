@@ -8,8 +8,7 @@ export const ORDER_HIGH_DISCOUNT_PERCENT = 10;
 
 export type OrderCustomerOption = {
   id: string;
-  customerNumericId: number | null;
-  customerCode: string | null;
+  customerNumericId: number;
   type: string;
   name: string;
   studioName: string | null;
@@ -72,8 +71,6 @@ export type CreateOrderFormValues = {
   customerType: string;
   customerName: string;
   customerPhone: string;
-  customerCode: string;
-  customerNumericId: string;
   studioName: string;
   alternatePhone: string;
   customerAddress: string;
@@ -102,8 +99,6 @@ export const createOrderFieldNames = [
   "customerType",
   "customerName",
   "customerPhone",
-  "customerCode",
-  "customerNumericId",
   "studioName",
   "alternatePhone",
   "customerAddress",
@@ -182,7 +177,7 @@ export type OrderDetailData = {
     customerId: string;
     customerName: string;
     customerPhone: string;
-    customerCode: string | null;
+    customerNumericId: number;
     customerType: string;
     status: OrderStatusValue;
     totalAmount: number;

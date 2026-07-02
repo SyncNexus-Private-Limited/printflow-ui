@@ -56,7 +56,6 @@ const RESET_CUSTOMER_FILTERS: Partial<CustomerPageFilterState> = {
   name: null,
   phone: null,
   alternatePhone: null,
-  customerCode: null,
   customerNumericId: null,
   studioName: null,
   address: null,
@@ -92,7 +91,6 @@ function getActiveFilterCount(filters: CustomerPageFilterState) {
   if (filters.name) count += 1;
   if (filters.phone) count += 1;
   if (filters.alternatePhone) count += 1;
-  if (filters.customerCode) count += 1;
   if (filters.customerNumericId) count += 1;
   if (filters.studioName) count += 1;
   if (filters.address) count += 1;
@@ -177,8 +175,6 @@ function buildAppliedFilterSummaryItems(
   if (filters.phone) items.push({ key: "phone", label: `Phone: ${filters.phone}` });
   if (filters.alternatePhone)
     items.push({ key: "alt-phone", label: `Alt. phone: ${filters.alternatePhone}` });
-  if (filters.customerCode)
-    items.push({ key: "customer-code", label: `Code: ${filters.customerCode}` });
   if (filters.customerNumericId)
     items.push({ key: "customer-id", label: `ID: ${filters.customerNumericId}` });
   if (filters.studioName)
@@ -651,37 +647,22 @@ export function CustomerListControls({
               </label>
 
               <label className="space-y-2">
-                <span className={FILTER_FIELD_LABEL_CLASS}>Customer code</span>
+                <span className={FILTER_FIELD_LABEL_CLASS}>Numeric ID</span>
                 <Input
                   type="text"
-                  placeholder="e.g. C-001"
-                  value={draftFilters.customerCode ?? ""}
+                  placeholder="Search by numeric ID"
+                  value={draftFilters.customerNumericId ?? ""}
                   onChange={(event) =>
                     updateDraftFilters((currentValue) => ({
                       ...currentValue,
-                      customerCode: event.target.value.length > 0 ? event.target.value : null,
+                      customerNumericId:
+                        event.target.value.length > 0 ? event.target.value : null,
                     }))
                   }
                   className="h-11 rounded-2xl bg-[rgb(var(--background))]"
                 />
               </label>
             </div>
-
-            <label className="space-y-2">
-              <span className={FILTER_FIELD_LABEL_CLASS}>Numeric ID</span>
-              <Input
-                type="text"
-                placeholder="Search by numeric ID"
-                value={draftFilters.customerNumericId ?? ""}
-                onChange={(event) =>
-                  updateDraftFilters((currentValue) => ({
-                    ...currentValue,
-                    customerNumericId: event.target.value.length > 0 ? event.target.value : null,
-                  }))
-                }
-                className="h-11 rounded-2xl bg-[rgb(var(--background))]"
-              />
-            </label>
           </section>
 
           <section className="space-y-3">

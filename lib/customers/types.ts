@@ -9,7 +9,7 @@ export const customerFieldNames = [
   "alternatePhone",
   "address",
   "studioName",
-  "customerCode",
+  "customerNumericId",
   "aadhaarNumber",
   "studioAssociationName",
   "studioAssociationIdNumber",
@@ -25,7 +25,7 @@ export type CustomerFormValues = {
   alternatePhone: string;
   address: string;
   studioName: string;
-  customerCode: string;
+  customerNumericId: string;
   aadhaarNumber: string;
   studioAssociationName: string;
   studioAssociationIdNumber: string;
@@ -35,8 +35,7 @@ export type CustomerFormValues = {
 
 export type EditCustomerRow = {
   id: string;
-  customerNumericId: number | null;
-  customerCode: string | null;
+  customerNumericId: number;
   type: string;
   name: string;
   phone: string;

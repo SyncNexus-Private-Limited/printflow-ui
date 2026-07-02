@@ -72,7 +72,7 @@ function buildDefaultValues(customer: EditCustomerRow): CustomerFormValues {
     alternatePhone: customer.alternatePhone ?? "",
     address: customer.address ?? "",
     studioName: customer.studioName ?? "",
-    customerCode: customer.customerCode ?? "",
+    customerNumericId: String(customer.customerNumericId),
     // Aadhaar is intentionally NOT pre-filled (sensitive; must be re-entered).
     aadhaarNumber: "",
     studioAssociationName: customer.studioAssociationName ?? "",
@@ -115,7 +115,7 @@ export function CustomerEditDialog({
       alternatePhone: "",
       address: "",
       studioName: "",
-      customerCode: "",
+      customerNumericId: "",
       aadhaarNumber: "",
       studioAssociationName: "",
       studioAssociationIdNumber: "",
@@ -320,21 +320,17 @@ export function CustomerEditDialog({
               </div>
 
               <div className="space-y-1.5">
-                <FieldLabel htmlFor="edit-customer-code" optional>
-                  Customer code
-                </FieldLabel>
+                <FieldLabel htmlFor="edit-customer-numeric-id">Customer numeric code</FieldLabel>
                 <Input
-                  id="edit-customer-code"
+                  id="edit-customer-numeric-id"
+                  inputMode="numeric"
                   disabled={isSubmitting}
-                  {...register("customerCode")}
-                  onChange={(e) =>
-                    setValue("customerCode", e.target.value.toUpperCase(), { shouldDirty: true })
-                  }
+                  {...register("customerNumericId")}
                 />
                 <p className="text-xs text-[rgb(var(--muted-foreground))]">
-                  4–25 characters. Uppercase letters, numbers, and hyphens only.
+                  Digits only. Must be unique across all customers.
                 </p>
-                <FieldError message={getFieldError("customerCode")} />
+                <FieldError message={getFieldError("customerNumericId")} />
               </div>
 
               <div className="space-y-1.5 sm:col-span-2">
@@ -426,9 +422,6 @@ export function CustomerEditDialog({
             {readyCustomer ? (
               <div className="rounded-2xl border border-dashed border-[rgb(var(--border))] bg-[rgb(var(--muted)/0.42)] px-4 py-3 text-xs text-[rgb(var(--muted-foreground))]">
                 Added {formatDateTime(readyCustomer.createdAt)}
-                {readyCustomer.customerNumericId ? (
-                  <span className="ml-3">ID #{readyCustomer.customerNumericId}</span>
-                ) : null}
               </div>
             ) : null}
           </div>

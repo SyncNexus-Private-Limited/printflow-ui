@@ -24,7 +24,7 @@ export class CustomerMutationError extends Error {
 
 export type CustomerAuditSnapshot = {
   id: string;
-  customerCode: string | null;
+  customerNumericId: number;
   type: string;
   name: string;
   phone: string;
@@ -46,7 +46,7 @@ export type CustomerAuditSnapshot = {
 
 type CustomerAuditSnapshotRow = {
   id: string;
-  customer_code: string | null;
+  customer_numeric_id: number;
   type: string;
   name: string;
   phone: string;
@@ -73,7 +73,7 @@ export async function fetchCustomerSnapshotForAudit(
     `
       SELECT
         c.id::text AS id,
-        c.customer_code,
+        c.customer_numeric_id,
         c.type::text AS type,
         c.name,
         c.phone,
@@ -103,7 +103,7 @@ export async function fetchCustomerSnapshotForAudit(
 
   return {
     id: row.id,
-    customerCode: row.customer_code,
+    customerNumericId: row.customer_numeric_id,
     type: row.type,
     name: row.name,
     phone: row.phone,
@@ -157,7 +157,7 @@ function buildUpdateChangedFields(
   const nextAlternatePhone = input.alternatePhone ?? null;
   const nextAddress = input.address ?? null;
   const nextStudioName = input.studioName ?? null;
-  const nextCustomerCode = input.customerCode ?? null;
+  const nextCustomerNumericId = Number.parseInt(input.customerNumericId ?? "", 10);
   // When blank, the Aadhaar field means "keep existing" (not "clear"), so we
   // only track a change when the user explicitly provided a new value.
   const nextAadhaarMasked = input.aadhaarNumber ? "***" : null;
@@ -168,6 +168,12 @@ function buildUpdateChangedFields(
   if (snapshot.name !== input.name) changedFields.name = { from: snapshot.name, to: input.name };
   if (snapshot.phone !== input.phone)
     changedFields.phone = { from: snapshot.phone, to: input.phone };
+  if (snapshot.customerNumericId !== nextCustomerNumericId) {
+    changedFields.customerNumericId = {
+      from: snapshot.customerNumericId,
+      to: nextCustomerNumericId,
+    };
+  }
   if ((snapshot.alternatePhone ?? null) !== nextAlternatePhone) {
     changedFields.alternatePhone = { from: snapshot.alternatePhone, to: nextAlternatePhone };
   }
@@ -176,9 +182,6 @@ function buildUpdateChangedFields(
   }
   if ((snapshot.studioName ?? null) !== nextStudioName) {
     changedFields.studioName = { from: snapshot.studioName, to: nextStudioName };
-  }
-  if ((snapshot.customerCode ?? null) !== nextCustomerCode) {
-    changedFields.customerCode = { from: snapshot.customerCode, to: nextCustomerCode };
   }
   // Only log Aadhaar as changed when the user provided a new value (non-blank).
   // Blank field means "keep existing", so no change is recorded in that case.
@@ -214,13 +217,12 @@ function handleDbError(error: unknown): never {
   const message = error instanceof Error ? error.message : "";
 
   if (
-    message.includes("customers_customer_code_key") ||
-    message.includes("uq_customers_code_lower") ||
-    (message.includes("duplicate key value") && message.includes("customer_code"))
+    message.includes("customers_customer_numeric_id_key") ||
+    (message.includes("duplicate key value") && message.includes("customer_numeric_id"))
   ) {
-    throw new CustomerMutationError("A customer with this code already exists.", {
+    throw new CustomerMutationError("This numeric code is already in use.", {
       status: 409,
-      fieldErrors: { customerCode: "This customer code is already in use." },
+      fieldErrors: { customerNumericId: "This numeric code is already in use." },
     });
   }
 
@@ -264,13 +266,13 @@ export async function createCustomer(
       `
         INSERT INTO customers
           (
-            type, name, phone, alternate_phone, address, studio_name, customer_code,
+            type, name, phone, alternate_phone, address, studio_name,
             aadhaar_number, studio_association_name, studio_association_id_number,
             avatar, avatar_source,
             created_by, updated_by
           )
         VALUES
-          ($1::customer_type, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::uuid, $13::uuid)
+          ($1::customer_type, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::uuid, $12::uuid)
         RETURNING id::text AS id
       `,
       [
@@ -280,7 +282,6 @@ export async function createCustomer(
         input.alternatePhone ?? null,
         input.address ?? null,
         input.type === "studio" ? (input.studioName ?? null) : null,
-        input.customerCode ?? null,
         input.aadhaarNumber ?? null,
         input.type === "studio" ? (input.studioAssociationName ?? null) : null,
         input.type === "studio" ? (input.studioAssociationIdNumber ?? null) : null,
@@ -320,6 +321,15 @@ export async function updateCustomer(
 ): Promise<void> {
   assertPermission(currentUser, "customers:edit");
 
+  const rawCustomerNumericId = input.customerNumericId?.trim();
+  if (!rawCustomerNumericId) {
+    throw new CustomerMutationError("Numeric code is required.", {
+      status: 400,
+      fieldErrors: { customerNumericId: "Numeric code is required." },
+    });
+  }
+  const nextCustomerNumericId = Number.parseInt(rawCustomerNumericId, 10);
+
   const db = getPool();
   const client = await db.connect();
 
@@ -329,6 +339,20 @@ export async function updateCustomer(
     const snapshot = await fetchCustomerSnapshotForAudit(client, customerId);
     if (!snapshot) {
       throw new CustomerMutationError("Customer not found.", { status: 404 });
+    }
+
+    // Explicit pre-check so a duplicate numeric code surfaces as a friendly
+    // field error before attempting the UPDATE — the UNIQUE constraint
+    // (caught in handleDbError) remains the concurrency backstop.
+    const { rows: dupeRows } = await client.query<{ id: string }>(
+      `SELECT id::text AS id FROM customers WHERE customer_numeric_id = $1 AND id <> $2::uuid LIMIT 1`,
+      [nextCustomerNumericId, customerId],
+    );
+    if (dupeRows.length > 0) {
+      throw new CustomerMutationError("This numeric code is already in use.", {
+        status: 409,
+        fieldErrors: { customerNumericId: "This numeric code is already in use." },
+      });
     }
 
     const changedFields = buildUpdateChangedFields(snapshot, input);
@@ -346,7 +370,7 @@ export async function updateCustomer(
           alternate_phone = $5,
           address = $6,
           studio_name = $7,
-          customer_code = $8,
+          customer_numeric_id = $8,
           aadhaar_number = CASE WHEN $9::text IS NOT NULL THEN $9::text ELSE aadhaar_number END,
           studio_association_name = $10,
           studio_association_id_number = $11,
@@ -363,7 +387,7 @@ export async function updateCustomer(
         input.alternatePhone ?? null,
         input.address ?? null,
         input.type === "studio" ? (input.studioName ?? null) : null,
-        input.customerCode ?? null,
+        nextCustomerNumericId,
         input.aadhaarNumber ?? null,
         input.type === "studio" ? (input.studioAssociationName ?? null) : null,
         input.type === "studio" ? (input.studioAssociationIdNumber ?? null) : null,

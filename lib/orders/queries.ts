@@ -56,7 +56,6 @@ export async function getAddOrderPageData(
           SELECT
             c.id::text AS id,
             c.customer_numeric_id AS "customerNumericId",
-            c.customer_code AS "customerCode",
             c.type::text AS type,
             c.name,
             c.studio_name AS "studioName",
@@ -176,7 +175,6 @@ export async function getOrderPrefillCustomer(
       SELECT
         c.id::text AS id,
         c.customer_numeric_id AS "customerNumericId",
-        c.customer_code AS "customerCode",
         c.type::text AS type,
         c.name,
         c.studio_name AS "studioName",
@@ -217,7 +215,7 @@ export async function getOrderDetail(
         c.id::text AS "customerId",
         c.name AS "customerName",
         c.phone AS "customerPhone",
-        c.customer_code AS "customerCode",
+        c.customer_numeric_id AS "customerNumericId",
         c.type::text AS "customerType",
         o.status::text AS status,
         o.total_amount::double precision AS "totalAmount",

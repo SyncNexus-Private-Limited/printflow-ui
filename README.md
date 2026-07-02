@@ -39,7 +39,7 @@ Prettier handles formatting, Tailwind class sorting, and PostgreSQL SQL formatti
 - Migration files use `-- migrate:up` and `-- migrate:down`.
 - Applied migrations are tracked in the `schema_migrations` table.
 - 7 consolidated production migrations exist (`20260410_000001` – `20260410_000007`). See `db/MIGRATIONS.md` for the full structure.
-- Several point migrations have since been added on top of that baseline: `lab` and `CC` customer types, vendor `business_name`, offer `customer_types` array, and order cancellation/refunds/credits.
+- Several point migrations have since been added on top of that baseline: `lab` and `CC` customer types, vendor `business_name`, offer `customer_types` array, order cancellation/refunds/credits, and removal of `customer_code` in favor of a DB-generated, auto-incrementing `customer_numeric_id`.
 - Migration checksums are validated before apply and rollback.
 - Original dev migrations are archived in `db/migrations_dev/` — do not run them.
 - Branch management adds branch audit logs plus created/updated user tracking.
@@ -181,8 +181,9 @@ Role-based access is defined in `lib/auth/permissions.ts`. Every guarded action 
 - Mutations in `lib/customers/mutations.ts` enforce RBAC and branch access.
 - Deactivate is soft (sets `is_active = false`); hard deletes are not supported.
 - `customer_type` is a Postgres enum (currently `studio`, `amateur`, `other`, `employee`, `lab`, `CC`) read live from the DB at request time via `getCustomerTypeOptions()`/`getCustomerTypeValues()` (`lib/customers/queries.ts`) — there's no hardcoded list in the app, so a new type only needs a migration (`ALTER TYPE customer_type ADD VALUE ...`), no code change. Every customer-type `<select>`/filter/multi-select across customers, orders, offers, and inventory pricing consumes this same live list via a `customerTypeOptions` prop, and the client-side Zod schemas that validate it (`buildCustomerSchema`, `buildOfferSchema`, `buildInventoryPricingSchema`, `buildCreateOrderSchema`) are factory functions parameterized by that list rather than static exports.
-- The customer table has a sortable numeric ID column; search matches name, phone, code, numeric ID, and `studio_name`.
-- The Add Order page reuses this same debounced customer search to find/prefill a customer.
+- The customer table has a sortable numeric ID column; search matches name, phone, numeric ID, and `studio_name`. There is no `customer_code` column — it was removed; `customer_numeric_id` is the sole customer identifier.
+- `customer_numeric_id` is `NOT NULL`, unique, and DB-generated on creation (`trigger_set_customer_numeric_id` + `generate_customer_numeric_id()` + a global `customer_sequences` counter table, mirroring how `order_code` auto-increments per branch/year). Add Customer shows it read-only; **Edit Customer allows changing it**, and `updateCustomer` validates the new value against the database (an explicit duplicate pre-check plus the `customers_customer_numeric_id_key` UNIQUE constraint as a backstop) before saving.
+- The Add Order page reuses this same debounced customer search to find/prefill a customer, and its own "Create New customer" inline flow also gets an auto-assigned numeric ID (no manual entry).
 
 ## Expense categories
 

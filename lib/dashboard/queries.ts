@@ -899,10 +899,6 @@ function getCustomerOrderByClause(filters: CustomerPageFilterState): string {
       return "CASE WHEN c.studio_name IS NULL THEN 1 ELSE 0 END ASC, LOWER(COALESCE(c.studio_name, '')) ASC, c.created_at DESC";
     case "studio-name-desc":
       return "CASE WHEN c.studio_name IS NULL THEN 1 ELSE 0 END ASC, LOWER(COALESCE(c.studio_name, '')) DESC, c.created_at DESC";
-    case "customer-code-asc":
-      return "CASE WHEN c.customer_code IS NULL THEN 1 ELSE 0 END ASC, LOWER(COALESCE(c.customer_code, '')) ASC, c.created_at DESC";
-    case "customer-code-desc":
-      return "CASE WHEN c.customer_code IS NULL THEN 1 ELSE 0 END ASC, LOWER(COALESCE(c.customer_code, '')) DESC, c.created_at DESC";
     case "customer-id-asc":
       return "c.customer_numeric_id ASC NULLS LAST, c.created_at DESC";
     case "customer-id-desc":
@@ -967,7 +963,6 @@ function buildCustomerQueryParts(
       `(c.name ILIKE '%' || $${values.length} || '%'` +
         ` OR c.phone ILIKE '%' || $${values.length} || '%'` +
         ` OR c.customer_numeric_id::text ILIKE '%' || $${values.length} || '%'` +
-        ` OR c.customer_code ILIKE '%' || $${values.length} || '%'` +
         ` OR c.studio_name ILIKE '%' || $${values.length} || '%')`,
     );
   }
@@ -985,11 +980,6 @@ function buildCustomerQueryParts(
   if (filters.alternatePhone) {
     values.push(filters.alternatePhone);
     whereParts.push(`c.alternate_phone ILIKE '%' || $${values.length} || '%'`);
-  }
-
-  if (filters.customerCode) {
-    values.push(filters.customerCode);
-    whereParts.push(`c.customer_code ILIKE '%' || $${values.length} || '%'`);
   }
 
   if (filters.customerNumericId) {
@@ -1181,7 +1171,6 @@ export async function getCustomersPageData(
       SELECT
         c.id::text AS id,
         c.customer_numeric_id AS "customerNumericId",
-        c.customer_code AS "customerCode",
         c.type::text AS type,
         c.name,
         c.avatar,
@@ -1489,7 +1478,6 @@ export async function getCustomerDetails(branchId: string | null) {
       SELECT
         c.id::text AS id,
         c.customer_numeric_id AS "customerNumericId",
-        c.customer_code AS "customerCode",
         c.type::text AS type,
         c.name,
         c.avatar,
